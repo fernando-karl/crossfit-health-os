@@ -6,7 +6,8 @@
       "close": "Close",
       "delete": "Delete",
       "create": "Create",
-      "back_home": "Back to home"
+      "back_home": "Back to home",
+      "watch_video": "Watch tutorial on YouTube"
     },
     "loading": "Loading…",
     "no_account_yet": "Don't have an account yet?",
@@ -20,6 +21,7 @@
       "dashboard": "Dashboard",
       "workouts": "Workouts",
       "schedule": "Schedule",
+      "programs": "Programs",
       "reviews": "Reviews",
       "health": "Health",
       "nutrition": "Nutrition"
@@ -140,7 +142,8 @@
       "generated_count": "Generated {n} workout(s)!",
       "generate_error": "Couldn't generate workouts.",
       "copied": "Copied!",
-      "copy_error": "Couldn't copy."
+      "copy_error": "Couldn't copy.",
+      "session_load_error": "Couldn't load workout details. Try again."
     },
     "confirm": {
       "delete_session": "Delete this session?",
@@ -156,6 +159,7 @@
       "session_n": "Session {n}",
       "session_settings": "Session settings",
       "delete_session": "Delete session",
+      "start_session": "Start workout",
       "no_sessions": "No sessions planned — add one below.",
       "no_movements": "No movements defined",
       "no_equipment": "None",
@@ -164,7 +168,8 @@
       "equipment": "Equipment",
       "difficulty": "Difficulty",
       "movements": "Movements",
-      "rest": "Rest"
+      "rest": "Rest",
+      "rest_between_sets": "Rest between rounds"
     }
   },
   "auth": {
@@ -514,6 +519,37 @@
     "photo_confidence_medium": "Medium confidence.",
     "photo_confidence_high": "High confidence."
   },
+  "programs": {
+    "page_title": "AI Programs",
+    "subtitle": "Generate periodized mesocycles using cfai composers (heuristic or LLM-augmented).",
+    "btn_generate": "Generate program",
+    "form": {
+      "composer": "Composer",
+      "composer_hint": "heuristic = rule-based (instant). hybrid_* = LLM-augmented (~30s).",
+      "weeks_pattern": "Phase pattern",
+      "weeks_pattern_hint": "Comma-separated: base, build, peak, deload, test.",
+      "deload_weeks": "Deload weeks (1-indexed, comma-separated)",
+      "sessions_per_week": "Sessions per week",
+      "primary_focus": "Primary focus",
+      "primary_focus_hint": "Comma-separated tags, e.g. squat_volume, aerobic_threshold.",
+      "start_date": "Start date",
+      "name": "Name (optional)",
+      "activate": "Activate immediately (project to schedule)",
+      "submit": "Generate",
+      "submitting": "Generating..."
+    },
+    "history_title": "Past programs",
+    "empty_title": "No programs yet",
+    "empty_desc": "Generate your first periodized mesocycle to get started.",
+    "result_title": "Program generated",
+    "card_phase": "Phase",
+    "card_weeks": "weeks",
+    "card_sessions": "sessions",
+    "btn_activate": "Activate",
+    "btn_view": "View program",
+    "activated_toast": "Program activated — schedule updated.",
+    "generated_toast": "Program generated successfully."
+  },
   "reviews": {
     "page_title": "Weekly Reviews",
     "subtitle": "AI-powered performance analysis and recommendations",
@@ -563,6 +599,8 @@
     "nav": {
       "features": "Features",
       "pricing": "Pricing",
+      "faq": "FAQ",
+      "help": "Help",
       "login": "Login",
       "get_started": "Get Started"
     },
@@ -575,54 +613,383 @@
     },
     "features": {
       "title": "Everything You Need to Perform",
-      "ai_title": "AI-Powered Programming",
-      "ai_desc": "GPT-4 generates personalized training programs adapting to your recovery, goals, and weaknesses. HWPO, Mayhem, CompTrain methodologies.",
+      "ai_title": "Smart Programming",
+      "ai_desc": "Personalized training plans built around your goals and weak points. Pick a coaching style — HWPO, Mayhem, or CompTrain — or let the app build a custom plan for you.",
       "adaptive_title": "Adaptive Training",
-      "adaptive_desc": "Your workouts adjust automatically based on HRV, sleep quality, and readiness scores. Volume and intensity optimized daily.",
+      "adaptive_desc": "Your workouts shift to match how you feel. Fresh and rested? Push for a PR. Beat up? Lighter day, more skill work. Same plan, dialed up or down.",
       "weekly_title": "Weekly Reviews",
-      "weekly_desc": "AI analyzes your performance, identifies strengths and weaknesses, and recommends specific adjustments for progressive overload.",
+      "weekly_desc": "Every Sunday you get a coach-style write-up: what went well, what didn't, and a clear plan for next week.",
       "meal_title": "Auto Meal Planning",
-      "meal_desc": "Pre/post-workout nutrition automatically synced with training schedule. Macro calculations based on your goals.",
+      "meal_desc": "Meals timed around your training. More carbs on heavy days, more fats on rest days. Pre and post-workout windows handled automatically.",
       "recovery_title": "Recovery Tracking",
-      "recovery_desc": "HRV, sleep, readiness, biomarker tracking. Apple HealthKit integration for seamless data sync.",
+      "recovery_desc": "Log how you slept and how you feel in 20 seconds — or connect Apple Health and your numbers come in automatically.",
       "analytics_title": "Performance Analytics",
-      "analytics_desc": "Track PRs, benchmark times, volume trends. Monthly analysis with Gemini AI for long-term insights."
+      "analytics_desc": "PRs, benchmark times, volume trends, monthly progress reports. See where you're getting stronger and where you're stalling."
     },
     "loop": {
-      "title": "The Feedback Loop",
-      "step1_title": "Track Recovery",
-      "step1_desc": "Log HRV, sleep quality, stress, and soreness. Sync with Apple HealthKit for automatic tracking.",
-      "step2_title": "AI Generates Workout",
-      "step2_desc": "Based on your readiness score, AI adjusts workout volume and intensity. High HRV → push harder. Low HRV → reduce volume.",
-      "step3_title": "Train & Track",
-      "step3_desc": "Complete your workout. Log actual weights, reps, RPE, and technique quality. The more data, the smarter the system.",
-      "step4_title": "Weekly Review",
-      "step4_desc": "Every Sunday, Claude AI analyzes your week. Identifies what's working, what needs work, and adjusts next week's program.",
-      "step5_title": "Progressive Overload",
-      "step5_desc": "Week 1-3: Volume accumulation. Week 4: Deload. Week 5-7: Intensification. Week 8: Test PRs. Rinse and repeat."
+      "title": "How It Works",
+      "step1_title": "Quick Morning Check-In",
+      "step1_desc": "A few quick questions about sleep, energy, soreness, and stress — or sync your Apple Watch and skip the typing.",
+      "step2_title": "Today's Workout, Ready",
+      "step2_desc": "Based on how you feel, the app picks the right workout. Fresh? Push hard. Wiped? Lighter, smarter session.",
+      "step3_title": "Train & Log",
+      "step3_desc": "Run through the workout. Log your weights, reps, and how each movement felt. The more honest you are, the better the next workout fits you.",
+      "step4_title": "Weekly Coach Check-In",
+      "step4_desc": "Every Sunday you get a clear summary of your week — strengths, weaknesses, and the plan for next week.",
+      "step5_title": "Build, Peak, Test",
+      "step5_desc": "A few weeks of building volume, then a deload, then heavier intensity, then you test your PRs. Rinse and repeat."
     },
     "pricing": {
       "title": "Simple, Transparent Pricing",
       "per_month": "/mo",
       "subtitle": "Everything included. No hidden fees.",
-      "feat1": "AI-powered weekly programming",
-      "feat2": "Adaptive training adjustments",
-      "feat3": "Weekly performance reviews",
+      "feat1": "Smart weekly programming",
+      "feat2": "Workouts that adapt to your day",
+      "feat3": "Weekly coach-style reviews",
       "feat4": "Auto meal planning",
-      "feat5": "Recovery & biomarker tracking",
-      "feat6": "HealthKit integration",
+      "feat5": "Recovery & blood-work tracking",
+      "feat6": "Apple Health integration",
       "feat7": "Unlimited workouts",
       "cta": "Start Free 14-Day Trial",
       "no_card": "No credit card required"
     },
     "cta": {
-      "title": "Ready to Optimize Your Performance?",
-      "subtitle": "Join elite athletes using AI to train smarter, not just harder.",
+      "title": "Ready to Train Smarter?",
+      "subtitle": "Join athletes who train hard when they're ready and ease off when they're not.",
       "btn": "Get Started Free"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "subtitle": "Quick answers. Need more detail? See the <a href=\"/help\">help center</a>.",
+      "q1": "What is CrossFit Health OS, in plain words?",
+      "a1": "A smart training partner that decides your workout each day based on how recovered you are. Train hard when you're fresh, ease off when you're not, and get a weekly check-in that adjusts the next week.",
+      "q2": "Do I need an Apple Watch or anything special?",
+      "a2": "No. A wearable helps but isn't required. You can answer four quick questions each morning (sleep, energy, soreness, stress) in under 30 seconds and the app does the rest.",
+      "q3": "How does the workout actually adapt to me?",
+      "a3": "Slept badly or feeling beat up? You'll get less volume and more skill or recovery work. Feeling great? You'll get the chance to push for a PR. Same plan, dialed up or down to match your day.",
+      "q4": "Whose programming does it follow?",
+      "a4": "Pick a style at signup: HWPO (Mat Fraser), Mayhem (Rich Froning), CompTrain (Ben Bergeron), or have the app build a custom plan around your goals and weak points.",
+      "q5": "I already have a nutrition plan. Can I skip the food stuff?",
+      "a5": "Yes. Pick 'Training Only' at signup and the nutrition section disappears. You can turn it on later if you change your mind.",
+      "q6": "Who can see my recovery and lab data?",
+      "a6": "Only you. Your data isn't sold or shared. We never reveal who you are to outside services.",
+      "q7": "Can I cancel anytime?",
+      "a7": "Yes. 14-day free trial, no credit card needed. Cancel from Profile → Subscription. Your data stays available to export for 30 days after.",
+      "q8": "Is the app in Portuguese?",
+      "a8": "Sim. Full Portuguese, including the workouts and lab report reading. Switch language from your profile."
     },
     "footer": {
       "tagline": "© 2026 CrossFit Health OS. Built for athletes, by athletes.",
-      "stack": "Powered by GPT-4, Claude 3.5 Sonnet, and Gemini 1.5 Pro"
+      "stack": "Train smart. Recover well. Get better."
+    }
+  },
+  "help": {
+    "page_title": "Help Center",
+    "intro_title": "Help Center",
+    "intro_lead": "Everything you need to get value out of CrossFit Health OS, organized by feature. Looking for a quick answer? Check the <a href=\"/#faq\">FAQ</a> first.",
+    "toc_title": "On this page",
+    "back_to_top": "Back to top",
+    "support_title": "Still stuck?",
+    "support_body": "Email <a href=\"mailto:{support_email}\">{support_email}</a> with a screenshot and we'll get back within 24h.",
+    "sec": {
+      "getting_started": {
+        "title": "Getting started",
+        "p1": "Sign up at <a href=\"/register\">/register</a>. We'll ask a few questions about your goals (compete, get fitter, recover from injury), how long you've trained, what equipment you have, and how many days a week you can train. Takes about 3 minutes.",
+        "p2": "Pick <strong>Training Only</strong> if you've already got a meal plan you like, or <strong>Full Experience</strong> to get nutrition too. You can change this later from your profile."
+      },
+      "recovery": {
+        "title": "Daily check-in",
+        "p1": "Each morning, answer four quick questions: how long you slept, how rested you feel, how stressed you are, and how sore your muscles are. Twenty seconds, tops.",
+        "p2": "Based on your answers, the app picks the right workout for the day. If you slept like a rock and feel sharp, expect a chance to push for a PR. If you're wiped, you'll get something lighter — skill work, mobility, or active recovery.",
+        "p3": "If you wear an Apple Watch or similar device, your sleep and recovery data come in automatically and you skip the manual check-in."
+      },
+      "today_workout": {
+        "title": "Today's workout",
+        "p1": "Open the app each morning and you'll see a workout that fits how you feel. Tap <strong>Start Workout</strong> to begin tracking — log your sets, reps, weights, and how hard each set felt as you go.",
+        "p2": "Don't like what you got? Tap <strong>Generate</strong> for a different option. The new one still respects your recovery — it just gives you a different flavour of stimulus."
+      },
+      "programs": {
+        "title": "Training programs",
+        "p1": "A program is a multi-week plan with a clear arc — building volume, then peaking, then testing PRs. To create one, go to Programs → New Program, pick a style (HWPO, Mayhem, CompTrain, or custom), how many weeks, and how many sessions per week. The app builds the rest.",
+        "p2": "Hit <strong>Activate</strong> when you're happy with the plan and it fills your training calendar automatically. Only one program runs at a time; activating a new one replaces the old.",
+        "p3": "You can preview the whole thing — week by week, session by session — before activating. If something doesn't look right, just generate again."
+      },
+      "schedule": {
+        "title": "Training calendar",
+        "p1": "The Training Calendar shows your week at a glance. Tap any day to see what's planned, drag a session to a different day if life happens, or hit Start to begin.",
+        "p2": "Want your workouts on your phone calendar too? Connect Google Calendar from Profile → Integrations and every session shows up automatically."
+      },
+      "tracking": {
+        "title": "Logging sessions & PRs",
+        "p1": "During a workout, log the weight, reps, and how hard each set felt (a 1–10 scale). When you finish, rate the session overall and add notes if you want. The more honest you are, the better the next workout fits you.",
+        "p2": "PRs (lifts and benchmark WODs like Fran, Murph, Helen) are detected automatically. Find them under Profile → PRs."
+      },
+      "nutrition": {
+        "title": "Nutrition & meals",
+        "p1": "If you turn nutrition on, the app builds meal plans that match your training: more carbs on heavy days, more fats on rest days, and pre/post-workout meals timed around your sessions.",
+        "p2": "Already have a diet from a nutritionist? Upload the PDF and we'll bring it in. Don't want any food features? Stick with Training Only mode."
+      },
+      "lab_reports": {
+        "title": "Blood test results",
+        "p1": "Snap a photo of any blood panel — or upload the PDF — and the app reads the values for you. Things like testosterone, vitamin D, iron, blood sugar markers — each one tagged as low, normal, or high based on the lab's reference range.",
+        "p2": "Works with reports in English and Portuguese. You'll see your results under the Health tab."
+      },
+      "weekly_review": {
+        "title": "Weekly review",
+        "p1": "Every Sunday you get a coach-style write-up of your week: what went well, what didn't, how recovery looked, where you're getting stronger. It also lays out the plan for next week — more volume, less, push intensity, work on a specific lift.",
+        "p2": "Past reviews live under Reviews so you can see your progression over time. Next week's program automatically picks up the recommended changes."
+      },
+      "healthkit": {
+        "title": "Apple Health integration",
+        "p1": "Got an Apple Watch or iPhone tracking your sleep and heart rate? Connect Apple Health and your numbers flow in automatically. No manual logging needed — just check your morning workout and go.",
+        "p2": "No Apple device? No problem. The four-question check-in works just as well; the app doesn't need a wearable to know how you're doing."
+      },
+      "language": {
+        "title": "Language & appearance",
+        "p1": "Switch between English and Portuguese from Profile → Language. Your choice sticks across devices.",
+        "p2": "Light or dark mode? The app follows your phone's setting by default — flip it manually from Profile → Appearance."
+      },
+      "troubleshooting": {
+        "title": "Troubleshooting",
+        "p1": "<strong>No workout for today:</strong> head to <a href=\"/dashboard/programs\">Programs</a> and activate a plan, or hit Generate on the dashboard for a one-off workout.",
+        "p2": "<strong>Calendar showing an error:</strong> usually means no active program. Pick one from Programs and refresh.",
+        "p3": "<strong>Lab report came out wrong:</strong> try a clearer photo or the original PDF. Blurry phone shots are hard to read — sharper input gives better results.",
+        "p4": "<strong>Anything else?</strong> Refresh the page first (sometimes that's all it takes). Still stuck? Email support — see below."
+      }
+    }
+  },
+  "referrals": {
+    "menu_link": "Refer a friend",
+    "page_title": "Refer a friend",
+    "subtitle": "Share your code. They get a free month, you get a free month.",
+    "your_code": "Your code",
+    "copy_code": "Copy code",
+    "share_link": "Share this link",
+    "copy_link": "Copy link",
+    "copied": "Copied!",
+    "stat_signups": "Friends signed up",
+    "stat_months_earned": "Free months earned",
+    "redeem_title": "Got a code from a friend?",
+    "redeem_subtitle": "Enter their code and you'll both get a free month when you upgrade.",
+    "redeem_placeholder": "e.g. fernando42",
+    "redeem_btn": "Apply",
+    "redeem_success": "Code applied! {name} invited you. You'll both get a free month.",
+    "redeem_error_generic": "Could not apply code. Try again.",
+    "redeem_error_unknown": "We don't recognize that code.",
+    "redeem_error_self": "You can't apply your own code.",
+    "redeem_error_already": "A code was already applied to your account.",
+    "list_title": "Friends who joined with your code",
+    "empty_title": "No friends yet",
+    "empty_desc": "Share your code to start earning free months.",
+    "status_pending": "Pending",
+    "status_converted": "Active",
+    "load_error": "Could not load your referral code.",
+    "banner": {
+      "code_applied": "Invited with code:",
+      "bonus_text": "You'll both get a free month after signup."
+    },
+    "toast": {
+      "welcome": "{name} invited you — you both earned a free month."
+    }
+  },
+  "billing": {
+    "page_title": "Billing",
+    "subtitle": "Manage your subscription and trial.",
+    "current_status": "Current status",
+    "status_label": "Status",
+    "expires_label": "Trial ends",
+    "next_billing_label": "Next billing",
+    "days_left": "days left",
+    "of_trial": "of {days}-day trial",
+    "status_trialing": "Free trial",
+    "status_active": "Active",
+    "status_past_due": "Past due",
+    "status_canceled": "Canceled",
+    "plan_description": "Full access. Cancel anytime.",
+    "subscribe_btn": "Subscribe — $29/mo",
+    "manage_btn": "Manage subscription",
+    "cancel_btn": "Cancel subscription",
+    "cancel_help": "Need to cancel? Your access stays active until the end of the current period.",
+    "cancel_confirm_title": "Cancel subscription?",
+    "cancel_confirm_body": "You'll keep access until the end of the period. You can resubscribe anytime.",
+    "cancel_confirm_btn": "Yes, cancel",
+    "cancel_keep_btn": "Keep my plan",
+    "cancel_success": "Subscription canceled. Access stays active until the end of the period.",
+    "cancel_error": "Could not cancel. Please try again or email support.",
+    "checkout_started": "Redirecting to checkout…",
+    "checkout_error": "Could not start checkout. Please try again.",
+    "stripe_pending": "Payments are coming soon. Stay tuned — your trial keeps working in the meantime.",
+    "upgrade_coming_soon": "Upgrade — coming soon",
+    "coming_soon_note": "Payments will be available shortly. Your trial keeps working in the meantime.",
+    "trial_required": "Your free trial has ended. Upgrade to continue using premium features.",
+    "banner": {
+      "trialing_title": "{days} day(s) left in your free trial",
+      "expired_title": "Your free trial has ended",
+      "cta": "Upgrade"
+    },
+    "upgrade_modal": {
+      "title": "Upgrade required",
+      "body": "Your free trial has ended. Upgrade to continue using premium features.",
+      "dismiss": "Not now",
+      "cta": "See plans"
+    }
+  },
+  "legal": {
+    "nav": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy"
+    },
+    "toc_title": "On this page",
+    "draft_notice_title": "Notice:",
+    "draft_notice_body": "This document is an initial draft and must be reviewed by a lawyer before production use. Replace fields marked [in brackets] with your real legal entity information.",
+    "consent": {
+      "checkbox_label": "I have read and agree to the <a href=\"/terms\" target=\"_blank\">Terms of Service</a> and <a href=\"/privacy\" target=\"_blank\">Privacy Policy</a>.",
+      "health_consent_label": "I consent to the app processing my health data (sleep, heart rate, weight, lab tests) to personalize workouts and recommendations.",
+      "required": "You must accept the Terms of Service and Privacy Policy to continue.",
+      "health_required": "You must authorize processing of health data to use the app."
+    },
+    "terms": {
+      "page_title": "Terms of Service",
+      "title": "Terms of Service",
+      "version_label": "Version",
+      "last_updated": "Last updated",
+      "intro": "These Terms govern use of <strong>CrossFit Health OS</strong> (\"Service\"), operated by <strong>[COMPANY NAME, CNPJ NN.NNN.NNN/0001-NN]</strong>, headquartered at <strong>[ADDRESS]</strong>. By creating an account or using the Service, you (\"User\") agree to these Terms. If you don't agree, do not use the Service.",
+      "sec": {
+        "service": {
+          "title": "1. What the Service does",
+          "p1": "CrossFit Health OS is a digital platform supporting functional-fitness training. We generate personalized training plans from recovery data (sleep, heart rate, subjective ratings), track training loads, suggest nutrition, and read lab reports via artificial intelligence.",
+          "p2": "The Service is a complementary organization and analysis tool. It does not replace in-person medical, physiotherapy, nutritional, or coaching care."
+        },
+        "eligibility": {
+          "title": "2. Who can use it",
+          "p1": "You must be at least 18 years old and have full legal capacity to use the Service. Minors may use it only with a legal guardian's supervision and explicit consent for data processing.",
+          "p2": "You confirm you are physically fit to perform high-intensity exercise. If you have a pre-existing medical condition, recent injury, or any doubt about your fitness, consult a professional before starting any workout suggested by the Service."
+        },
+        "account": {
+          "title": "3. Account and security",
+          "p1": "You are responsible for keeping your password safe and for all activity on your account. Notify us at <a href=\"mailto:{support_email}\">{support_email}</a> immediately if you suspect unauthorized use.",
+          "p2": "You agree to provide truthful, current information at signup. Accounts created with false data or someone else's identity may be terminated without prior notice."
+        },
+        "subscription": {
+          "title": "4. Subscription, trial and cancellation",
+          "p1": "We offer a <strong>14-day free trial</strong>, no credit card required. After that, access to premium features (AI-powered programs, adaptive workout generation, lab reading, weekly reviews) requires an active subscription.",
+          "p2": "Billing is monthly at the price in effect at signup, in [USD/BRL]. You can cancel anytime under <strong>Billing</strong>. Access remains active until the end of the paid period — partial-month refunds are not provided.",
+          "p3": "We may change prices with 30 days' email notice. Disputed charges must be communicated in writing within 90 days."
+        },
+        "acceptable_use": {
+          "title": "5. Acceptable use",
+          "p1": "You agree <strong>not</strong> to: (a) share your account; (b) reverse-engineer, copy, or redistribute Service-generated content; (c) use the Service to automate attacks, mass scraping, or abusive consumption of AI resources; (d) submit illegal, offensive, or rights-infringing content."
+        },
+        "ip": {
+          "title": "6. Intellectual property",
+          "p1": "The platform, code, brand, design, and aggregated content are owned by [COMPANY NAME] or its licensors. You receive a personal, non-transferable, revocable license to use the Service while your subscription is active.",
+          "p2": "<strong>Your input data</strong> (training logs, sleep metrics, lab reports, notes) remains yours. You grant us a limited license to process it and produce your personalized recommendations as described in our Privacy Policy."
+        },
+        "health_disclaimer": {
+          "title": "7. Health disclaimer",
+          "p1": "<strong>CrossFit Health OS is not a medical service.</strong> Workouts, nutrition recommendations, lab readings, and any AI-generated analysis are <strong>informational and organizational only</strong> — they are not a diagnosis, prescription, treatment, or individualized medical, nutritional, physiotherapy, or coaching advice.",
+          "p2": "Always consult a qualified professional before starting, modifying, or stopping any exercise, diet, or treatment program. If you experience pain, injury, cardiac symptoms, pregnancy, or any relevant medical condition, <strong>stop using the Service and seek professional care immediately</strong>.",
+          "p3": "Automated lab reading is an information-organization feature — it may contain OCR or interpretation errors. Always verify values and reference ranges against the original report and a qualified medical professional."
+        },
+        "third_party": {
+          "title": "8. Third-party services",
+          "p1": "To deliver the Service we integrate with third parties such as AI providers (OpenAI, Anthropic, Google), payment processor (Stripe), Apple Health, Google Calendar, and cloud infrastructure. These vendors have their own terms and policies, and some of your data may flow through them as described in the Privacy Policy."
+        },
+        "liability": {
+          "title": "9. Liability",
+          "p1": "The Service is provided \"as is\". We make reasonable efforts to keep it available and correct, but do not guarantee uninterrupted availability, error-free operation, or that AI recommendations are appropriate for any specific case.",
+          "p2": "To the maximum extent permitted by applicable law, our total liability to you is limited to the amount you paid for your subscription in the 12 months prior to the event. We are not liable for indirect damages, lost profits, or consequences of decisions made based on Service information.",
+          "p3": "Nothing in these Terms excludes liability that cannot be excluded under applicable law."
+        },
+        "termination": {
+          "title": "10. Termination",
+          "p1": "You may close your account at any time from Profile. After closure, we keep your data exportable for 30 days and then erase or anonymize it as described in the Privacy Policy.",
+          "p2": "We may suspend or terminate your account for breach of these Terms, fraud, non-payment, or court order, with notice when legally required."
+        },
+        "changes": {
+          "title": "11. Changes to these Terms",
+          "p1": "We may update these Terms. Material changes will be communicated at least 15 days in advance by email and/or in-app notice. Continued use after the effective date constitutes acceptance. If you disagree, you can close your account before the change takes effect."
+        },
+        "law": {
+          "title": "12. Governing law and jurisdiction",
+          "p1": "These Terms are governed by the laws of the Federative Republic of Brazil. Disputes will be resolved in the courts of <strong>[CITY/STATE]</strong>, with no other forum, however privileged, except for the consumer's right to choose their domicile court."
+        },
+        "contact": {
+          "title": "13. Contact",
+          "p1": "Questions about these Terms: <a href=\"mailto:{support_email}\">{support_email}</a>. Data Protection Officer: <a href=\"mailto:{dpo_email}\">{dpo_email}</a>."
+        }
+      }
+    },
+    "privacy": {
+      "page_title": "Privacy Policy",
+      "title": "Privacy Policy",
+      "version_label": "Version",
+      "last_updated": "Last updated",
+      "intro": "This Policy describes how <strong>CrossFit Health OS</strong>, operated by <strong>[COMPANY NAME, CNPJ NN.NNN.NNN/0001-NN]</strong> (\"Controller\"), processes your personal data under Brazil's General Data Protection Law (LGPD, Law 13.709/2018) and, where applicable, the EU General Data Protection Regulation (GDPR).",
+      "sec": {
+        "controller": {
+          "title": "1. Who is the Controller",
+          "p1": "<strong>[COMPANY NAME]</strong>, CNPJ <strong>[NN.NNN.NNN/0001-NN]</strong>, headquartered at <strong>[ADDRESS]</strong>. Data Protection Officer (DPO): <strong>[NAME]</strong>, <a href=\"mailto:{dpo_email}\">{dpo_email}</a>."
+        },
+        "data_collected": {
+          "title": "2. Data we collect",
+          "p1": "<strong>Account:</strong> name, email, password (stored as bcrypt hash), date of birth, weight, height, time zone, language.",
+          "p2": "<strong>Health and performance (sensitive category, LGPD art. 11):</strong> heart rate, heart rate variability (HRV), sleep duration and quality, stress level, muscle soreness, training records (loads, reps, RPE), personal records, lab biomarkers you choose to upload.",
+          "p3": "<strong>Payment:</strong> processed entirely by Stripe; we receive only subscription identifiers and status — we do not store card data.",
+          "p4": "<strong>Usage and technical:</strong> IP address, browser type, in-app actions, error logs, session identifiers.",
+          "p5": "<strong>Optional integrations:</strong> Apple Health (HRV, sleep, workouts), Google Calendar (access token to create events)."
+        },
+        "legal_basis": {
+          "title": "3. Legal bases",
+          "p1": "We process your data based on (LGPD art. 7 and art. 11): (a) <strong>contract performance</strong>, to deliver the Service you contracted; (b) <strong>consent</strong>, for sensitive health data, marketing, and non-essential cookies; (c) <strong>legitimate interest</strong>, for security, fraud prevention, and Service improvement; (d) <strong>legal obligation</strong>, for tax retention and authority requests.",
+          "p2": "You can <strong>withdraw consent</strong> at any time (Profile → Privacy), which may limit features that depend on the data."
+        },
+        "purposes": {
+          "title": "4. Why we process your data",
+          "p1": "(a) Create and manage your account; (b) generate adaptive workouts and personalized AI programs; (c) read lab reports via OCR and organize results; (d) deliver weekly performance reviews; (e) process payments; (f) send transactional service notices; (g) prevent fraud and abuse; (h) comply with legal obligations."
+        },
+        "sharing": {
+          "title": "5. With whom we share",
+          "p1": "<strong>Operators processing data on our behalf:</strong> OpenAI (program generation, lab reading), Anthropic (weekly reviews), Google (AI program composition), Stripe (payments), hosting provider [Coolify/AWS/etc.], transactional email service [Resend/SendGrid], Apple (HealthKit) and Google (Calendar) — only when you enable these integrations.",
+          "p2": "We do not sell your personal data. We do not share health data for advertising. AI calls use anonymous descriptions (e.g. \"intermediate athlete, HRV 52ms\") and do not include your name, email, or identifiers.",
+          "p3": "We may disclose data to authorities when legally required, while challenging abusive requests."
+        },
+        "international": {
+          "title": "6. International transfers",
+          "p1": "Some operators (especially AI providers and infrastructure) process data in the United States and other countries. We use appropriate contractual and technical measures (encryption in transit and at rest, per-user segregation) to ensure protection consistent with the LGPD."
+        },
+        "retention": {
+          "title": "7. Retention",
+          "p1": "We keep your data while your account is active. After cancellation, we keep it for 30 days to allow recovery or export, then erase or anonymize production records.",
+          "p2": "Financial data (invoices, payment records) may be retained up to 5 years to meet tax and accounting obligations. Security logs are kept for up to 6 months."
+        },
+        "your_rights": {
+          "title": "8. Your rights (LGPD art. 18)",
+          "p1": "You may, free of charge, at any time: (a) confirm processing exists; (b) access your data; (c) correct incomplete or outdated data; (d) request anonymization, blocking, or deletion of unnecessary data; (e) request portability; (f) request deletion of consent-based data; (g) be informed of operators with whom we share; (h) withdraw consent; (i) object to legitimate-interest processing.",
+          "p2": "To exercise any right, contact <a href=\"mailto:{dpo_email}\">{dpo_email}</a>. We respond within 15 days. If unsatisfied, you may complain to the Brazilian Data Protection Authority (ANPD) at <a href=\"https://www.gov.br/anpd\" target=\"_blank\">gov.br/anpd</a>."
+        },
+        "security": {
+          "title": "9. Security",
+          "p1": "We adopt reasonable measures: passwords stored as bcrypt hashes, signed JWT, HTTPS transport, per-user database isolation, least-privilege for AI integrations, access monitoring, and regular backups.",
+          "p2": "In the event of a security incident that may pose risk or relevant harm to data subjects, we will notify the ANPD and affected users within a reasonable timeframe, per LGPD art. 48."
+        },
+        "cookies": {
+          "title": "10. Cookies and local storage",
+          "p1": "We use <strong>essential</strong> cookies and localStorage for authentication (JWT token), language preference, and theme. We do not use behavioral advertising cookies or third-party trackers."
+        },
+        "children": {
+          "title": "11. Minors",
+          "p1": "The Service is intended for adults aged 18+. We do not knowingly collect data from minors. If we identify an account belonging to a minor without legal-guardian consent, it will be closed and the data deleted."
+        },
+        "changes": {
+          "title": "12. Changes to this Policy",
+          "p1": "We may update this Policy. Material changes will be communicated at least 15 days in advance by email and/or in-app notice. The version and date appear at the top of this document."
+        },
+        "dpo": {
+          "title": "13. How to contact us",
+          "p1": "Data Protection Officer: <strong>[NAME]</strong>, <a href=\"mailto:{dpo_email}\">{dpo_email}</a>. General support: <a href=\"mailto:{support_email}\">{support_email}</a>."
+        }
+      }
     }
   },
   "onboarding": {
@@ -782,6 +1149,8 @@
   "errors": {
     "page_404_title": "Page Not Found",
     "page_404_body": "Oops! The page you're looking for doesn't exist or has been moved.",
+    "page_500_title": "Something Went Wrong",
+    "page_500_body": "An unexpected error occurred on our side. Please try again in a moment.",
     "back_home": "Back to Home",
     "to_dashboard": "Dashboard"
   },

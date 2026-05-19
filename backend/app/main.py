@@ -10,9 +10,13 @@ from contextlib import asynccontextmanager
 import logging
 from pathlib import Path
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 from app.core.config import settings
 from app.core.i18n import LocaleMiddleware
-from app.api.v1 import training, health, nutrition, integrations, users, schedule, review, auth, onboarding, gamification, diet, today, notifications
+from app.core.rate_limit import limiter
+from app.api.v1 import training, health, nutrition, integrations, users, schedule, review, auth, onboarding, gamification, diet, today, notifications, programs, referrals, billing, internal_cron
 from app.web import routes as web_routes
 
 # Configure logging
@@ -44,6 +48,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Rate limiting (slowapi). Endpoints opt in with @limiter.limit("...").
+# Stored in Redis when REDIS_URL is set, else in-memory.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -66,6 +75,19 @@ app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Global exception: {exc}", exc_info=True)
+
+    # Render HTML 500 page for browser requests outside /api/*
+    accept = request.headers.get("accept", "")
+    if not request.url.path.startswith("/api/") and "text/html" in accept:
+        try:
+            return web_routes.templates.TemplateResponse(
+                "500.html", {"request": request}, status_code=500
+            )
+        except Exception:
+            # Fall through to JSON if the template itself fails — never let
+            # the error handler raise.
+            logger.exception("Failed to render 500.html")
+
     return JSONResponse(
         status_code=500,
         content={
@@ -154,6 +176,16 @@ app.include_router(
     tags=["Review"]
 )
 
+app.include_router(
+    programs.router,
+    prefix="/api/v1/programs",
+    tags=["Programs"]
+)
+
+app.include_router(referrals.router, prefix="/api/v1")
+app.include_router(billing.router, prefix="/api/v1")
+app.include_router(internal_cron.router, prefix="/api/v1")
+
 # These routers have their own prefix defined
 app.include_router(onboarding.router)
 app.include_router(gamification.router)
@@ -166,8 +198,6 @@ app.include_router(notifications.router)
 @app.exception_handler(404)
 async def custom_404_handler(request: Request, exc):
     """Custom 404 error page for HTML requests only"""
-    from fastapi.templating import Jinja2Templates
-    
     # For API requests, preserve the original HTTPException detail
     if request.url.path.startswith("/api/"):
         detail = getattr(exc, "detail", "Not Found")
@@ -176,11 +206,13 @@ async def custom_404_handler(request: Request, exc):
             content={"detail": detail}
         )
 
-    # Return HTML for browser requests
+    # Return HTML for browser requests — reuse the shared Jinja env so
+    # i18n globals (t, locale, asset_version) are available in the template.
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
-        templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
-        return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+        return web_routes.templates.TemplateResponse(
+            "404.html", {"request": request}, status_code=404
+        )
 
     # Fallback JSON
     detail = getattr(exc, "detail", "Not Found")

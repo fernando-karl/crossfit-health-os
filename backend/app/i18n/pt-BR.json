@@ -6,7 +6,8 @@
       "close": "Fechar",
       "delete": "Excluir",
       "create": "Criar",
-      "back_home": "Voltar para a home"
+      "back_home": "Voltar para a home",
+      "watch_video": "Ver tutorial no YouTube"
     },
     "loading": "Carregando…",
     "no_account_yet": "Ainda não tem conta?",
@@ -20,6 +21,7 @@
       "dashboard": "Painel",
       "workouts": "Treinos",
       "schedule": "Calendário",
+      "programs": "Programas",
       "reviews": "Reviews",
       "health": "Saúde",
       "nutrition": "Nutrição"
@@ -140,7 +142,8 @@
       "generated_count": "Gerou {n} treino(s)!",
       "generate_error": "Erro ao gerar treinos.",
       "copied": "Copiado!",
-      "copy_error": "Erro ao copiar."
+      "copy_error": "Erro ao copiar.",
+      "session_load_error": "Não consegui carregar o treino. Tenta de novo."
     },
     "confirm": {
       "delete_session": "Excluir essa sessão?",
@@ -156,6 +159,7 @@
       "session_n": "Sessão {n}",
       "session_settings": "Ajustes da sessão",
       "delete_session": "Excluir sessão",
+      "start_session": "Iniciar treino",
       "no_sessions": "Nenhuma sessão planejada — adicione abaixo.",
       "no_movements": "Sem movimentos definidos",
       "no_equipment": "Nenhum",
@@ -164,7 +168,8 @@
       "equipment": "Equipamento",
       "difficulty": "Dificuldade",
       "movements": "Movimentos",
-      "rest": "Descanso"
+      "rest": "Descanso",
+      "rest_between_sets": "Descanso entre rounds"
     }
   },
   "auth": {
@@ -514,6 +519,37 @@
     "photo_confidence_medium": "Confiança média.",
     "photo_confidence_high": "Confiança alta."
   },
+  "programs": {
+    "page_title": "Programas AI",
+    "subtitle": "Gera mesociclos periodizados usando composers do cfai (heurístico ou LLM).",
+    "btn_generate": "Gerar programa",
+    "form": {
+      "composer": "Composer",
+      "composer_hint": "heuristic = baseado em regras (instantâneo). hybrid_* = LLM (~30s).",
+      "weeks_pattern": "Padrão de fases",
+      "weeks_pattern_hint": "Separado por vírgula: base, build, peak, deload, test.",
+      "deload_weeks": "Semanas de deload (1-indexadas, separadas por vírgula)",
+      "sessions_per_week": "Sessões por semana",
+      "primary_focus": "Foco primário",
+      "primary_focus_hint": "Tags separadas por vírgula, ex: squat_volume, aerobic_threshold.",
+      "start_date": "Data de início",
+      "name": "Nome (opcional)",
+      "activate": "Ativar imediatamente (projetar no calendário)",
+      "submit": "Gerar",
+      "submitting": "Gerando..."
+    },
+    "history_title": "Programas anteriores",
+    "empty_title": "Nenhum programa ainda",
+    "empty_desc": "Gere seu primeiro mesociclo periodizado pra começar.",
+    "result_title": "Programa gerado",
+    "card_phase": "Fase",
+    "card_weeks": "semanas",
+    "card_sessions": "sessões",
+    "btn_activate": "Ativar",
+    "btn_view": "Ver programa",
+    "activated_toast": "Programa ativado — calendário atualizado.",
+    "generated_toast": "Programa gerado com sucesso."
+  },
   "reviews": {
     "page_title": "Reviews semanais",
     "subtitle": "Análise de performance com IA e recomendações",
@@ -563,6 +599,8 @@
     "nav": {
       "features": "Recursos",
       "pricing": "Preços",
+      "faq": "Perguntas",
+      "help": "Ajuda",
       "login": "Entrar",
       "get_started": "Começar"
     },
@@ -575,54 +613,383 @@
     },
     "features": {
       "title": "Tudo que você precisa para performar",
-      "ai_title": "Programação com IA",
-      "ai_desc": "GPT-4 gera programas personalizados que adaptam à sua recuperação, objetivos e fraquezas. Metodologias HWPO, Mayhem, CompTrain.",
+      "ai_title": "Programação inteligente",
+      "ai_desc": "Planos de treino personalizados em torno dos seus objetivos e pontos fracos. Escolha um estilo — HWPO, Mayhem ou CompTrain — ou deixe o app montar um plano customizado para você.",
       "adaptive_title": "Treino adaptativo",
-      "adaptive_desc": "Seus treinos se ajustam automaticamente com base em HRV, qualidade do sono e prontidão. Volume e intensidade otimizados diariamente.",
+      "adaptive_desc": "Seus treinos mudam de acordo com como você está. Fresco e descansado? Busca um PR. Acabado? Dia mais leve, mais técnica. Mesmo plano, ajustado pra você.",
       "weekly_title": "Reviews semanais",
-      "weekly_desc": "A IA analisa sua performance, identifica forças e fraquezas e recomenda ajustes específicos para sobrecarga progressiva.",
+      "weekly_desc": "Todo domingo você recebe um resumo estilo coach: o que foi bem, o que não foi e um plano claro para a semana seguinte.",
       "meal_title": "Plano de refeições automático",
-      "meal_desc": "Nutrição pré e pós-treino sincronizada com seu calendário. Cálculo de macros baseado nos seus objetivos.",
+      "meal_desc": "Refeições programadas em torno do seu treino. Mais carbo em dias pesados, mais gordura em dias de descanso. Janelas pré e pós-treino cuidadas automaticamente.",
       "recovery_title": "Recovery tracking",
-      "recovery_desc": "HRV, sono, prontidão, biomarcadores. Integração com Apple HealthKit para sincronização sem fricção.",
+      "recovery_desc": "Registre como dormiu e como se sente em 20 segundos — ou conecte o Apple Health e seus números entram sozinhos.",
       "analytics_title": "Analytics de performance",
-      "analytics_desc": "Acompanhe PRs, tempos de benchmark, tendência de volume. Análise mensal com IA Gemini para insights de longo prazo."
+      "analytics_desc": "PRs, tempos de benchmark, tendências de volume, relatório mensal de progresso. Veja onde você está ficando mais forte e onde está travando."
     },
     "loop": {
-      "title": "O ciclo de feedback",
-      "step1_title": "Acompanhe a recovery",
-      "step1_desc": "Registre HRV, qualidade do sono, estresse e dor. Sincronize com o Apple HealthKit.",
-      "step2_title": "IA gera o treino",
-      "step2_desc": "Com base na sua prontidão, a IA ajusta volume e intensidade. HRV alto → mais carga; baixo → reduz volume.",
+      "title": "Como funciona",
+      "step1_title": "Check-in rápido de manhã",
+      "step1_desc": "Algumas perguntas rápidas sobre sono, energia, dor e estresse — ou sincronize seu Apple Watch e nem precisa digitar.",
+      "step2_title": "Treino do dia, pronto",
+      "step2_desc": "Com base em como você está, o app escolhe o treino certo. Fresco? Manda ver. Acabado? Sessão mais leve e inteligente.",
       "step3_title": "Treine e registre",
-      "step3_desc": "Conclua o treino. Registre cargas, reps, RPE e qualidade técnica. Quanto mais dados, mais inteligente o sistema fica.",
-      "step4_title": "Review semanal",
-      "step4_desc": "Todo domingo, o Claude AI analisa sua semana. Identifica o que funcionou e ajusta o programa da semana seguinte.",
-      "step5_title": "Sobrecarga progressiva",
-      "step5_desc": "Sem 1-3: acumulação de volume. Sem 4: deload. Sem 5-7: intensificação. Sem 8: testar PRs. Repete."
+      "step3_desc": "Faça o treino. Registre cargas, reps e o quanto cada movimento pegou pesado. Quanto mais honesto, melhor o próximo treino se ajusta.",
+      "step4_title": "Check-in semanal do coach",
+      "step4_desc": "Todo domingo você recebe um resumo claro da semana — pontos fortes, fracos e o plano da próxima.",
+      "step5_title": "Construir, picar, testar",
+      "step5_desc": "Algumas semanas construindo volume, depois deload, depois intensidade alta, depois testa seus PRs. Repete."
     },
     "pricing": {
       "title": "Preço simples e transparente",
       "per_month": "/mês",
       "subtitle": "Tudo incluído. Sem taxas escondidas.",
-      "feat1": "Programação semanal com IA",
-      "feat2": "Ajustes adaptativos de treino",
-      "feat3": "Reviews semanais de performance",
+      "feat1": "Programação semanal inteligente",
+      "feat2": "Treinos que se adaptam ao seu dia",
+      "feat3": "Reviews semanais estilo coach",
       "feat4": "Plano de refeições automático",
-      "feat5": "Recovery e biomarcadores",
-      "feat6": "Integração HealthKit",
+      "feat5": "Recovery e exames de sangue",
+      "feat6": "Integração com Apple Health",
       "feat7": "Treinos ilimitados",
       "cta": "Começar trial grátis de 14 dias",
       "no_card": "Sem cartão de crédito"
     },
     "cta": {
-      "title": "Pronto para otimizar sua performance?",
-      "subtitle": "Junte-se a atletas de elite usando IA para treinar com inteligência.",
+      "title": "Pronto para treinar com inteligência?",
+      "subtitle": "Junte-se a atletas que treinam forte quando estão prontos e aliviam quando não estão.",
       "btn": "Começar grátis"
+    },
+    "faq": {
+      "title": "Perguntas Frequentes",
+      "subtitle": "Respostas rápidas. Quer mais detalhes? Veja a <a href=\"/help\">central de ajuda</a>.",
+      "q1": "O que é o CrossFit Health OS, em palavras simples?",
+      "a1": "Um parceiro de treino inteligente que escolhe seu treino de cada dia com base em quão recuperado você está. Treina forte quando você está fresco, alivia quando não está, e te dá um review semanal que ajusta a semana seguinte.",
+      "q2": "Preciso de Apple Watch ou alguma coisa especial?",
+      "a2": "Não. Wearable ajuda mas não é obrigatório. Você responde quatro perguntas rápidas toda manhã (sono, energia, dor muscular, estresse) em menos de 30 segundos e o app cuida do resto.",
+      "q3": "Como o treino se adapta a mim de verdade?",
+      "a3": "Dormiu mal ou está acabado? Você recebe menos volume e mais trabalho técnico ou de recuperação. Está se sentindo bem? Recebe a chance de buscar um PR. Mesmo plano, ajustado pra você naquele dia.",
+      "q4": "De quem é a programação que o app segue?",
+      "a4": "Você escolhe o estilo no cadastro: HWPO (Mat Fraser), Mayhem (Rich Froning), CompTrain (Ben Bergeron) ou deixa o app montar um programa customizado em torno dos seus objetivos e pontos fracos.",
+      "q5": "Já tenho um plano alimentar. Posso pular a parte de comida?",
+      "a5": "Pode. Escolha 'Apenas Treino' no cadastro e a parte de nutrição some. Se mudar de ideia depois, é só ligar nas configurações.",
+      "q6": "Quem vê meus dados de recuperação e exames?",
+      "a6": "Só você. Seus dados não são vendidos nem compartilhados. Nunca revelamos quem você é para serviços externos.",
+      "q7": "Posso cancelar a qualquer momento?",
+      "a7": "Pode. Trial grátis de 14 dias, sem cartão. Cancele em Perfil → Assinatura. Seus dados ficam disponíveis para exportar por 30 dias depois.",
+      "q8": "O app está em português?",
+      "a8": "Sim. Português completo, incluindo os treinos e a leitura dos exames. Troque o idioma no seu perfil."
     },
     "footer": {
       "tagline": "© 2026 CrossFit Health OS. Construído por atletas, para atletas.",
-      "stack": "Powered by GPT-4, Claude 3.5 Sonnet e Gemini 1.5 Pro"
+      "stack": "Treine com inteligência. Recupere bem. Evolua."
+    }
+  },
+  "help": {
+    "page_title": "Central de Ajuda",
+    "intro_title": "Central de Ajuda",
+    "intro_lead": "Tudo que você precisa para tirar valor do CrossFit Health OS, organizado por funcionalidade. Procurando uma resposta rápida? Veja primeiro o <a href=\"/#faq\">FAQ</a>.",
+    "toc_title": "Nesta página",
+    "back_to_top": "Voltar ao topo",
+    "support_title": "Ainda travou?",
+    "support_body": "Mande um e-mail para <a href=\"mailto:{support_email}\">{support_email}</a> com um screenshot — respondemos em 24h.",
+    "sec": {
+      "getting_started": {
+        "title": "Primeiros passos",
+        "p1": "Crie sua conta em <a href=\"/register\">/register</a>. A gente faz algumas perguntas sobre seus objetivos (competir, ficar mais fit, voltar de lesão), há quanto tempo você treina, que equipamento você tem e quantos dias por semana consegue treinar. Leva uns 3 minutos.",
+        "p2": "Escolha <strong>Apenas Treino</strong> se você já tem um plano alimentar que gosta, ou <strong>Experiência Completa</strong> para incluir nutrição. Pode trocar depois no seu perfil."
+      },
+      "recovery": {
+        "title": "Check-in diário",
+        "p1": "Toda manhã, responda quatro perguntas rápidas: quanto tempo dormiu, quão descansado se sente, quão estressado está e o quanto seus músculos estão doendo. Vinte segundos, no máximo.",
+        "p2": "Com base nas suas respostas, o app escolhe o treino certo para o dia. Se você dormiu como pedra e está afiado, espere a chance de buscar um PR. Se está esgotado, recebe algo mais leve — trabalho técnico, mobilidade ou recuperação ativa.",
+        "p3": "Se você usa Apple Watch ou similar, seus dados de sono e recuperação entram automaticamente e você pula o check-in manual."
+      },
+      "today_workout": {
+        "title": "Treino de hoje",
+        "p1": "Abra o app toda manhã e você vê um treino que combina com como está se sentindo. Toque em <strong>Iniciar Treino</strong> para começar a registrar — anote suas séries, reps, cargas e o quanto cada série pegou pesado em tempo real.",
+        "p2": "Não gostou do que veio? Toque em <strong>Gerar</strong> para outra opção. O novo treino respeita sua recuperação igual — só te dá um tipo de estímulo diferente."
+      },
+      "programs": {
+        "title": "Programas de treino",
+        "p1": "Um programa é um plano de várias semanas com uma curva clara — construindo volume, depois pico, depois testando PRs. Para criar um, vá em Programas → Novo Programa, escolha um estilo (HWPO, Mayhem, CompTrain ou customizado), quantas semanas e quantas sessões por semana. O app monta o resto.",
+        "p2": "Toque em <strong>Ativar</strong> quando estiver satisfeito com o plano e ele preenche seu calendário automaticamente. Só um programa roda por vez; ativar um novo substitui o anterior.",
+        "p3": "Você pode visualizar o plano inteiro — semana por semana, sessão por sessão — antes de ativar. Se algo não estiver legal, é só gerar de novo."
+      },
+      "schedule": {
+        "title": "Calendário de treino",
+        "p1": "O Calendário de Treino mostra sua semana de relance. Toque em qualquer dia para ver o que está planejado, arraste uma sessão para outro dia se a vida apertar, ou toque em Iniciar para começar.",
+        "p2": "Quer os treinos no calendário do celular também? Conecte o Google Calendar em Perfil → Integrações e cada sessão aparece automaticamente."
+      },
+      "tracking": {
+        "title": "Registrar sessões e PRs",
+        "p1": "Durante o treino, registre a carga, reps e o quão pesado cada série pegou (escala 1–10). Ao terminar, avalie a sessão e adicione observações se quiser. Quanto mais honesto você for, melhor o próximo treino vai se ajustar a você.",
+        "p2": "PRs (levantamentos e WODs benchmark como Fran, Murph, Helen) são detectados automaticamente. Encontre em Perfil → PRs."
+      },
+      "nutrition": {
+        "title": "Nutrição e refeições",
+        "p1": "Se você ligar a parte de nutrição, o app monta planos de refeição que combinam com seu treino: mais carbo em dias pesados, mais gordura em dias de descanso, e refeições pré e pós-treino programadas em torno das suas sessões.",
+        "p2": "Já tem uma dieta de nutricionista? Suba o PDF e a gente importa. Não quer nada de comida? Fica no modo Apenas Treino."
+      },
+      "lab_reports": {
+        "title": "Resultados de exames de sangue",
+        "p1": "Tire foto de qualquer exame de sangue — ou suba o PDF — e o app lê os valores para você. Coisas como testosterona, vitamina D, ferro, marcadores de açúcar — cada um marcado como baixo, normal ou alto com base na faixa de referência do laboratório.",
+        "p2": "Funciona com exames em inglês e português. Você vê seus resultados na aba Saúde."
+      },
+      "weekly_review": {
+        "title": "Review semanal",
+        "p1": "Todo domingo você recebe um resumo estilo coach da sua semana: o que foi bem, o que não foi, como sua recuperação está, onde você está ficando mais forte. E também já traz o plano da próxima semana — mais volume, menos, subir intensidade, focar num levantamento específico.",
+        "p2": "Reviews antigos ficam em Reviews para você ver sua progressão ao longo do tempo. A próxima semana do programa pega os ajustes recomendados automaticamente."
+      },
+      "healthkit": {
+        "title": "Integração com Apple Health",
+        "p1": "Tem Apple Watch ou iPhone monitorando seu sono e batimentos? Conecte o Apple Health e seus números entram automaticamente. Sem registro manual — só checar o treino da manhã e ir.",
+        "p2": "Não tem Apple? Sem problema. As quatro perguntas do check-in funcionam igual; o app não precisa de wearable para saber como você está."
+      },
+      "language": {
+        "title": "Idioma e aparência",
+        "p1": "Troque entre português e inglês em Perfil → Idioma. Sua escolha vale em todos os dispositivos.",
+        "p2": "Modo claro ou escuro? O app segue a configuração do seu celular por padrão — mude manualmente em Perfil → Aparência."
+      },
+      "troubleshooting": {
+        "title": "Solução de problemas",
+        "p1": "<strong>Sem treino para hoje:</strong> vá em <a href=\"/dashboard/programs\">Programas</a> e ative um plano, ou toque em Gerar no dashboard para um treino avulso.",
+        "p2": "<strong>Calendário mostrando erro:</strong> normalmente significa que não tem programa ativo. Escolha um em Programas e atualize.",
+        "p3": "<strong>Exame veio com valores errados:</strong> tente uma foto mais nítida ou o PDF original. Foto de celular borrada é difícil de ler — entrada melhor dá resultado melhor.",
+        "p4": "<strong>Outra coisa?</strong> Atualize a página primeiro (às vezes resolve). Continua travado? Mande e-mail para o suporte — veja abaixo."
+      }
+    }
+  },
+  "referrals": {
+    "menu_link": "Indicar um amigo",
+    "page_title": "Indicar um amigo",
+    "subtitle": "Compartilhe seu código. Seu amigo ganha um mês grátis, você também.",
+    "your_code": "Seu código",
+    "copy_code": "Copiar código",
+    "share_link": "Compartilhe este link",
+    "copy_link": "Copiar link",
+    "copied": "Copiado!",
+    "stat_signups": "Amigos cadastrados",
+    "stat_months_earned": "Meses grátis ganhos",
+    "redeem_title": "Recebeu um código de um amigo?",
+    "redeem_subtitle": "Digite o código dele e os dois ganham um mês grátis quando você assinar.",
+    "redeem_placeholder": "ex: fernando42",
+    "redeem_btn": "Aplicar",
+    "redeem_success": "Código aplicado! {name} convidou você. Ambos ganham um mês grátis.",
+    "redeem_error_generic": "Não foi possível aplicar o código. Tente novamente.",
+    "redeem_error_unknown": "Não reconhecemos esse código.",
+    "redeem_error_self": "Você não pode aplicar seu próprio código.",
+    "redeem_error_already": "Um código já foi aplicado à sua conta.",
+    "list_title": "Amigos que entraram com seu código",
+    "empty_title": "Nenhum amigo ainda",
+    "empty_desc": "Compartilhe seu código para começar a ganhar meses grátis.",
+    "status_pending": "Pendente",
+    "status_converted": "Ativo",
+    "load_error": "Não foi possível carregar seu código.",
+    "banner": {
+      "code_applied": "Convidado com o código:",
+      "bonus_text": "Vocês dois ganham um mês grátis após o cadastro."
+    },
+    "toast": {
+      "welcome": "{name} convidou você — vocês dois ganharam um mês grátis."
+    }
+  },
+  "billing": {
+    "page_title": "Assinatura",
+    "subtitle": "Gerencie sua assinatura e período de teste.",
+    "current_status": "Status atual",
+    "status_label": "Status",
+    "expires_label": "Trial termina em",
+    "next_billing_label": "Próxima cobrança",
+    "days_left": "dias restantes",
+    "of_trial": "de {days} dias de trial",
+    "status_trialing": "Trial grátis",
+    "status_active": "Ativa",
+    "status_past_due": "Em atraso",
+    "status_canceled": "Cancelada",
+    "plan_description": "Acesso completo. Cancele quando quiser.",
+    "subscribe_btn": "Assinar — $29/mês",
+    "manage_btn": "Gerenciar assinatura",
+    "cancel_btn": "Cancelar assinatura",
+    "cancel_help": "Precisa cancelar? Seu acesso continua ativo até o fim do período pago.",
+    "cancel_confirm_title": "Cancelar assinatura?",
+    "cancel_confirm_body": "Você mantém acesso até o fim do período. Pode reassinar a qualquer momento.",
+    "cancel_confirm_btn": "Sim, cancelar",
+    "cancel_keep_btn": "Manter meu plano",
+    "cancel_success": "Assinatura cancelada. Acesso continua ativo até o fim do período.",
+    "cancel_error": "Não foi possível cancelar. Tente novamente ou mande e-mail para o suporte.",
+    "checkout_started": "Redirecionando para o checkout…",
+    "checkout_error": "Não foi possível iniciar o checkout. Tente novamente.",
+    "stripe_pending": "Pagamentos chegam em breve. Seu trial continua funcionando enquanto isso.",
+    "upgrade_coming_soon": "Upgrade — em breve",
+    "coming_soon_note": "Pagamentos estarão disponíveis em breve. Seu trial continua funcionando enquanto isso.",
+    "trial_required": "Seu trial grátis terminou. Faça upgrade para continuar usando recursos premium.",
+    "banner": {
+      "trialing_title": "{days} dia(s) restantes no seu trial grátis",
+      "expired_title": "Seu trial grátis terminou",
+      "cta": "Fazer upgrade"
+    },
+    "upgrade_modal": {
+      "title": "Upgrade necessário",
+      "body": "Seu trial grátis terminou. Faça upgrade para continuar usando recursos premium.",
+      "dismiss": "Agora não",
+      "cta": "Ver planos"
+    }
+  },
+  "legal": {
+    "nav": {
+      "terms": "Termos de Uso",
+      "privacy": "Política de Privacidade"
+    },
+    "toc_title": "Nesta página",
+    "draft_notice_title": "Aviso:",
+    "draft_notice_body": "Este documento é um modelo inicial e deve ser revisado por um(a) advogado(a) antes do uso em produção. Substitua os campos marcados com [colchetes] pelos dados reais da sua empresa.",
+    "consent": {
+      "checkbox_label": "Li e aceito os <a href=\"/terms\" target=\"_blank\">Termos de Uso</a> e a <a href=\"/privacy\" target=\"_blank\">Política de Privacidade</a>.",
+      "health_consent_label": "Concordo que o app processe meus dados de saúde (sono, frequência cardíaca, peso, exames) para personalizar treinos e recomendações.",
+      "required": "Você precisa aceitar os Termos de Uso e a Política de Privacidade para continuar.",
+      "health_required": "Você precisa autorizar o processamento dos dados de saúde para usar o app."
+    },
+    "terms": {
+      "page_title": "Termos de Uso",
+      "title": "Termos de Uso",
+      "version_label": "Versão",
+      "last_updated": "Atualizado em",
+      "intro": "Estes Termos regem o uso da plataforma <strong>CrossFit Health OS</strong> (\"Serviço\"), operada por <strong>[NOME DA EMPRESA, CNPJ NN.NNN.NNN/0001-NN]</strong>, com sede em <strong>[ENDEREÇO]</strong>. Ao criar uma conta ou usar o Serviço, você (\"Usuário\") concorda com estes Termos. Se não concorda, não use o Serviço.",
+      "sec": {
+        "service": {
+          "title": "1. O que é o Serviço",
+          "p1": "O CrossFit Health OS é uma plataforma digital de apoio ao treinamento de fitness funcional. Geramos planos de treino personalizados a partir de dados de recuperação (sono, frequência cardíaca, percepção subjetiva), oferecemos acompanhamento de cargas, sugestões nutricionais e leitura de exames laboratoriais via inteligência artificial.",
+          "p2": "O Serviço é uma ferramenta complementar de organização e análise. Não substitui acompanhamento médico, fisioterápico, nutricional ou de educação física presencial."
+        },
+        "eligibility": {
+          "title": "2. Quem pode usar",
+          "p1": "Você precisa ter pelo menos 18 anos completos e capacidade civil plena para contratar o Serviço. Menores de idade só podem usar com supervisão de responsável legal e consentimento expresso para tratamento de dados.",
+          "p2": "Você declara que está em condições físicas adequadas para realizar exercícios de alta intensidade. Se tem condição médica preexistente, lesão recente ou qualquer dúvida sobre sua aptidão, consulte um profissional antes de iniciar qualquer treino sugerido pelo Serviço."
+        },
+        "account": {
+          "title": "3. Conta e segurança",
+          "p1": "Você é responsável por manter sua senha em segurança e por toda atividade realizada na sua conta. Avise imediatamente em <a href=\"mailto:{support_email}\">{support_email}</a> em caso de uso não autorizado.",
+          "p2": "Você se compromete a fornecer informações verdadeiras e atualizadas no cadastro. Contas com dados falsos ou criadas com identidade de terceiros podem ser encerradas sem aviso prévio."
+        },
+        "subscription": {
+          "title": "4. Assinatura, trial e cancelamento",
+          "p1": "Oferecemos um período de teste gratuito de <strong>14 dias</strong>, sem necessidade de cartão de crédito. Após esse prazo, o acesso a recursos premium (geração de programas com IA, geração de treinos adaptativos, leitura de exames, reviews semanais) requer assinatura ativa.",
+          "p2": "A cobrança é mensal, no valor vigente no momento da contratação, em [USD/BRL]. Você pode cancelar a qualquer momento pela área <strong>Assinatura</strong>. O acesso permanece ativo até o fim do período já pago — não há reembolso de mensalidades parciais.",
+          "p3": "Reservamo-nos o direito de alterar preços com 30 dias de aviso prévio por e-mail. Cobranças contestadas devem ser comunicadas por escrito em até 90 dias."
+        },
+        "acceptable_use": {
+          "title": "5. Uso aceitável",
+          "p1": "Você concorda em <strong>não</strong>: (a) compartilhar sua conta com terceiros; (b) fazer engenharia reversa, copiar ou redistribuir o conteúdo gerado pelo Serviço; (c) usar o Serviço para automatizar ataques, scraping em massa ou consumo abusivo de recursos de IA; (d) inserir dados ou conteúdo ilícito, ofensivo ou que viole direitos de terceiros."
+        },
+        "ip": {
+          "title": "6. Propriedade intelectual",
+          "p1": "A plataforma, código, marca, design e conteúdo agregado são de titularidade da [NOME DA EMPRESA] ou de seus licenciadores. Você recebe uma licença pessoal, intransferível e revogável para usar o Serviço durante a vigência da assinatura.",
+          "p2": "Os <strong>dados que você insere</strong> (registros de treino, métricas de sono, exames, anotações) continuam seus. Você nos concede licença limitada para processá-los e gerar suas recomendações personalizadas, conforme nossa Política de Privacidade."
+        },
+        "health_disclaimer": {
+          "title": "7. Aviso de saúde",
+          "p1": "<strong>O CrossFit Health OS não é um serviço médico.</strong> Treinos, recomendações nutricionais, leituras de exames e qualquer análise gerada por inteligência artificial têm caráter exclusivamente <strong>informativo e organizacional</strong> e não constituem diagnóstico, prescrição, tratamento ou aconselhamento médico, nutricional, fisioterápico ou esportivo individualizado.",
+          "p2": "Sempre consulte um(a) profissional habilitado(a) antes de iniciar, modificar ou interromper qualquer programa de exercícios, dieta ou tratamento. Em caso de mal-estar, dor aguda, lesão, sintoma cardíaco, gestação ou qualquer condição médica relevante, <strong>interrompa o uso e procure atendimento profissional imediatamente</strong>.",
+          "p3": "A leitura automatizada de exames laboratoriais é um recurso de organização da sua informação — pode conter erros de OCR ou interpretação. Sempre confirme valores e referências com o laudo original e com profissional médico."
+        },
+        "third_party": {
+          "title": "8. Serviços de terceiros",
+          "p1": "Para entregar o Serviço, integramos com fornecedores externos como provedores de IA (OpenAI, Anthropic, Google), processadores de pagamento (Stripe), Apple Health, Google Calendar e infraestrutura de nuvem. Esses fornecedores têm seus próprios termos e políticas, e parte dos seus dados pode trafegar por eles conforme descrito na Política de Privacidade."
+        },
+        "liability": {
+          "title": "9. Responsabilidade",
+          "p1": "O Serviço é fornecido \"como está\". Empenhamos esforços razoáveis para mantê-lo disponível e correto, mas não garantimos disponibilidade ininterrupta, ausência de erros, ou que recomendações geradas por IA sejam adequadas a qualquer caso específico.",
+          "p2": "Na máxima extensão permitida pela lei aplicável, nossa responsabilidade total perante você limita-se ao valor pago pela sua assinatura nos 12 meses anteriores ao evento gerador do dano. Não respondemos por danos indiretos, lucros cessantes, ou consequências de decisões tomadas com base nas informações do Serviço.",
+          "p3": "Nada nestes Termos exclui ou limita responsabilidade que não possa ser excluída ou limitada nos termos da legislação aplicável (incluindo o Código de Defesa do Consumidor, quando aplicável)."
+        },
+        "termination": {
+          "title": "10. Encerramento",
+          "p1": "Você pode encerrar sua conta a qualquer momento pela área de Perfil. Após o encerramento, mantemos seus dados disponíveis para exportação por 30 dias e, em seguida, eliminamos ou anonimizamos conforme nossa Política de Privacidade.",
+          "p2": "Podemos suspender ou encerrar sua conta em caso de descumprimento destes Termos, fraude, inadimplência ou ordem judicial, com notificação quando legalmente exigida."
+        },
+        "changes": {
+          "title": "11. Alterações destes Termos",
+          "p1": "Podemos atualizar estes Termos. Mudanças materiais serão comunicadas com pelo menos 15 dias de antecedência por e-mail e/ou aviso no app. O uso continuado após o prazo equivale a aceitação. Se discordar, você pode encerrar sua conta antes da entrada em vigor."
+        },
+        "law": {
+          "title": "12. Lei aplicável e foro",
+          "p1": "Estes Termos são regidos pelas leis da República Federativa do Brasil. Fica eleito o foro da Comarca de <strong>[CIDADE/UF]</strong> para dirimir controvérsias, com renúncia a qualquer outro, por mais privilegiado que seja, ressalvado o direito do consumidor de optar pelo foro do seu domicílio."
+        },
+        "contact": {
+          "title": "13. Contato",
+          "p1": "Dúvidas sobre estes Termos: <a href=\"mailto:{support_email}\">{support_email}</a>. Encarregado(a) de Dados (DPO/LGPD): <a href=\"mailto:{dpo_email}\">{dpo_email}</a>."
+        }
+      }
+    },
+    "privacy": {
+      "page_title": "Política de Privacidade",
+      "title": "Política de Privacidade",
+      "version_label": "Versão",
+      "last_updated": "Atualizado em",
+      "intro": "Esta Política descreve como o <strong>CrossFit Health OS</strong>, operado por <strong>[NOME DA EMPRESA, CNPJ NN.NNN.NNN/0001-NN]</strong> (\"Controlador\"), trata seus dados pessoais conforme a Lei Geral de Proteção de Dados (LGPD, Lei 13.709/2018) e, quando aplicável, o Regulamento Geral sobre a Proteção de Dados da União Europeia (GDPR).",
+      "sec": {
+        "controller": {
+          "title": "1. Quem é o Controlador",
+          "p1": "<strong>[NOME DA EMPRESA]</strong>, CNPJ <strong>[NN.NNN.NNN/0001-NN]</strong>, com sede em <strong>[ENDEREÇO]</strong>. Encarregado(a) de Proteção de Dados (DPO): <strong>[NOME]</strong>, contato <a href=\"mailto:{dpo_email}\">{dpo_email}</a>."
+        },
+        "data_collected": {
+          "title": "2. Dados que coletamos",
+          "p1": "<strong>Cadastro:</strong> nome, e-mail, senha (armazenada com hash bcrypt), data de nascimento, peso, altura, fuso horário, idioma.",
+          "p2": "<strong>Saúde e desempenho (categoria sensível, art. 11 LGPD):</strong> frequência cardíaca, variabilidade da frequência cardíaca (HRV), duração e qualidade do sono, nível de estresse, dor muscular, registros de treino (cargas, repetições, RPE), recordes pessoais, biomarcadores de exames laboratoriais que você optar por enviar.",
+          "p3": "<strong>Pagamento:</strong> processado integralmente pelo Stripe; recebemos apenas identificadores e status da assinatura — não armazenamos dados de cartão.",
+          "p4": "<strong>Uso e técnico:</strong> endereço IP, tipo de navegador, ações no app, logs de erro, identificadores de sessão.",
+          "p5": "<strong>Integrações opcionais:</strong> Apple Health (HRV, sono, treinos), Google Calendar (token de acesso para criar eventos)."
+        },
+        "legal_basis": {
+          "title": "3. Bases legais",
+          "p1": "Tratamos seus dados com base em (LGPD art. 7 e art. 11): (a) <strong>execução de contrato</strong>, para prestar o Serviço que você contratou; (b) <strong>consentimento</strong>, para dados sensíveis de saúde, marketing e cookies não essenciais; (c) <strong>legítimo interesse</strong>, para segurança, prevenção a fraudes e melhoria do Serviço; (d) <strong>cumprimento de obrigação legal</strong>, para retenção fiscal e atendimento a autoridades.",
+          "p2": "Você pode <strong>revogar o consentimento</strong> a qualquer momento (Perfil → Privacidade), o que pode limitar funcionalidades dependentes do dado."
+        },
+        "purposes": {
+          "title": "4. Por que tratamos seus dados",
+          "p1": "(a) Criar e gerenciar sua conta; (b) gerar treinos adaptativos e programas personalizados via inteligência artificial; (c) ler exames laboratoriais por OCR e organizar resultados; (d) entregar reviews semanais de performance; (e) processar pagamentos; (f) enviar comunicados de serviço (transacionais); (g) prevenir fraudes e abusos; (h) cumprir obrigações legais."
+        },
+        "sharing": {
+          "title": "5. Com quem compartilhamos",
+          "p1": "<strong>Operadores que processam dados em nosso nome:</strong> OpenAI (geração de programas, leitura de exames), Anthropic (reviews semanais), Google (composição de programas com IA), Stripe (pagamentos), provedor de hospedagem [Coolify/AWS/etc.], serviço de e-mail transacional [Resend/SendGrid], Apple (HealthKit) e Google (Calendar) — apenas quando você ativa essas integrações.",
+          "p2": "Não vendemos seus dados pessoais. Não compartilhamos dados de saúde para fins publicitários. Compartilhamentos a chamadas de IA usam descrições anônimas (ex: 'atleta intermediário, HRV 52ms') e não incluem nome, e-mail ou identificadores.",
+          "p3": "Podemos divulgar dados a autoridades quando legalmente requisitado, sempre buscando questionar pedidos abusivos."
+        },
+        "international": {
+          "title": "6. Transferência internacional",
+          "p1": "Alguns operadores (especialmente provedores de IA e infraestrutura) processam dados nos Estados Unidos e outros países. Adotamos cláusulas contratuais e medidas técnicas adequadas (criptografia em trânsito e em repouso, segregação por usuário) para garantir nível de proteção compatível com a LGPD."
+        },
+        "retention": {
+          "title": "7. Retenção",
+          "p1": "Mantemos seus dados enquanto sua conta estiver ativa. Após o cancelamento, mantemos por 30 dias para permitir recuperação ou exportação, e em seguida eliminamos ou anonimizamos os registros de produção.",
+          "p2": "Dados financeiros (notas fiscais, registros de pagamento) podem ser retidos por até 5 anos para cumprimento de obrigações fiscais e contábeis. Logs de segurança são mantidos por até 6 meses."
+        },
+        "your_rights": {
+          "title": "8. Seus direitos (LGPD art. 18)",
+          "p1": "Você pode, gratuitamente, a qualquer momento: (a) confirmar a existência de tratamento; (b) acessar seus dados; (c) corrigir dados incompletos ou desatualizados; (d) solicitar anonimização, bloqueio ou eliminação de dados desnecessários; (e) requerer portabilidade; (f) solicitar eliminação de dados tratados com seu consentimento; (g) ser informado sobre os operadores com quem compartilhamos; (h) revogar consentimento; (i) opor-se a tratamento com base em legítimo interesse.",
+          "p2": "Para exercer qualquer direito, contate <a href=\"mailto:{dpo_email}\">{dpo_email}</a>. Respondemos em até 15 dias. Se sua solicitação não for atendida, você pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD) em <a href=\"https://www.gov.br/anpd\" target=\"_blank\">gov.br/anpd</a>."
+        },
+        "security": {
+          "title": "9. Segurança",
+          "p1": "Adotamos medidas razoáveis: senhas armazenadas com hash bcrypt, JWT assinado, transporte sob HTTPS, isolamento de dados por usuário no banco, princípio de menor privilégio em integrações de IA, monitoramento de acesso e backups regulares.",
+          "p2": "Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos titulares, comunicaremos a ANPD e os afetados em prazo razoável, conforme art. 48 da LGPD."
+        },
+        "cookies": {
+          "title": "10. Cookies e armazenamento local",
+          "p1": "Usamos cookies e localStorage <strong>essenciais</strong> para autenticação (token JWT), preferência de idioma e tema. Não usamos cookies de publicidade comportamental nem rastreadores de terceiros."
+        },
+        "children": {
+          "title": "11. Menores de idade",
+          "p1": "O Serviço é destinado a maiores de 18 anos. Não coletamos intencionalmente dados de menores. Se identificarmos uma conta de menor sem consentimento de responsável legal, ela será encerrada e os dados eliminados."
+        },
+        "changes": {
+          "title": "12. Alterações nesta Política",
+          "p1": "Podemos atualizar esta Política. Mudanças materiais serão comunicadas com pelo menos 15 dias de antecedência por e-mail e/ou aviso no app. A versão e data desta Política aparecem no topo do documento."
+        },
+        "dpo": {
+          "title": "13. Como falar conosco",
+          "p1": "Encarregado(a) de Proteção de Dados: <strong>[NOME]</strong>, <a href=\"mailto:{dpo_email}\">{dpo_email}</a>. Suporte geral: <a href=\"mailto:{support_email}\">{support_email}</a>."
+        }
+      }
     }
   },
   "onboarding": {
@@ -782,6 +1149,8 @@
   "errors": {
     "page_404_title": "Página não encontrada",
     "page_404_body": "A página que você está procurando não existe ou foi movida.",
+    "page_500_title": "Algo deu errado",
+    "page_500_body": "Ocorreu um erro inesperado do nosso lado. Tente novamente em instantes.",
     "back_home": "Voltar ao início",
     "to_dashboard": "Painel"
   },

@@ -72,6 +72,32 @@ class TestDashboardPages:
         """Test reviews page"""
         response = await async_client.get("/dashboard/reviews")
         assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_programs_page_renders_form(self, async_client: AsyncClient):
+        """Programs page renders with the generation form + JS hook."""
+        response = await async_client.get("/dashboard/programs")
+        assert response.status_code == 200
+        html = response.text
+        # Form fields the JS depends on
+        for marker in ("prog-composer", "prog-weeks", "prog-deload",
+                       "prog-spw", "prog-focus", "prog-start",
+                       "prog-activate", "btn-program-submit"):
+            assert marker in html, f"missing {marker!r} in programs page"
+        # JS bundle wired
+        assert "/static/js/programs.js" in html
+
+    @pytest.mark.asyncio
+    async def test_programs_page_localized_en(self, async_client: AsyncClient):
+        response = await async_client.get("/dashboard/programs?lang=en")
+        assert response.status_code == 200
+        assert "AI Programs" in response.text
+
+    @pytest.mark.asyncio
+    async def test_programs_page_localized_pt(self, async_client: AsyncClient):
+        response = await async_client.get("/dashboard/programs?lang=pt-BR")
+        assert response.status_code == 200
+        assert "Programas AI" in response.text
     
     @pytest.mark.asyncio
     async def test_profile_page(self, async_client: AsyncClient):
@@ -108,6 +134,110 @@ class TestAuthCallbackPages:
         """Test update password page"""
         response = await async_client.get("/update-password")
         assert response.status_code == 200
+
+
+class TestErrorPages:
+    """Test custom error page handlers"""
+
+    @pytest.mark.asyncio
+    async def test_html_404_renders_template(self, async_client: AsyncClient):
+        """Browser requests for unknown paths get the rendered 404 template,
+        not a JSON 500 (regression: shared Jinja env must be used so
+        i18n globals like `locale`/`t` resolve)."""
+        response = await async_client.get(
+            "/this-page-does-not-exist",
+            headers={"Accept": "text/html"},
+        )
+        assert response.status_code == 404
+        assert response.headers["content-type"].startswith("text/html")
+        assert ">404<" in response.text
+        # i18n key must be resolved, not left raw
+        assert "errors.page_404_title" not in response.text
+
+    @pytest.mark.asyncio
+    async def test_api_404_returns_json(self, async_client: AsyncClient):
+        """Unknown /api/* paths return JSON regardless of Accept header."""
+        response = await async_client.get(
+            "/api/v1/does-not-exist",
+            headers={"Accept": "text/html"},
+        )
+        assert response.status_code == 404
+        assert response.headers["content-type"].startswith("application/json")
+        assert response.json() == {"detail": "Not Found"}
+
+    @pytest.mark.asyncio
+    async def test_non_html_404_returns_json(self, async_client: AsyncClient):
+        """Non-API, non-HTML requests fall back to JSON."""
+        response = await async_client.get(
+            "/missing-non-html",
+            headers={"Accept": "*/*"},
+        )
+        assert response.status_code == 404
+        assert response.headers["content-type"].startswith("application/json")
+
+    @pytest.mark.asyncio
+    async def test_html_500_renders_template(self):
+        """Unhandled exceptions on browser requests render 500.html."""
+        from fastapi import APIRouter
+        from httpx import ASGITransport
+        from app.main import app
+
+        router = APIRouter()
+
+        @router.get("/__test_boom_html__")
+        def _boom():
+            raise RuntimeError("synthetic blast for html 500 test")
+
+        app.include_router(router)
+        try:
+            transport = ASGITransport(app=app, raise_app_exceptions=False)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get(
+                    "/__test_boom_html__",
+                    headers={"Accept": "text/html"},
+                )
+        finally:
+            # Remove the temp route so it doesn't leak into other tests.
+            app.router.routes = [
+                r for r in app.router.routes
+                if getattr(r, "path", None) != "/__test_boom_html__"
+            ]
+
+        assert response.status_code == 500
+        assert response.headers["content-type"].startswith("text/html")
+        assert ">500<" in response.text
+        assert "errors.page_500_title" not in response.text
+
+    @pytest.mark.asyncio
+    async def test_api_500_returns_json(self):
+        """Unhandled exceptions on /api/* always return JSON."""
+        from fastapi import APIRouter
+        from httpx import ASGITransport
+        from app.main import app
+
+        router = APIRouter()
+
+        @router.get("/api/v1/__test_boom_json__")
+        def _boom():
+            raise RuntimeError("synthetic blast for api 500 test")
+
+        app.include_router(router)
+        try:
+            transport = ASGITransport(app=app, raise_app_exceptions=False)
+            async with AsyncClient(transport=transport, base_url="http://test") as client:
+                response = await client.get(
+                    "/api/v1/__test_boom_json__",
+                    headers={"Accept": "text/html"},
+                )
+        finally:
+            app.router.routes = [
+                r for r in app.router.routes
+                if getattr(r, "path", None) != "/api/v1/__test_boom_json__"
+            ]
+
+        assert response.status_code == 500
+        assert response.headers["content-type"].startswith("application/json")
+        assert response.json()["error"] == "Internal Server Error"
 
 
 class TestAPIHealthEndpoints:
