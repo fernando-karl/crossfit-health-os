@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
 from pathlib import Path
 
+from app.core.config import settings as _settings
 from app.core.i18n import DEFAULT_LOCALE, get_catalog, t as _t
 
 router = APIRouter()
@@ -17,10 +18,32 @@ router = APIRouter()
 templates_dir = Path(__file__).parent.parent / "templates"
 templates = Jinja2Templates(directory=str(templates_dir))
 
-# Cache-busting tag: changes every process start so browsers + Cloudflare
-# fetch fresh assets after each deploy. Templates use it as
-# `<script src="/static/js/foo.js?v={{ asset_version() }}">`.
-_ASSET_VERSION = str(int(time.time()))
+# Cache-busting tag — derived from the newest mtime under static/. This
+# means a JS or CSS edit alone invalidates the browser cache, even when
+# uvicorn's --reload (Python-only) wouldn't restart the process. Cached
+# for 5s to avoid scanning the dir on every request.
+_STATIC_DIR = Path(__file__).parent.parent / "static"
+_ASSET_VERSION_CACHE = {"value": "", "checked_at": 0.0}
+_ASSET_VERSION_TTL_SECONDS = 5.0
+
+
+def _current_asset_version() -> str:
+    now = time.time()
+    if now - _ASSET_VERSION_CACHE["checked_at"] < _ASSET_VERSION_TTL_SECONDS \
+            and _ASSET_VERSION_CACHE["value"]:
+        return _ASSET_VERSION_CACHE["value"]
+    try:
+        latest = max(
+            p.stat().st_mtime
+            for p in _STATIC_DIR.rglob("*")
+            if p.is_file()
+        )
+        version = str(int(latest))
+    except (ValueError, OSError):
+        version = str(int(now))
+    _ASSET_VERSION_CACHE["value"] = version
+    _ASSET_VERSION_CACHE["checked_at"] = now
+    return version
 
 
 def _request_locale(ctx) -> str:
@@ -30,9 +53,22 @@ def _request_locale(ctx) -> str:
     return getattr(request.state, "locale", DEFAULT_LOCALE)
 
 
+def _auto_vars() -> dict:
+    """Vars auto-injected into every t() call.
+
+    Strings in the i18n catalog use ``{support_email}`` / ``{dpo_email}``
+    placeholders so the domain can be flipped via env without touching
+    every legal doc string.
+    """
+    return {
+        "support_email": _settings.SUPPORT_EMAIL or "",
+        "dpo_email": _settings.DPO_EMAIL or "",
+    }
+
+
 @pass_context
 def _t_global(ctx, key: str, **kwargs) -> str:
-    return _t(_request_locale(ctx), key, **kwargs)
+    return _t(_request_locale(ctx), key, **{**_auto_vars(), **kwargs})
 
 
 @pass_context
@@ -42,14 +78,22 @@ def _locale_global(ctx) -> str:
 
 @pass_context
 def _i18n_json_global(ctx) -> str:
-    return json.dumps(get_catalog(_request_locale(ctx)), ensure_ascii=False)
+    """Serialize the catalog with placeholders pre-substituted so the
+    client-side ``t()`` (which has no settings access) renders correctly."""
+    raw = json.dumps(get_catalog(_request_locale(ctx)), ensure_ascii=False)
+    av = _auto_vars()
+    return (
+        raw
+        .replace("{support_email}", av["support_email"])
+        .replace("{dpo_email}", av["dpo_email"])
+    )
 
 
 # Make `t`, `locale`, and `i18n_json` callable from any template/base.html.
 templates.env.globals["t"] = _t_global
 templates.env.globals["locale"] = _locale_global
 templates.env.globals["i18n_json"] = _i18n_json_global
-templates.env.globals["asset_version"] = lambda: _ASSET_VERSION
+templates.env.globals["asset_version"] = _current_asset_version
 
 
 # ============================================
@@ -80,6 +124,24 @@ async def forgot_password_page(request: Request):
     return templates.TemplateResponse("forgot_password.html", {"request": request})
 
 
+@router.get("/help")
+async def help_page(request: Request):
+    """Public help center / documentation page."""
+    return templates.TemplateResponse("help.html", {"request": request})
+
+
+@router.get("/terms")
+async def terms_page(request: Request):
+    """Public Terms of Service page."""
+    return templates.TemplateResponse("terms.html", {"request": request})
+
+
+@router.get("/privacy")
+async def privacy_page(request: Request):
+    """Public Privacy Policy page (LGPD-compliant)."""
+    return templates.TemplateResponse("privacy.html", {"request": request})
+
+
 # ============================================
 # Dashboard pages
 # ============================================
@@ -108,6 +170,34 @@ async def schedule_page(request: Request):
     return templates.TemplateResponse("schedule.html", {
         "request": request,
         "active_page": "schedule"
+    })
+
+
+@router.get("/dashboard/billing")
+async def billing_page(request: Request):
+    """Subscription / billing page. Stripe integration pending —
+    today this is a placeholder explaining the trial state."""
+    return templates.TemplateResponse("billing.html", {
+        "request": request,
+        "active_page": "billing"
+    })
+
+
+@router.get("/dashboard/referrals")
+async def referrals_page(request: Request):
+    """Referral code + invitations dashboard."""
+    return templates.TemplateResponse("referrals.html", {
+        "request": request,
+        "active_page": "referrals"
+    })
+
+
+@router.get("/dashboard/programs")
+async def programs_page(request: Request):
+    """cfai program generation page — generate Mesocycle + activate as macrocycle."""
+    return templates.TemplateResponse("programs.html", {
+        "request": request,
+        "active_page": "programs"
     })
 
 

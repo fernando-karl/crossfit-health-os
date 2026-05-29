@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t("help.page_title") }} — CrossFit Health OS{% endblock %}
+
+{% set sections = [
+    "getting_started",
+    "recovery",
+    "today_workout",
+    "programs",
+    "schedule",
+    "tracking",
+    "nutrition",
+    "lab_reports",
+    "weekly_review",
+    "healthkit",
+    "language",
+    "troubleshooting",
+] %}
+
+{% block navbar %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-dumbbell"></i> CrossFit Health OS
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarHelp">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarHelp">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/#features">{{ t("landing.nav.features") }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/#faq">{{ t("landing.nav.faq") }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/login">{{ t("landing.nav.login") }}</a>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-light ms-2" href="/register">{{ t("landing.nav.get_started") }}</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<section class="bg-primary text-white py-5">
+    <div class="container py-3">
+        <h1 class="display-4 fw-bold mb-3">
+            <i class="fas fa-life-ring me-2"></i>{{ t("help.intro_title") }}
+        </h1>
+        <p class="lead mb-0">{{ t("help.intro_lead") | safe }}</p>
+    </div>
+</section>
+
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <!-- Sticky TOC (desktop) -->
+            <aside class="col-lg-3 d-none d-lg-block">
+                <div class="position-sticky" style="top: 1.5rem;">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3">
+                        {{ t("help.toc_title") }}
+                    </h6>
+                    <nav class="nav flex-column">
+                        {% for sec in sections %}
+                        <a class="nav-link px-0 py-1" href="#{{ sec }}">
+                            {{ t("help.sec." ~ sec ~ ".title") }}
+                        </a>
+                        {% endfor %}
+                    </nav>
+                </div>
+            </aside>
+
+            <div class="col-lg-9">
+                {% for sec in sections %}
+                <article id="{{ sec }}" class="mb-5 pb-3 border-bottom">
+                    <h2 class="h3 fw-bold mb-3">
+                        {{ t("help.sec." ~ sec ~ ".title") }}
+                    </h2>
+                    {% for n in range(1, 5) %}
+                        {% set key = "help.sec." ~ sec ~ ".p" ~ n %}
+                        {% set para = t(key) %}
+                        {% if para != key %}
+                            <p class="text-body">{{ para | safe }}</p>
+                        {% endif %}
+                    {% endfor %}
+                    <a href="#" class="small text-muted">↑ {{ t("help.back_to_top") }}</a>
+                </article>
+                {% endfor %}
+
+                <div class="alert alert-primary mt-4" role="alert">
+                    <h5 class="alert-heading fw-bold">
+                        <i class="fas fa-envelope me-2"></i>{{ t("help.support_title") }}
+                    </h5>
+                    <p class="mb-0">{{ t("help.support_body") | safe }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-dark text-white py-4">
+    <div class="container text-center">
+        <p class="mb-2">{{ t("landing.footer.tagline") }}</p>
+        <p class="text-muted small mb-0">{{ t("landing.footer.stack") }}</p>
+    </div>
+</footer>
+{% endblock %}

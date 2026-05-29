@@ -79,6 +79,39 @@ class AdaptiveTrainingEngine:
             reasoning=reasoning,
         )
 
+    def adapt_template(
+        self,
+        db: Session,
+        user_id: int,
+        template: WorkoutTemplate,
+        target_date: _Date,
+    ) -> AdaptiveWorkoutResponse:
+        """Apply the readiness multiplier over a pre-existing template.
+
+        Used by ``GET /training/today`` when the user has an active program:
+        instead of returning the raw planned session, we overlay today's
+        recovery so volume/weight reflect how the athlete actually feels.
+        """
+        recovery = self._get_recovery_metrics(db, user_id, target_date)
+        readiness_score = self._calculate_readiness_score(recovery)
+        volume_multiplier, recommendation = self._determine_volume_adjustment(
+            readiness_score, force_rest=False
+        )
+        adjusted_movements = self._adjust_movements(
+            template.movements, volume_multiplier, readiness_score
+        )
+        reasoning = self._generate_reasoning(
+            recovery, readiness_score, volume_multiplier, template.methodology
+        )
+        return AdaptiveWorkoutResponse(
+            template=template,
+            volume_multiplier=volume_multiplier,
+            readiness_score=readiness_score,
+            recommendation=recommendation,
+            adjusted_movements=adjusted_movements,
+            reasoning=reasoning,
+        )
+
     # ==========================================================
     # Recovery + readiness
     # ==========================================================

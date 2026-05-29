@@ -277,10 +277,17 @@ const ScheduleUI = (function () {
         const zones = document.querySelectorAll(".chos-day-dropzone");
         zones.forEach(function (zone) {
             if (zone.dataset.dragEnabled !== "true") return;
-            // Stop click events from session items bubbling to the cell's
-            // onclick=openDayDrawer — drag handles need their own click semantics.
+            // Make session items themselves open the drawer for their day.
+            // Without this, the session item fills the day card on mobile and
+            // taps don't reach the cell's onclick=openDayDrawer. Sortable
+            // works on drag (mousedown→move→mouseup), so binding `click`
+            // here doesn't conflict with drag-and-drop.
             zone.querySelectorAll(".chos-session-item").forEach(function (item) {
-                item.addEventListener("click", function (ev) { ev.stopPropagation(); });
+                item.addEventListener("click", function (ev) {
+                    ev.stopPropagation();
+                    const date = zone.getAttribute("data-date");
+                    if (date) openDayDrawer(date);
+                });
             });
             Sortable.create(zone, {
                 group: "chos-days",
@@ -514,35 +521,113 @@ const ScheduleUI = (function () {
             .replace(/\b\w/g, c => c.toUpperCase());
     }
 
+    // Format seconds as "1:00" / "30s" — used for block_rest_seconds.
+    function fmtSeconds(s) {
+        if (s == null) return '';
+        const n = parseInt(s, 10);
+        if (!Number.isFinite(n)) return '';
+        if (n >= 60) {
+            const m = Math.floor(n / 60), r = n % 60;
+            return r === 0 ? `${m}:00` : `${m}:${String(r).padStart(2, '0')}`;
+        }
+        return `${n}s`;
+    }
+
+    // Render a single movement row (without group wrapping).
+    function renderMovementRow(m) {
+        const e = CHOS.escape;
+        const chips = [];
+        if (m.sets)             chips.push(`<span class="chos-badge chos-badge-primary">${e(m.sets)}×</span>`);
+        if (m.reps)             chips.push(`<span class="text-body num">${e(m.reps)} ${e(m.reps_unit || 'reps')}</span>`);
+        if (m.weight_kg)        chips.push(`<span class="text-secondary num">@ ${e(m.weight_kg)} kg</span>`);
+        if (m.duration_seconds) chips.push(`<span class="text-secondary num">${e(m.duration_seconds)}s</span>`);
+        if (m.distance_meters)  chips.push(`<span class="text-secondary num">${e(m.distance_meters)}m</span>`);
+        if (m.intensity)        chips.push(`<span class="chos-badge" style="background: var(--cat-recovery); color: #fff;">${e(m.intensity)}</span>`);
+
+        const restLine = m.rest
+            ? `<div class="text-secondary small mt-1"><i class="fas fa-pause-circle me-1"></i>${t("schedule.drawer.rest")}: ${e(m.rest)}</div>`
+            : '';
+        const notesLine = m.notes
+            ? `<div class="text-secondary small fst-italic mt-1">${e(m.notes)}</div>`
+            : '';
+        const videoIcon = typeof CHOS.movementVideoIcon === 'function'
+            ? CHOS.movementVideoIcon(m.movement) : '';
+
+        return `
+            <div class="py-2" style="border-bottom: 1px solid var(--color-border);">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <span class="fw-semibold text-body">${e(humanize(m.movement))}</span>
+                    ${videoIcon}
+                    <span class="ms-auto d-flex flex-wrap align-items-center gap-2">${chips.join(' ')}</span>
+                </div>
+                ${restLine}
+                ${notesLine}
+            </div>`;
+    }
+
     function renderMovements(movements) {
         if (!movements || !movements.length) {
             return `<div class="text-secondary small fst-italic">${t("schedule.drawer.no_movements")}</div>`;
         }
         const e = CHOS.escape;
-        return movements.map(function(m) {
-            // Prescription chips: sets · reps · weight · time
-            const chips = [];
-            if (m.sets)             chips.push(`<span class="chos-badge chos-badge-primary">${e(m.sets)}×</span>`);
-            if (m.reps)             chips.push(`<span class="text-body num">${e(m.reps)} ${e(m.reps_unit || 'reps')}</span>`);
-            if (m.weight_kg)        chips.push(`<span class="text-secondary num">@ ${e(m.weight_kg)} kg</span>`);
-            if (m.duration_seconds) chips.push(`<span class="text-secondary num">${e(m.duration_seconds)}s</span>`);
-            if (m.intensity)        chips.push(`<span class="chos-badge" style="background: var(--cat-recovery); color: #fff;">${e(m.intensity)}</span>`);
 
-            const restLine = m.rest
-                ? `<div class="text-secondary small mt-1"><i class="fas fa-pause-circle me-1"></i>${t("schedule.drawer.rest")}: ${e(m.rest)}</div>`
+        // Group consecutive movements that share the same block_id —
+        // an AMRAP/EMOM/metcon should render as one section with one
+        // header, not as N separate cards each repeating the prescription.
+        // Movements without block_id (legacy AI templates) fall through
+        // to ungrouped rows so the renderer stays backwards-compatible.
+        const groups = [];
+        let current = null;
+        movements.forEach(function (m) {
+            const key = m.block_id || `__solo_${groups.length}_${(current ? current.movements.length : 0)}`;
+            if (!current || current.key !== key) {
+                current = {
+                    key: key,
+                    label: m.block_label || '',
+                    prescription: m.block_prescription || '',
+                    intent: m.block_intent || '',
+                    rest: m.block_rest_seconds,
+                    movements: [],
+                    grouped: !!m.block_id,
+                };
+                groups.push(current);
+            }
+            current.movements.push(m);
+        });
+
+        return groups.map(function (g) {
+            // Solo (legacy / no block_id): render the row plain.
+            if (!g.grouped) {
+                return g.movements.map(renderMovementRow).join('');
+            }
+            // Header chips. block_label is rendered as a small upper-case
+            // category, prescription as a primary badge, intent as italic.
+            const labelChip = g.label
+                ? `<span class="text-secondary small" style="text-transform: uppercase; letter-spacing: 0.04em;">${e(humanize(g.label))}</span>`
                 : '';
-            const notesLine = m.notes
-                ? `<div class="text-secondary small fst-italic mt-1">${e(m.notes)}</div>`
+            const prescriptionChip = g.prescription
+                ? `<span class="chos-badge chos-badge-primary num">${e(g.prescription)}</span>`
+                : '';
+            const intentLine = g.intent
+                ? `<div class="text-body small fst-italic mt-1">${e(g.intent)}</div>`
+                : '';
+            const restFooter = g.rest
+                ? `<div class="text-secondary small mt-2 pt-2" style="border-top: 1px dashed var(--color-border);"><i class="fas fa-pause-circle me-1"></i>${t("schedule.drawer.rest_between_sets")}: <span class="num">${fmtSeconds(g.rest)}</span></div>`
                 : '';
 
             return `
-                <div class="py-2" style="border-bottom: 1px solid var(--color-border);">
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <span class="fw-semibold text-body">${e(humanize(m.movement))}</span>
-                        <span class="ms-auto d-flex flex-wrap align-items-center gap-2">${chips.join(' ')}</span>
+                <div class="chos-card mb-3" style="background: var(--surface-sunken); border: 1px solid var(--color-border);">
+                    <div class="card-body" style="padding: var(--space-3);">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            ${labelChip}
+                            ${prescriptionChip}
+                        </div>
+                        ${intentLine}
+                        <div class="mt-2">
+                            ${g.movements.map(renderMovementRow).join('')}
+                        </div>
+                        ${restFooter}
                     </div>
-                    ${restLine}
-                    ${notesLine}
                 </div>`;
         }).join('');
     }
@@ -623,6 +708,16 @@ const ScheduleUI = (function () {
             };
             const catCls = catModifier[s.workout_type] || 'is-recovery';
 
+            // Start button — only meaningful when a workout template has
+            // been generated for this session. Clicking it stashes the
+            // template in sessionStorage and routes to /dashboard/workouts
+            // which auto-opens the tracking modal.
+            const startBtn = s.generated_template_id
+                ? `<button class="chos-btn chos-btn-primary chos-btn-sm" onclick="ScheduleUI.startSession(${idx})" aria-label="${t("schedule.drawer.start_session")}" title="${t("schedule.drawer.start_session")}">
+                       <i class="fas fa-play me-1"></i><span class="d-none d-sm-inline">${t("schedule.drawer.start_session")}</span>
+                   </button>`
+                : '';
+
             html += `
                 <div class="chos-card mb-3" data-idx="${idx}">
                     <div class="card-body">
@@ -631,9 +726,12 @@ const ScheduleUI = (function () {
                                 ${t("schedule.drawer.session_n", { n: s.order_in_day })}
                                 ${loadingSpinner}
                             </span>
-                            <button class="chos-btn chos-btn-ghost chos-btn-sm" onclick="ScheduleUI.deleteSessionRow(${idx})" aria-label="${t("schedule.drawer.delete_session")}">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                ${startBtn}
+                                <button class="chos-btn chos-btn-ghost chos-btn-sm" onclick="ScheduleUI.deleteSessionRow(${idx})" aria-label="${t("schedule.drawer.delete_session")}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
 
                         ${workoutDetail}
@@ -790,6 +888,26 @@ const ScheduleUI = (function () {
             .fail(function () { CHOS.toast.error(t("schedule.toast.copy_error")); });
     }
 
+    // ----- Start a session from the drawer ----------------------------------
+    function startSession(idx) {
+        const s = state.drawerSessions[idx];
+        if (!s || !s.generated_template_id) return;
+        const cached = getTemplate(s.generated_template_id);
+        if (cached) {
+            CHOS.startWorkoutFromTemplate(cached);
+            return;
+        }
+        // Template not in cache yet — fetch on demand, then handoff.
+        CHOS.api.get(`/api/v1/training/templates/${s.generated_template_id}`)
+            .done(function (template) {
+                state.templateCache[s.generated_template_id] = template;
+                CHOS.startWorkoutFromTemplate(template);
+            })
+            .fail(function () {
+                CHOS.toast.error(t("schedule.toast.session_load_error"));
+            });
+    }
+
     return {
         init: init,
         navigateWeek: navigateWeek,
@@ -805,6 +923,7 @@ const ScheduleUI = (function () {
         copyFromPreviousWeek: copyFromPreviousWeek,
         openCreateMacroPosterior: openCreateMacroPosterior,
         openCreateMacroSubstituir: openCreateMacroSubstituir,
+        startSession: startSession,
     };
 })();
 

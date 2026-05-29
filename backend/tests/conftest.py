@@ -42,9 +42,28 @@ from app.main import app  # imported last so `app` binds to the FastAPI instance
 # Mock User Fixture
 # ============================================
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Clear slowapi's quota state between tests so quotas don't leak."""
+    try:
+        from app.core.rate_limit import limiter
+        # slowapi's Limiter exposes .reset() that flushes its storage.
+        if hasattr(limiter, "reset"):
+            limiter.reset()
+    except Exception:
+        pass
+    yield
+
+
 @pytest.fixture
 def mock_user():
-    """Mock authenticated user — id is INT to match auth.py/User table."""
+    """Mock authenticated user — id is INT to match auth.py/User table.
+
+    Default state: a healthy trialing user with 7 days remaining. Endpoints
+    gated by require_active_subscription will pass. Tests that need to
+    exercise the paywall path can override individual fields.
+    """
+    from datetime import datetime, timedelta
     return {
         "id": 1,
         "auth_user_id": str(uuid4()),  # legacy field, kept for unmigrated tests
@@ -56,6 +75,8 @@ def mock_user():
         "height_cm": 175.0,
         "goals": ["strength", "conditioning"],
         "timezone": "America/Sao_Paulo",
+        "subscription_status": "trialing",
+        "trial_expires_at": (datetime.utcnow() + timedelta(days=7)).isoformat(),
         "preferences": {
             "goals": ["strength", "conditioning"],
             "methodology": "hwpo",

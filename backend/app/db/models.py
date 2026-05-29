@@ -50,6 +50,19 @@ class User(SQLModel, table=True):
     timezone: str = Field(default="America/Sao_Paulo", max_length=64)
     locale: Optional[str] = Field(default=None, max_length=10)
     preferences: dict = Field(default_factory=dict, sa_column=_json_column())
+    # Subscription / trial state. Set at signup; flipped by Stripe webhooks
+    # once payments are wired. `subscription_status` values:
+    # trialing | active | past_due | canceled.
+    trial_started_at: Optional[_Datetime] = None
+    trial_expires_at: Optional[_Datetime] = None
+    subscription_status: str = Field(default="trialing", max_length=20)
+    stripe_customer_id: Optional[str] = Field(default=None, max_length=64)
+    subscription_id: Optional[str] = Field(default=None, max_length=64)
+    # LGPD/GDPR consent record — captured at signup, versioned so we can
+    # re-prompt when terms change.
+    terms_accepted_at: Optional[_Datetime] = None
+    terms_version: Optional[str] = Field(default=None, max_length=16)
+    privacy_version: Optional[str] = Field(default=None, max_length=16)
     created_at: _Datetime = Field(default_factory=_Datetime.utcnow)
     updated_at: _Datetime = Field(default_factory=_Datetime.utcnow)
 
@@ -167,6 +180,34 @@ class Microcycle(SQLModel, table=True):
     volume_target: Optional[str] = Field(default=None, max_length=20)
     notes: Optional[str] = None
     created_at: _Datetime = Field(default_factory=_Datetime.utcnow)
+
+
+class Program(SQLModel, table=True):
+    """cfai-generated mesocycle program. Stores the full Mesocycle as JSONB."""
+    __tablename__ = "programs"
+    __table_args__ = (
+        Index("idx_programs_user_created", "user_id", "created_at"),
+    )
+
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    macrocycle_id: Optional[UUID] = Field(default=None, foreign_key="macrocycles.id")
+
+    name: str = Field(max_length=200)
+    composer_used: str = Field(max_length=40)  # heuristic / hybrid_openai / ...
+    phase: str = Field(max_length=20)          # mesocycle root phase
+    start_date: _Date
+    duration_weeks: int
+    sessions_per_week: int = 5
+
+    primary_focus: List[str] = Field(default_factory=list, sa_column=_json_column())
+    spec: dict = Field(default_factory=dict, sa_column=_json_column())  # MesocycleSpec
+    athlete_snapshot: dict = Field(default_factory=dict, sa_column=_json_column())
+    mesocycle: dict = Field(default_factory=dict, sa_column=_json_column())  # full cfai Mesocycle
+    generation_metadata: dict = Field(default_factory=dict, sa_column=_json_column())
+
+    created_at: _Datetime = Field(default_factory=_Datetime.utcnow)
+    updated_at: _Datetime = Field(default_factory=_Datetime.utcnow)
 
 
 class PlannedSession(SQLModel, table=True):
@@ -431,6 +472,59 @@ class PersonalRecord(SQLModel, table=True):
     video_url: Optional[str] = None
 
 
+# ==========================================================
+# Referrals: user-to-user invite codes + conversion tracking
+# ==========================================================
+
+class ReferralCode(SQLModel, table=True):
+    __tablename__ = "referral_codes"
+
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", unique=True, index=True)
+    code: str = Field(max_length=24, sa_column_kwargs={"unique": True})
+    active: bool = Field(default=True)
+    created_at: _Datetime = Field(default_factory=_Datetime.utcnow)
+
+
+class Referral(SQLModel, table=True):
+    __tablename__ = "referrals"
+    __table_args__ = (
+        UniqueConstraint("referred_user_id", name="uq_referral_referee"),
+    )
+
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    code_id: UUID = Field(foreign_key="referral_codes.id", index=True)
+    referred_user_id: int = Field(foreign_key="users.id")
+    status: str = Field(default="pending", max_length=20)  # pending / converted
+    created_at: _Datetime = Field(default_factory=_Datetime.utcnow)
+    converted_at: Optional[_Datetime] = None
+
+
+# ==========================================================
+# Refresh tokens — rotation chain w/ reuse detection
+# ==========================================================
+
+class RefreshToken(SQLModel, table=True):
+    """One row per issued refresh token.
+
+    The raw token is **never** stored — only its sha256 hash. A new pair
+    is issued on each ``/auth/refresh`` call; the old row is updated with
+    ``replaced_by_id`` so we can detect reuse (theft scenario): if a row
+    flagged as replaced is presented again, we revoke the entire family.
+    """
+    __tablename__ = "refresh_tokens"
+
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    token_hash: str = Field(max_length=64, sa_column_kwargs={"unique": True})
+    issued_at: _Datetime = Field(default_factory=_Datetime.utcnow)
+    expires_at: _Datetime
+    revoked_at: Optional[_Datetime] = None
+    replaced_by_id: Optional[UUID] = Field(default=None, foreign_key="refresh_tokens.id")
+    user_agent: Optional[str] = Field(default=None, max_length=255)
+    ip: Optional[str] = Field(default=None, max_length=64)
+
+
 __all__ = [
     "User",
     "WorkoutTemplate",
@@ -439,6 +533,7 @@ __all__ = [
     "Macrocycle",
     "Microcycle",
     "PlannedSession",
+    "Program",
     "PersonalRecord",
     "BiomarkerReading",
     "MealLog",
@@ -450,4 +545,7 @@ __all__ = [
     "UserDietPlan",
     "Notification",
     "Injury",
+    "ReferralCode",
+    "Referral",
+    "RefreshToken",
 ]

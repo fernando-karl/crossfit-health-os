@@ -13,9 +13,11 @@ from app.core.integrations.calendar import (
     get_oauth_url,
     sync_calendar_events,
 )
+from app.core.oauth_state import consume_state, issue_state
 from app.core.integrations.healthkit import sync_healthkit_data
 from app.db.models import User as UserDB
 from app.db.session import get_session
+from app.models.health import HealthKitSyncRequest
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -27,11 +29,13 @@ logger = logging.getLogger(__name__)
 
 @router.post("/healthkit/sync")
 async def sync_healthkit(
-    data: dict,
+    payload: HealthKitSyncRequest,
     current_user: dict = Depends(get_current_user),
 ):
     user_id = int(current_user["id"])
-    result = await sync_healthkit_data(user_id, data)
+    # Pydantic enforces field bounds + extra="forbid"; we hand the
+    # already-validated dict to the existing storage helper.
+    result = await sync_healthkit_data(user_id, payload.model_dump(exclude_none=True))
     return {
         "status": "success",
         "records_synced": result.get("count", 0),
@@ -46,7 +50,10 @@ async def sync_healthkit(
 
 @router.get("/calendar/oauth/url")
 async def get_calendar_oauth_url(current_user: dict = Depends(get_current_user)):
-    state = str(current_user["id"])  # pass user id as state
+    # Single-use random nonce bound to this user. Replaces the prior
+    # ``state=user_id`` design which let an attacker hijack the callback
+    # to write tokens into another user's row.
+    state = issue_state(int(current_user["id"]))
     url = get_oauth_url(state=state)
     return {"auth_url": url}
 
@@ -67,15 +74,18 @@ async def calendar_oauth_callback(
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing code or state")
 
+    # Atomically consume the nonce — single-use, expires in 10 minutes.
+    # Unknown/expired/replayed nonce → 400 (no DB write happens).
+    user_id = consume_state(state)
+    if user_id is None:
+        logger.warning("Calendar OAuth callback: invalid or expired state")
+        raise HTTPException(status_code=400, detail="Invalid or expired state")
+
     try:
         tokens = await exchange_code(code)
         refresh_token = tokens.get("refresh_token")
 
         if refresh_token:
-            try:
-                user_id = int(state)
-            except (TypeError, ValueError):
-                raise HTTPException(status_code=400, detail="Invalid state parameter")
             user = db.get(UserDB, user_id)
             if user:
                 prefs = dict(user.preferences or {})

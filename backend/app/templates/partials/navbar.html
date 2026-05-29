@@ -25,6 +25,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {{ 'active' if active_page == 'programs' }}" href="/dashboard/programs">
+                        <i class="fas fa-magic me-1"></i> {{ t("nav.menu.programs") }}
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ 'active' if active_page == 'reviews' }}" href="/dashboard/reviews">
                         <i class="fas fa-chart-line me-1"></i> {{ t("nav.menu.reviews") }}
                     </a>
@@ -63,6 +68,8 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="/dashboard/profile"><i class="fas fa-cog me-2"></i> {{ t("nav.user_menu.settings") }}</a></li>
+                        <li><a class="dropdown-item" href="/dashboard/referrals"><i class="fas fa-user-friends me-2"></i> {{ t("referrals.menu_link") }}</a></li>
+                        <li><a class="dropdown-item" href="/help"><i class="fas fa-life-ring me-2"></i> {{ t("landing.nav.help") }}</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="/logout" id="logout-btn"><i class="fas fa-sign-out-alt me-2"></i> {{ t("nav.user_menu.logout") }}</a></li>
                     </ul>

@@ -15,8 +15,9 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -30,6 +31,9 @@ LOCALE_COOKIE = "lang"
 
 _I18N_DIR = Path(__file__).resolve().parent.parent / "i18n"
 _CATALOGS: Dict[str, Dict[str, Any]] = {}
+_MTIMES: Dict[str, float] = {}
+_LAST_CHECK: float = 0.0
+_CHECK_INTERVAL_SECONDS = 5.0
 
 
 def _load_catalogs() -> None:
@@ -38,13 +42,34 @@ def _load_catalogs() -> None:
         if not path.exists():
             logger.warning("i18n catalog missing: %s", path)
             _CATALOGS[locale] = {}
+            _MTIMES[locale] = 0.0
             continue
         try:
             with path.open("r", encoding="utf-8") as f:
                 _CATALOGS[locale] = json.load(f)
+            _MTIMES[locale] = path.stat().st_mtime
         except json.JSONDecodeError as exc:
             logger.error("Failed to parse i18n catalog %s: %s", path, exc)
             _CATALOGS[locale] = {}
+            _MTIMES[locale] = 0.0
+
+
+def _maybe_reload_catalogs() -> None:
+    """Reload catalogs if any JSON file's mtime changed. Throttled to 5s."""
+    global _LAST_CHECK
+    now = time.monotonic()
+    if now - _LAST_CHECK < _CHECK_INTERVAL_SECONDS:
+        return
+    _LAST_CHECK = now
+    for locale in SUPPORTED_LOCALES:
+        path = _I18N_DIR / f"{locale}.json"
+        try:
+            current_mtime = path.stat().st_mtime if path.exists() else 0.0
+        except OSError:
+            continue
+        if current_mtime != _MTIMES.get(locale):
+            _load_catalogs()
+            return
 
 
 _load_catalogs()
@@ -61,6 +86,7 @@ def _resolve_dotted(catalog: Dict[str, Any], key: str) -> Optional[str]:
 
 def get_catalog(locale: str) -> Dict[str, Any]:
     """Return the raw nested dict for a locale (used to inject into JS)."""
+    _maybe_reload_catalogs()
     if locale not in _CATALOGS:
         locale = DEFAULT_LOCALE
     return _CATALOGS.get(locale, {})
@@ -71,6 +97,7 @@ def t(locale: str, key: str, **vars: Any) -> str:
 
     Falls back to the default locale, then to the key itself.
     """
+    _maybe_reload_catalogs()
     candidates = [locale, DEFAULT_LOCALE] if locale != DEFAULT_LOCALE else [DEFAULT_LOCALE]
     for loc in candidates:
         value = _resolve_dotted(_CATALOGS.get(loc, {}), key)

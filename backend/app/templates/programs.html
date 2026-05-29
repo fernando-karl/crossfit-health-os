@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t("programs.page_title") }} - CrossFit Health OS{% endblock %}
+
+{% block navbar %}
+{% include "partials/navbar.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-1">{{ t("programs.page_title") }}</h1>
+            <p class="text-muted mb-0">{{ t("programs.subtitle") }}</p>
+        </div>
+    </div>
+
+    <!-- Generation form -->
+    <div class="chos-card mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3"><i class="fas fa-magic me-2"></i>{{ t("programs.btn_generate") }}</h5>
+            <form id="program-form" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-medium" for="prog-composer">{{ t("programs.form.composer") }}</label>
+                    <select class="form-select" id="prog-composer" name="composer">
+                        <option value="heuristic" selected>heuristic</option>
+                        <option value="hybrid_openai">hybrid_openai</option>
+                        <option value="hybrid_anthropic">hybrid_anthropic</option>
+                        <option value="hybrid_deepseek">hybrid_deepseek</option>
+                        <option value="hybrid_groq">hybrid_groq</option>
+                        <option value="hybrid_minimax">hybrid_minimax</option>
+                    </select>
+                    <small class="text-muted">{{ t("programs.form.composer_hint") }}</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-medium" for="prog-name">{{ t("programs.form.name") }}</label>
+                    <input type="text" class="form-control" id="prog-name" name="name" maxlength="200">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-medium" for="prog-weeks">{{ t("programs.form.weeks_pattern") }}</label>
+                    <input type="text" class="form-control" id="prog-weeks" name="weeks"
+                           value="base, base, build, deload, peak, peak, deload, test" required>
+                    <small class="text-muted">{{ t("programs.form.weeks_pattern_hint") }}</small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-medium" for="prog-deload">{{ t("programs.form.deload_weeks") }}</label>
+                    <input type="text" class="form-control" id="prog-deload" name="deload_weeks" value="4, 7">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-medium" for="prog-spw">{{ t("programs.form.sessions_per_week") }}</label>
+                    <input type="number" class="form-control" id="prog-spw" name="sessions_per_week"
+                           min="1" max="7" value="5" required>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-medium" for="prog-focus">{{ t("programs.form.primary_focus") }}</label>
+                    <input type="text" class="form-control" id="prog-focus" name="primary_focus"
+                           value="squat_volume, aerobic_threshold" required>
+                    <small class="text-muted">{{ t("programs.form.primary_focus_hint") }}</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-medium" for="prog-start">{{ t("programs.form.start_date") }}</label>
+                    <input type="date" class="form-control" id="prog-start" name="start_date">
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="prog-activate" checked>
+                        <label class="form-check-label fw-medium" for="prog-activate">
+                            {{ t("programs.form.activate") }}
+                        </label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="chos-btn chos-btn-primary chos-btn-lg" id="btn-program-submit">
+                        <i class="fas fa-bolt me-1"></i>
+                        <span class="btn-text">{{ t("programs.form.submit") }}</span>
+                        <span class="btn-spinner d-none"><i class="fas fa-spinner fa-spin"></i> {{ t("programs.form.submitting") }}</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- History -->
+    <h5 class="fw-bold mb-3">{{ t("programs.history_title") }}</h5>
+    <div id="programs-list">
+        <div class="chos-empty-state">
+            <i class="fas fa-layer-group empty-icon"></i>
+            <h5 class="empty-title">{{ t("programs.empty_title") }}</h5>
+            <p class="empty-desc">{{ t("programs.empty_desc") }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- JSON detail modal -->
+<div class="modal fade" id="programDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="program-detail-title">—</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="program-detail-body" style="max-height: 75vh; overflow: auto;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/programs.js?v={{ asset_version() }}"></script>
+{% endblock %}

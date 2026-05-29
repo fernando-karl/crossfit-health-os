@@ -23,6 +23,12 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.20
 
+# Rate limiting (slowapi → limits → optional redis backend)
+slowapi==0.1.9
+
+# Payments
+stripe==15.1.0
+
 # HTTP & API
 httpx>=0.24.0
 requests==2.32.3

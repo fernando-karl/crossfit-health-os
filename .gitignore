@@ -14,3 +14,6 @@ backend/.env
 
 # tarball artifacts
 *.tar.gz
+
+# Claude local settings (may contain local creds/paths)
+.claude/settings.local.json

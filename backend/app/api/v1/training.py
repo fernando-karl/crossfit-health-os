@@ -6,11 +6,12 @@ from typing import List, Optional
 from uuid import UUID
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_active_subscription
+from app.core.rate_limit import limiter
 from app.core.engine.adaptive import adaptive_engine
 from app.db.models import (
     Macrocycle as MacrocycleDB,
@@ -97,17 +98,19 @@ def _template_to_schema(row: WorkoutTemplateDB) -> WorkoutTemplate:
 # ==========================================================
 
 @router.post("/generate", response_model=AdaptiveWorkoutResponse)
+@limiter.limit("30/hour")
 async def generate_adaptive_workout(
-    request: WorkoutGenerationRequest,
+    request: Request,
+    payload: WorkoutGenerationRequest,
     db: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_active_subscription),
 ):
     """Generate an adaptive workout adjusted for today's readiness."""
-    user_id = request.user_id if request.user_id is not None else int(current_user["id"])
-    target_date = request.date or _Date.today()
+    user_id = payload.user_id if payload.user_id is not None else int(current_user["id"])
+    target_date = payload.date or _Date.today()
     try:
         return await adaptive_engine.generate_workout(
-            db=db, user_id=user_id, target_date=target_date, force_rest=request.force_rest
+            db=db, user_id=user_id, target_date=target_date, force_rest=payload.force_rest
         )
     except Exception as e:
         logger.error(f"generate_adaptive_workout failed: {e}", exc_info=True)
@@ -159,7 +162,28 @@ async def get_today_workout(
     if not template:
         return {"workout": None}
 
-    return {"workout": _template_to_schema(template).model_dump(mode="json")}
+    # Apply today's readiness multiplier over the planned session so the
+    # athlete actually sees an adapted volume (matches the landing promise
+    # "fresh → push, wiped → lighter session"). Non-destructive — we mutate
+    # the response, not the template row.
+    template_schema = _template_to_schema(template)
+    try:
+        adapted = adaptive_engine.adapt_template(
+            db=db, user_id=uid, template=template_schema, target_date=today
+        )
+    except Exception as e:  # noqa: BLE001 — overlay must never break the page
+        logger.warning("adapt_template failed for user %s: %s", uid, e)
+        return {"workout": template_schema.model_dump(mode="json")}
+
+    workout = template_schema.model_copy(update={"movements": adapted.adjusted_movements})
+    return {
+        "workout": workout.model_dump(mode="json"),
+        "adapted_meta": {
+            "volume_multiplier": adapted.volume_multiplier,
+            "readiness_score": adapted.readiness_score,
+            "recommendation": adapted.recommendation,
+        },
+    }
 
 
 @router.get("/workouts/next", response_model=Optional[WorkoutTemplate])

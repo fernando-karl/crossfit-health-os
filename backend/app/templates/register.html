@@ -16,6 +16,16 @@
 
                     <div id="alert-container"></div>
 
+                    <!-- Referral banner (shown when ?ref= is in URL) -->
+                    <div id="ref-banner" class="alert alert-success d-none" role="alert">
+                        <i class="fas fa-gift me-2"></i>
+                        <strong>{{ t("referrals.banner.code_applied") }}</strong>
+                        <code id="ref-banner-code" class="ms-1">—</code>
+                        <span class="d-block small mt-1 text-success-emphasis">
+                            {{ t("referrals.banner.bonus_text") }}
+                        </span>
+                    </div>
+
                     <form id="register-form">
                         <!-- Basic Info -->
                         <h5 class="fw-bold mb-3">{{ t("auth.register.section_basic") }}</h5>
@@ -109,6 +119,20 @@
                             </div>
                         </div>
                         
+                        <!-- LGPD/GDPR consent — both required to submit -->
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="accepted_terms" name="accepted_terms" required>
+                            <label class="form-check-label small" for="accepted_terms">
+                                {{ t("legal.consent.checkbox_label") | safe }}
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="accepted_health_data" name="accepted_health_data" required>
+                            <label class="form-check-label small" for="accepted_health_data">
+                                {{ t("legal.consent.health_consent_label") | safe }}
+                            </label>
+                        </div>
+
                         <button type="submit" class="btn btn-primary btn-lg w-100 mb-3" id="register-btn">
                             <span class="btn-text">{{ t("auth.register.submit") }}</span>
                             <span class="btn-spinner d-none">
@@ -116,10 +140,6 @@
                                 {{ t("auth.register.submitting") }}
                             </span>
                         </button>
-
-                        <p class="text-center text-muted small mb-0">
-                            {{ t("auth.register.terms") }}
-                        </p>
                     </form>
 
                     <hr>
@@ -146,6 +166,20 @@
 <script src="/static/js/validation.js?v={{ asset_version() }}"></script>
 <script>
 $(document).ready(function() {
+    // Capture ?ref= from the URL: persist for auto-redeem after signup,
+    // and show a banner so the visitor knows the code was picked up.
+    (function () {
+        const params = new URLSearchParams(window.location.search);
+        const ref = (params.get('ref') || '').trim().toLowerCase();
+        if (!ref) return;
+        // Sanitize: lowercase ascii letters/digits only, max 24 chars.
+        const safe = ref.replace(/[^a-z0-9]/g, '').slice(0, 24);
+        if (!safe) return;
+        try { sessionStorage.setItem('chos-pending-ref', safe); } catch (e) {}
+        $('#ref-banner-code').text(safe);
+        $('#ref-banner').removeClass('d-none');
+    })();
+
     // Setup real-time validation
     FormValidator.setupRealtimeValidation($('#register-form'));
 
@@ -167,6 +201,20 @@ $(document).ready(function() {
             goals.push($(this).val());
         });
         
+        // Consent: both LGPD/GDPR checkboxes required.
+        const acceptedTerms = $('#accepted_terms').is(':checked');
+        const acceptedHealth = $('#accepted_health_data').is(':checked');
+        if (!acceptedTerms) {
+            showAlert(t('legal.consent.required'), 'danger');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            return;
+        }
+        if (!acceptedHealth) {
+            showAlert(t('legal.consent.health_required'), 'danger');
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            return;
+        }
+
         // Build payload
         const data = {
             email: $('#email').val(),
@@ -177,7 +225,9 @@ $(document).ready(function() {
             weight_kg: $('#weight_kg').val() ? parseFloat($('#weight_kg').val()) : null,
             height_cm: $('#height_cm').val() ? parseInt($('#height_cm').val()) : null,
             fitness_level: $('#fitness_level').val(),
-            goals: goals
+            goals: goals,
+            accepted_terms: acceptedTerms,
+            accepted_health_data: acceptedHealth
         };
         
         // Show loading

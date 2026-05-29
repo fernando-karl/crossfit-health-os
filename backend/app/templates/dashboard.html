@@ -8,7 +8,10 @@
 
 {% block content %}
 <div class="container-fluid py-4" id="main-content">
-    
+
+    <!-- Trial banner mount (rendered by CHOS.trial.init from /users/me) -->
+    <div id="chos-trial-banner"></div>
+
     <!-- Loading State -->
     <div id="loading-state" class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
@@ -539,17 +542,25 @@ function renderBadges(badges) {
     $('#badges-container').html(html);
 }
 
+// Holds the workout object that the Start CTA should hand off to the
+// tracking modal on /dashboard/workouts. Populated by either
+// loadTodayWorkout() or generateWorkout(); read by startWorkout().
+let todayWorkoutForHandoff = null;
+
 async function loadTodayWorkout() {
     try {
         // Try to get today's workout from schedule
         const response = await CHOS.api.get('/api/v1/training/today');
-        
+
         if (response && response.workout) {
+            todayWorkoutForHandoff = response.workout;
             renderTodayWorkout(response.workout);
         } else {
+            todayWorkoutForHandoff = null;
             showNoWorkoutState();
         }
     } catch (error) {
+        todayWorkoutForHandoff = null;
         showNoWorkoutState();
     }
 }
@@ -637,6 +648,7 @@ async function generateWorkout() {
                 description: response.recommendation || response.template.description || '',
                 movements: response.adjusted_movements || response.template.movements || []
             };
+            todayWorkoutForHandoff = workout;
             renderTodayWorkout(workout);
             CHOS.toast.success(t('dashboard.workout_generated'));
         } else {
@@ -651,6 +663,14 @@ async function generateWorkout() {
 }
 
 function startWorkout() {
+    // Hand off the cached workout so the workouts page can open the
+    // tracking modal directly. Without this, the workouts page would
+    // call /training/today and find nothing (the adaptive /generate
+    // endpoint doesn't persist a PlannedSession).
+    if (todayWorkoutForHandoff && CHOS.startWorkoutFromTemplate) {
+        CHOS.startWorkoutFromTemplate(todayWorkoutForHandoff);
+        return;
+    }
     window.location.href = '/dashboard/workouts';
 }
 

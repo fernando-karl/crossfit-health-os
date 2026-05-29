@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t("referrals.page_title") }} - CrossFit Health OS{% endblock %}
+
+{% block navbar %}
+{% include "partials/navbar.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 760px;">
+
+    <div class="mb-4">
+        <h1 class="h2 fw-bold mb-1">
+            <i class="fas fa-user-friends me-2"></i>{{ t("referrals.page_title") }}
+        </h1>
+        <p class="text-muted mb-0">{{ t("referrals.subtitle") }}</p>
+    </div>
+
+    <!-- My code card -->
+    <div class="chos-card mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-3">{{ t("referrals.your_code") }}</h5>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <code id="ref-code" class="fs-3 fw-bold text-primary px-3 py-2 bg-light rounded">—</code>
+                <button class="btn btn-outline-primary" id="ref-copy-code">
+                    <i class="fas fa-copy me-1"></i>{{ t("referrals.copy_code") }}
+                </button>
+            </div>
+            <label class="form-label small text-muted mb-1">{{ t("referrals.share_link") }}</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="ref-share-url" readonly>
+                <button class="btn btn-outline-secondary" id="ref-copy-link" type="button">
+                    <i class="fas fa-link me-1"></i>{{ t("referrals.copy_link") }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-6">
+            <div class="chos-card h-100"><div class="card-body text-center">
+                <div class="h2 fw-bold mb-1" id="ref-stat-signups">0</div>
+                <div class="small text-muted">{{ t("referrals.stat_signups") }}</div>
+            </div></div>
+        </div>
+        <div class="col-6">
+            <div class="chos-card h-100"><div class="card-body text-center">
+                <div class="h2 fw-bold mb-1 text-success" id="ref-stat-months">0</div>
+                <div class="small text-muted">{{ t("referrals.stat_months_earned") }}</div>
+            </div></div>
+        </div>
+    </div>
+
+    <!-- Redeem someone else's code -->
+    <div class="chos-card mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold mb-2">{{ t("referrals.redeem_title") }}</h5>
+            <p class="text-muted small mb-3">{{ t("referrals.redeem_subtitle") }}</p>
+            <form id="ref-redeem-form" class="d-flex gap-2 flex-wrap">
+                <input type="text" class="form-control" id="ref-redeem-input"
+                       placeholder="{{ t('referrals.redeem_placeholder') }}"
+                       maxlength="24" style="max-width: 280px;">
+                <button class="btn btn-primary" type="submit">
+                    {{ t("referrals.redeem_btn") }}
+                </button>
+            </form>
+            <div id="ref-redeem-msg" class="mt-2 small"></div>
+        </div>
+    </div>
+
+    <!-- Friends list -->
+    <h5 class="fw-bold mb-3">{{ t("referrals.list_title") }}</h5>
+    <div id="ref-list">
+        <div class="chos-empty-state">
+            <i class="fas fa-users empty-icon"></i>
+            <h5 class="empty-title">{{ t("referrals.empty_title") }}</h5>
+            <p class="empty-desc">{{ t("referrals.empty_desc") }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/referrals.js?v={{ asset_version() }}"></script>
+{% endblock %}

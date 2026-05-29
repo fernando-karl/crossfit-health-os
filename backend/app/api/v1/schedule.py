@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_active_subscription
 from app.core.datetime_utils import snap_to_monday, user_today
 from app.core.engine.periodization import (
     default_block_plan_for,
@@ -654,7 +654,7 @@ class GenerateMicrocycleResponse(BaseModel):
 async def generate_microcycle_workouts(
     micro_id: UUID,
     session: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_active_subscription),
 ):
     from app.core.engine.ai_programmer import ai_programmer
 

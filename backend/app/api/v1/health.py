@@ -6,11 +6,12 @@ from typing import List, Optional
 from uuid import UUID
 import logging
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_active_subscription
+from app.core.rate_limit import limiter
 from app.core.integrations.ocr import parse_lab_report
 from app.db.models import (
     BiomarkerReading as BiomarkerReadingDB,
@@ -145,10 +146,12 @@ async def get_latest_recovery(
 
 
 @router.post("/biomarkers/upload")
+@limiter.limit("10/hour")
 async def upload_lab_report(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_active_subscription),
 ):
     """Upload lab report (PDF or image), extract biomarkers via GPT-4o Vision, persist readings."""
     allowed = (".pdf", ".jpg", ".jpeg", ".png")

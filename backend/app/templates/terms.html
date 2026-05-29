@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t("legal.terms.page_title") }} - CrossFit Health OS{% endblock %}
+
+{% set sections = [
+    "service",
+    "eligibility",
+    "account",
+    "subscription",
+    "acceptable_use",
+    "ip",
+    "health_disclaimer",
+    "third_party",
+    "liability",
+    "termination",
+    "changes",
+    "law",
+    "contact",
+] %}
+
+{% block navbar %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-dumbbell"></i> CrossFit Health OS
+        </a>
+        <ul class="navbar-nav ms-auto flex-row">
+            <li class="nav-item me-3"><a class="nav-link" href="/privacy">{{ t("legal.nav.privacy") }}</a></li>
+            <li class="nav-item"><a class="nav-link" href="/login">{{ t("landing.nav.login") }}</a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<section class="bg-primary text-white py-4">
+    <div class="container">
+        <h1 class="display-5 fw-bold mb-1">{{ t("legal.terms.title") }}</h1>
+        <p class="mb-0 small">
+            {{ t("legal.terms.version_label") }} <strong>1.0</strong> ·
+            {{ t("legal.terms.last_updated") }} <strong>2026-05-06</strong>
+        </p>
+    </div>
+</section>
+
+<section class="py-4">
+    <div class="container">
+        <div class="alert alert-warning small mb-4">
+            <strong>{{ t("legal.draft_notice_title") }}</strong>
+            {{ t("legal.draft_notice_body") | safe }}
+        </div>
+
+        <div class="row">
+            <aside class="col-lg-3 d-none d-lg-block">
+                <div class="position-sticky" style="top: 1.5rem;">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3">
+                        {{ t("legal.toc_title") }}
+                    </h6>
+                    <nav class="nav flex-column small">
+                        {% for sec in sections %}
+                        <a class="nav-link px-0 py-1" href="#{{ sec }}">
+                            {{ t("legal.terms.sec." ~ sec ~ ".title") }}
+                        </a>
+                        {% endfor %}
+                    </nav>
+                </div>
+            </aside>
+
+            <div class="col-lg-9">
+                <p class="lead">{{ t("legal.terms.intro") | safe }}</p>
+
+                {% for sec in sections %}
+                <article id="{{ sec }}" class="mb-4 pb-3 border-bottom">
+                    <h2 class="h4 fw-bold mb-3">{{ t("legal.terms.sec." ~ sec ~ ".title") }}</h2>
+                    {% for n in range(1, 8) %}
+                        {% set key = "legal.terms.sec." ~ sec ~ ".p" ~ n %}
+                        {% set para = t(key) %}
+                        {% if para != key %}
+                            <p>{{ para | safe }}</p>
+                        {% endif %}
+                    {% endfor %}
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="bg-dark text-white py-4">
+    <div class="container text-center small">
+        <a href="/terms" class="text-white me-3">{{ t("legal.nav.terms") }}</a>
+        <a href="/privacy" class="text-white">{{ t("legal.nav.privacy") }}</a>
+        <p class="text-muted mt-2 mb-0">{{ t("landing.footer.tagline") }}</p>
+    </div>
+</footer>
+{% endblock %}

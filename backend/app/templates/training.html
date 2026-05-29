@@ -359,6 +359,7 @@
                             <div class="flex-1" style="min-width: 0;">
                                 <div class="d-flex flex-wrap align-items-center gap-2">
                                     <span class="fw-semibold">${CHOS.escape(movName)}</span>
+                                    ${typeof CHOS.movementVideoIcon === 'function' ? CHOS.movementVideoIcon(mov.movement || mov.movement_name || mov.name) : ''}
                                     ${restLine}
                                 </div>
                                 <div class="d-flex flex-wrap align-items-center gap-2 mt-1">${prescriptionLine(mov)}</div>

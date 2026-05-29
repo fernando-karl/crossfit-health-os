@@ -11,8 +11,14 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
+from sqlalchemy.orm import Session as _OrmSession
+from fastapi import Depends
+
 from app.db.database import init_db, fetchone, execute
+from app.db.session import get_session
 from app.core.config import settings
+from app.core.rate_limit import limiter, ip_key
+from app.core import refresh_tokens as _rt
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -36,13 +42,24 @@ class RegisterRequest(BaseModel):
     password: str = Field(..., min_length=8, description="Minimum 8 characters")
     name: str = Field(..., min_length=2, max_length=100)
     confirm_password: str
-    
+
     # Optional profile data
     birth_date: Optional[str] = None
     weight_kg: Optional[float] = None
     height_cm: Optional[float] = None
     fitness_level: str = Field("beginner", description="beginner|intermediate|advanced")
     goals: list[str] = Field(default_factory=lambda: ["general_fitness"])
+
+    # LGPD/GDPR consent — both flags must be true to register. The frontend
+    # presents these as two checkboxes (general terms + sensitive health data).
+    accepted_terms: bool = Field(
+        False,
+        description="User accepted the Terms of Service and Privacy Policy.",
+    )
+    accepted_health_data: bool = Field(
+        False,
+        description="User consents to processing of sensitive health data (LGPD art. 11).",
+    )
     
     def validate_password(self):
         """Validate password strength"""
@@ -131,16 +148,29 @@ def get_user_by_email(email: str):
         email
     )
 
+TRIAL_DURATION_DAYS = 14
+TERMS_VERSION = "1.0"
+PRIVACY_VERSION = "1.0"
+
+
 def create_user(user_data: RegisterRequest) -> int:
-    """Create a new user"""
+    """Create a new user with a 14-day trial window and consent record."""
     password_hash = hash_password(user_data.password)
-    
+
     # Convert goals list to PostgreSQL array format
     goals_array = "{" + ",".join(f'"{g}"' for g in user_data.goals) + "}"
-    
-    result = execute(
-        """INSERT INTO users (email, password_hash, name, birth_date, weight_kg, height_cm, fitness_level, goals)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+
+    now = datetime.utcnow()
+    trial_expires = now + timedelta(days=TRIAL_DURATION_DAYS)
+
+    execute(
+        """INSERT INTO users (
+                email, password_hash, name, birth_date,
+                weight_kg, height_cm, fitness_level, goals,
+                trial_started_at, trial_expires_at, subscription_status,
+                terms_accepted_at, terms_version, privacy_version
+           )
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
            RETURNING id""",
         user_data.email,
         password_hash,
@@ -149,9 +179,15 @@ def create_user(user_data: RegisterRequest) -> int:
         user_data.weight_kg,
         user_data.height_cm,
         user_data.fitness_level,
-        goals_array
+        goals_array,
+        now,
+        trial_expires,
+        "trialing",
+        now,
+        TERMS_VERSION,
+        PRIVACY_VERSION,
     )
-    
+
     # Get the inserted ID
     user = fetchone("SELECT lastval()")
     return user[0] if user else None
@@ -161,40 +197,72 @@ def create_user(user_data: RegisterRequest) -> int:
 # API Endpoints
 # ============================================
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(request: RegisterRequest, background_tasks: BackgroundTasks):
-    """Register a new user"""
+@router.post("/register", status_code=status.HTTP_201_CREATED)
+@limiter.limit("3/hour", key_func=ip_key)
+async def register(
+    request: Request,
+    payload: RegisterRequest,
+    background_tasks: BackgroundTasks,
+    db: _OrmSession = Depends(get_session),
+):
+    """Register a new user.
+
+    Returns the same shape as /login (access_token + user) so the frontend
+    can store the token and skip a redundant login round-trip.
+    """
     try:
         # Validate password
-        request.validate_password()
+        payload.validate_password()
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-    
+
+    # LGPD: refuse to create the user if either consent flag is missing.
+    if not payload.accepted_terms:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="terms_required",
+        )
+    if not payload.accepted_health_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="health_consent_required",
+        )
+
     # Check if user already exists
-    existing_user = get_user_by_email(request.email)
+    existing_user = get_user_by_email(payload.email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
+
     try:
         # Create user
-        user_id = create_user(request)
-        
-        return UserResponse(
-            id=user_id,
-            email=request.email,
-            name=request.name,
-            birth_date=request.birth_date,
-            weight_kg=request.weight_kg,
-            height_cm=request.height_cm,
-            fitness_level=request.fitness_level,
-            goals=request.goals
+        user_id = create_user(payload)
+        access, refresh = _rt.issue_pair(
+            db, user_id, payload.email,
+            user_agent=request.headers.get("user-agent"),
+            ip=request.client.host if request.client else None,
         )
+
+        return {
+            "access_token": access,
+            "refresh_token": refresh,
+            "token_type": "bearer",
+            "user": {
+                "id": user_id,
+                "email": payload.email,
+                "name": payload.name,
+                "birth_date": str(payload.birth_date) if payload.birth_date else None,
+                "weight_kg": payload.weight_kg,
+                "height_cm": payload.height_cm,
+                "fitness_level": payload.fitness_level,
+                "goals": payload.goals or [],
+            },
+        }
     except Exception as e:
         logger.error(f"Registration error: {e}")
         raise HTTPException(
@@ -204,10 +272,15 @@ async def register(request: RegisterRequest, background_tasks: BackgroundTasks):
 
 
 @router.post("/login")
-async def login(request: LoginRequest):
+@limiter.limit("5/minute", key_func=ip_key)
+async def login(
+    request: Request,
+    payload: LoginRequest,
+    db: _OrmSession = Depends(get_session),
+):
     """Login user"""
     # Get user by email
-    user = get_user_by_email(request.email)
+    user = get_user_by_email(payload.email)
     
     if not user:
         raise HTTPException(
@@ -218,17 +291,22 @@ async def login(request: LoginRequest):
     user_id, email, password_hash, name, birth_date, weight_kg, height_cm, fitness_level, goals = user
     
     # Verify password
-    if not verify_password(request.password, password_hash):
+    if not verify_password(payload.password, password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
     
-    # Create JWT token
-    token = create_jwt_token(user_id, email)
-    
+    # Issue access + refresh pair (refresh persisted as hash in DB).
+    access, refresh = _rt.issue_pair(
+        db, user_id, email,
+        user_agent=request.headers.get("user-agent"),
+        ip=request.client.host if request.client else None,
+    )
+
     return {
-        "access_token": token,
+        "access_token": access,
+        "refresh_token": refresh,
         "token_type": "bearer",
         "user": {
             "id": user_id,
@@ -289,7 +367,57 @@ async def get_current_user(req: Request):
     )
 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+@router.post("/refresh")
+@limiter.limit("60/hour", key_func=ip_key)
+async def refresh_access_token(
+    request: Request,
+    payload: RefreshRequest,
+    db: _OrmSession = Depends(get_session),
+):
+    """Rotate the refresh token and mint a new access token.
+
+    On success the OLD refresh token is revoked and replaced. Replay of an
+    old token after rotation is treated as theft and revokes the entire
+    family of tokens for that user.
+    """
+    result = _rt.rotate(
+        db,
+        payload.refresh_token,
+        user_agent=request.headers.get("user-agent"),
+        ip=request.client.host if request.client else None,
+    )
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+    access, new_refresh, _user_id = result
+    return {
+        "access_token": access,
+        "refresh_token": new_refresh,
+        "token_type": "bearer",
+    }
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
 @router.post("/logout")
-async def logout():
-    """Logout user"""
+async def logout(
+    payload: Optional[LogoutRequest] = None,
+    db: _OrmSession = Depends(get_session),
+):
+    """Logout — revokes the supplied refresh token (best-effort).
+
+    The access token is intentionally not invalidated server-side; with a
+    short TTL (~60min) the residual blast radius is small and a stateless
+    JWT keeps the hot auth path cheap.
+    """
+    if payload and payload.refresh_token:
+        _rt.revoke(db, payload.refresh_token)
     return {"message": "Logged out successfully"}

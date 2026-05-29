@@ -601,13 +601,11 @@ TODOIST_API_TOKEN=your-token
 
 ## Known Implementation Gaps
 
-1. **HealthKit Metric Processing** - Data collected but not processed into `recovery_metrics` table
-2. **Celery Task Queue** - Configured but no async tasks implemented yet
-3. **Google Calendar Timezone** - Hardcoded to "America/Sao_Paulo" (should be user setting)
-4. **Redis Caching** - Configured but not utilized
-5. **Rate Limiting** - No API rate limiting
-6. **Frontend Package Management** - No package.json in repository root
-7. **Supabase Real-time** - WebSocket subscriptions not used
+1. **Celery Task Queue** - Configured but no Celery tasks implemented. Weekly review cron runs via `POST /api/v1/internal/cron/weekly-reviews` (shared-secret auth) — wire from Coolify cron / external scheduler.
+2. **Google Calendar Timezone** - Hardcoded to "America/Sao_Paulo" (should be user setting)
+3. **Redis Caching** - Configured but not utilized
+4. **Frontend Package Management** - No package.json in repository root
+5. **Supabase Real-time** - WebSocket subscriptions not used
 
 ## Development Patterns
 

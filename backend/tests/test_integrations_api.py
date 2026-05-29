@@ -15,10 +15,16 @@ class TestHealthKitSync:
     async def test_sync_healthkit_success(
         self, authenticated_client: AsyncClient, mock_supabase
     ):
-        """Test successful HealthKit data sync"""
+        """Successful HealthKit sync with a fully-typed payload."""
         data = {
-            "hrv": [{"timestamp": "2026-03-30T07:00:00Z", "value": 65}],
-            "sleep": [{"start": "2026-03-29T23:00:00Z", "end": "2026-03-30T07:00:00Z", "quality": 80}],
+            "type": "recovery",
+            "device": "Apple Watch",
+            "start_date": "2026-03-30T07:00:00Z",
+            "end_date": "2026-03-30T08:00:00Z",
+            "hrv_rmssd_ms": 65,
+            "resting_heart_rate_bpm": 52,
+            "sleep_duration_hours": 7.5,
+            "sleep_quality_score": 80,
         }
 
         with patch(
@@ -39,7 +45,7 @@ class TestHealthKitSync:
     async def test_sync_healthkit_empty_data(
         self, authenticated_client: AsyncClient, mock_supabase
     ):
-        """Test HealthKit sync with empty data dict"""
+        """Empty payload is valid (all fields are optional)."""
         with patch(
             "app.api.v1.integrations.sync_healthkit_data",
             new_callable=AsyncMock,
@@ -57,19 +63,66 @@ class TestHealthKitSync:
     async def test_sync_healthkit_missing_count_in_result(
         self, authenticated_client: AsyncClient, mock_supabase
     ):
-        """Test HealthKit sync when result has no count key"""
+        """Payload with one valid field; helper returns no count."""
         with patch(
             "app.api.v1.integrations.sync_healthkit_data",
             new_callable=AsyncMock,
             return_value={},
         ):
             response = await authenticated_client.post(
-                "/api/v1/integrations/healthkit/sync", json={"hrv": []}
+                "/api/v1/integrations/healthkit/sync",
+                json={"hrv_rmssd_ms": 50},
             )
 
         assert response.status_code == 200
         # Should default to 0
         assert response.json()["records_synced"] == 0
+
+    @pytest.mark.asyncio
+    async def test_sync_healthkit_rejects_unknown_field(
+        self, authenticated_client: AsyncClient, mock_supabase
+    ):
+        """extra='forbid' blocks attempts to smuggle arbitrary JSON."""
+        response = await authenticated_client.post(
+            "/api/v1/integrations/healthkit/sync",
+            json={"hrv_rmssd_ms": 50, "evil_blob": "x" * 1000},
+        )
+        assert response.status_code == 422
+        body = response.json()
+        # Pydantic surfaces the offending field name in the error.
+        assert any("evil_blob" in str(e) for e in body.get("detail", []))
+
+    @pytest.mark.asyncio
+    async def test_sync_healthkit_rejects_out_of_range_hrv(
+        self, authenticated_client: AsyncClient, mock_supabase
+    ):
+        """HRV outside 5–400 ms is rejected (likely a parse error or junk)."""
+        response = await authenticated_client.post(
+            "/api/v1/integrations/healthkit/sync",
+            json={"hrv_rmssd_ms": 99999},
+        )
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_sync_healthkit_rejects_negative_sleep(
+        self, authenticated_client: AsyncClient, mock_supabase
+    ):
+        response = await authenticated_client.post(
+            "/api/v1/integrations/healthkit/sync",
+            json={"sleep_duration_hours": -1.0},
+        )
+        assert response.status_code == 422
+
+    @pytest.mark.asyncio
+    async def test_sync_healthkit_rejects_giant_string(
+        self, authenticated_client: AsyncClient, mock_supabase
+    ):
+        """`device` has max_length=64 — long strings rejected."""
+        response = await authenticated_client.post(
+            "/api/v1/integrations/healthkit/sync",
+            json={"device": "X" * 1000},
+        )
+        assert response.status_code == 422
 
 
 class TestCalendarOAuthUrl:
@@ -89,15 +142,22 @@ class TestCalendarOAuthUrl:
         assert "accounts.google.com" in data["auth_url"]
 
     @pytest.mark.asyncio
-    async def test_get_oauth_url_contains_user_state(
+    async def test_get_oauth_url_state_is_random_not_user_id(
         self, authenticated_client: AsyncClient, mock_supabase, mock_user
     ):
-        """Test OAuth URL contains user ID as state"""
+        """OAuth URL must use a random nonce as state, not the bare user id.
+
+        Old vuln: ``state=user_id`` let an attacker callback with the
+        victim's id. State is now a single-use, server-side nonce.
+        """
         response = await authenticated_client.get("/api/v1/integrations/calendar/oauth/url")
 
         assert response.status_code == 200
         url = response.json()["auth_url"]
-        assert f"state={mock_user['id']}" in url
+        assert "state=" in url
+        # The bare user id MUST NOT appear as the state value.
+        assert f"state={mock_user['id']}&" not in url + "&"
+        assert not url.endswith(f"state={mock_user['id']}")
 
 
 class TestCalendarOAuthCallback:
@@ -135,7 +195,9 @@ class TestCalendarOAuthCallback:
         self, async_client: AsyncClient, db_session, seeded_user
     ):
         """Test successful callback stores refresh token in user preferences."""
+        from app.core.oauth_state import issue_state
         tokens = {"access_token": "at_abc", "refresh_token": "rt_xyz"}
+        state = issue_state(seeded_user.id)
 
         with patch(
             "app.api.v1.integrations.exchange_code",
@@ -143,7 +205,7 @@ class TestCalendarOAuthCallback:
             return_value=tokens,
         ):
             response = await async_client.get(
-                f"/api/v1/integrations/calendar/oauth/callback?code=auth_code&state={seeded_user.id}",
+                f"/api/v1/integrations/calendar/oauth/callback?code=auth_code&state={state}",
                 follow_redirects=False,
             )
 
@@ -155,10 +217,12 @@ class TestCalendarOAuthCallback:
 
     @pytest.mark.asyncio
     async def test_callback_no_refresh_token_still_redirects(
-        self, async_client: AsyncClient, mock_supabase
+        self, async_client: AsyncClient, mock_supabase, seeded_user
     ):
         """Test callback when response has no refresh_token still succeeds"""
+        from app.core.oauth_state import issue_state
         tokens = {"access_token": "at_abc"}  # No refresh_token
+        state = issue_state(seeded_user.id)
 
         with patch(
             "app.api.v1.integrations.exchange_code",
@@ -166,7 +230,7 @@ class TestCalendarOAuthCallback:
             return_value=tokens,
         ):
             response = await async_client.get(
-                "/api/v1/integrations/calendar/oauth/callback?code=auth_code&state=user123",
+                f"/api/v1/integrations/calendar/oauth/callback?code=auth_code&state={state}",
                 follow_redirects=False,
             )
 
@@ -175,16 +239,19 @@ class TestCalendarOAuthCallback:
 
     @pytest.mark.asyncio
     async def test_callback_exchange_failure_redirects_error(
-        self, async_client: AsyncClient, mock_supabase
+        self, async_client: AsyncClient, mock_supabase, seeded_user
     ):
         """Test callback handles exchange failure gracefully"""
+        from app.core.oauth_state import issue_state
+        state = issue_state(seeded_user.id)
+
         with patch(
             "app.api.v1.integrations.exchange_code",
             new_callable=AsyncMock,
             side_effect=Exception("Token exchange failed"),
         ):
             response = await async_client.get(
-                "/api/v1/integrations/calendar/oauth/callback?code=bad_code&state=user123",
+                f"/api/v1/integrations/calendar/oauth/callback?code=bad_code&state={state}",
                 follow_redirects=False,
             )
 

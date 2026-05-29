@@ -51,9 +51,19 @@ class Movement(BaseModel):
     weight_kg: Optional[float] = None
     distance_meters: Optional[float] = None
     duration_seconds: Optional[float] = None
-    rest: Optional[str] = None  # '3min', '90s'
+    rest: Optional[str] = None  # '3min', '90s' — per-set rest (legacy AI path)
     intensity: Optional[str] = None  # '85%', 'RPE 8'
     notes: Optional[str] = None
+
+    # Block grouping metadata — populated by cfai program projection so the
+    # drawer can render movements grouped under their block (one
+    # "AMRAP 10:00" header for the whole metcon, not three repeated lines).
+    # Same value for every movement that belongs to the same block.
+    block_id: Optional[str] = None
+    block_label: Optional[str] = None        # "metcon", "strength_primary", ...
+    block_prescription: Optional[str] = None # "AMRAP 10:00", "EMOM 12:00", ...
+    block_intent: Optional[str] = None       # "Mixed modal triplet"
+    block_rest_seconds: Optional[int] = None # rest between rounds/sets, when set
 
 
 class ExerciseSet(BaseModel):

@@ -325,13 +325,27 @@ Return JSON with the shape:
       "workout_type": "strength",
       "duration_minutes": 90,
       "warm_up": "…",
-      "movements": [ {{…}} ],
+      "movements": [
+        {{
+          "movement": "back_squat",       // REQUIRED. snake_case identifier (back_squat, deadlift, thruster, pull_up, ...). Never blank or "unknown".
+          "sets": 5,                       // optional int
+          "reps": 5,                       // optional int OR string like "21-15-9" / "AMRAP"
+          "reps_unit": "reps",             // "reps" | "cal" | "m"
+          "weight_kg": 100,                // optional number (kg)
+          "distance_meters": 400,          // optional
+          "duration_seconds": 60,          // optional
+          "intensity": "80%",              // optional, e.g. "80%", "RPE 8", "moderate"
+          "rest": "2min",                  // optional
+          "notes": "…"                     // optional
+        }}
+      ],
       "target_stimulus": "…",
       "tags": ["…"]
     }}
   ]
 }}
 ```
+The "movement" field is REQUIRED on every movement object — use snake_case identifiers, never "unknown".
 
 Each output workout must reference a planned session by its `session_id`. Generate exactly {len(sessions)} workouts."""
 
@@ -467,14 +481,28 @@ Return JSON: {{"session_id":"…","name":"…","description":"…","workout_type
     ) -> WorkoutTemplate:
         movements = []
         for mov in workout_data.get("movements", []):
+            # The model isn't 100% consistent on the field name. Accept the
+            # canonical "movement" plus the synonyms it tends to emit when
+            # the prompt doesn't pin the schema down (LLM hallucinates
+            # "name", "exercise", "movement_name", ...). Falling through
+            # to "unknown" was hiding real movement names on the dashboard
+            # — see the "unknown · 5 reps" chips.
+            mov_name = (
+                mov.get("movement")
+                or mov.get("name")
+                or mov.get("exercise")
+                or mov.get("movement_name")
+                or mov.get("exercise_name")
+                or "unknown"
+            )
             movements.append(Movement(
-                movement=mov.get("movement", "unknown"),
+                movement=mov_name,
                 sets=mov.get("sets"),
                 reps=mov.get("reps"),
                 reps_unit=mov.get("reps_unit", "reps"),
-                weight_kg=mov.get("weight_kg"),
-                distance_meters=mov.get("distance_meters"),
-                duration_seconds=mov.get("duration_seconds"),
+                weight_kg=mov.get("weight_kg") or mov.get("weight"),
+                distance_meters=mov.get("distance_meters") or mov.get("distance"),
+                duration_seconds=mov.get("duration_seconds") or mov.get("duration"),
                 intensity=mov.get("intensity"),
                 rest=mov.get("rest"),
                 notes=mov.get("notes"),
@@ -483,6 +511,16 @@ Return JSON: {{"session_id":"…","name":"…","description":"…","workout_type
         workout_type = self._normalize_workout_type(
             workout_data.get("workout_type") or planned.workout_type or "mixed"
         )
+
+        # The model can return warm_up as a string ("5min row + ...") or as
+        # a list (["row 5min", "wgs x10"]). Coerce to a single readable string.
+        wu_raw = workout_data.get("warm_up") or workout_data.get("warmup")
+        if isinstance(wu_raw, list):
+            warm_up_text: Optional[str] = " · ".join(str(x) for x in wu_raw if x) or None
+        elif isinstance(wu_raw, str) and wu_raw.strip():
+            warm_up_text = wu_raw.strip()
+        else:
+            warm_up_text = None
 
         return WorkoutTemplate(
             id=uuid4(),
@@ -493,6 +531,7 @@ Return JSON: {{"session_id":"…","name":"…","description":"…","workout_type
             workout_type=workout_type,
             duration_minutes=workout_data.get("duration_minutes") or planned.duration_minutes,
             movements=movements,
+            warm_up=warm_up_text,
             target_stimulus=workout_data.get("target_stimulus"),
             tags=workout_data.get("tags", []),
             equipment_required=workout_data.get("equipment_required", []),

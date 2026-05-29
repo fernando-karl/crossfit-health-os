@@ -6,6 +6,8 @@ user as a plain dict (compatible with the existing endpoint signatures).
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
@@ -30,6 +32,12 @@ def _user_to_dict(user: User) -> dict:
         "goals": user.goals or [],
         "timezone": user.timezone,
         "preferences": user.preferences or {},
+        "subscription_status": getattr(user, "subscription_status", "trialing"),
+        "trial_expires_at": (
+            user.trial_expires_at.isoformat()
+            if getattr(user, "trial_expires_at", None) else None
+        ),
+        "stripe_customer_id": getattr(user, "stripe_customer_id", None),
     }
 
 
@@ -66,3 +74,37 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return _user_to_dict(user)
+
+
+def require_active_subscription(current_user: dict = Depends(get_current_user)) -> dict:
+    """Dependency that gates premium endpoints behind an active subscription.
+
+    Allows: subscription_status == 'active' OR (status == 'trialing' AND
+    trial not yet expired). Anything else → 402 Payment Required with a
+    structured detail the frontend can translate into an upgrade modal.
+    """
+    status_str = (current_user.get("subscription_status") or "trialing").lower()
+
+    if status_str == "active":
+        return current_user
+
+    if status_str == "trialing":
+        expires_iso = current_user.get("trial_expires_at")
+        # Missing trial_expires_at → treat as expired (defensive: pre-migration users).
+        if expires_iso:
+            try:
+                expires = datetime.fromisoformat(expires_iso)
+            except ValueError:
+                expires = None
+            if expires and expires > datetime.utcnow():
+                return current_user
+
+    raise HTTPException(
+        status_code=status.HTTP_402_PAYMENT_REQUIRED,
+        detail={
+            "code": "subscription_required",
+            "subscription_status": status_str,
+            "trial_expires_at": current_user.get("trial_expires_at"),
+            "message": "Trial expired or subscription inactive. Upgrade to continue.",
+        },
+    )

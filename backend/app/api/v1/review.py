@@ -6,11 +6,12 @@ from typing import List
 from uuid import UUID
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_user, require_active_subscription
+from app.core.rate_limit import limiter
 from app.core.engine.weekly_reviewer import weekly_reviewer
 from app.db.models import (
     Macrocycle as MacrocycleDB,
@@ -166,19 +167,21 @@ async def list_feedback(
 # ==========================================================
 
 @router.post("/weekly", response_model=WeeklyReview)
+@limiter.limit("10/hour")
 async def generate_weekly_review(
-    request: WeeklyReviewCreate,
+    request: Request,
+    payload: WeeklyReviewCreate,
     db: Session = Depends(get_session),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_active_subscription),
 ):
     user_id = int(current_user["id"])
     try:
         review = await weekly_reviewer.generate_weekly_review(
             user_id=user_id,
-            week_number=request.week_number,
-            week_start=request.week_start_date,
-            week_end=request.week_end_date,
-            athlete_notes=request.athlete_notes,
+            week_number=payload.week_number,
+            week_start=payload.week_start_date,
+            week_end=payload.week_end_date,
+            athlete_notes=payload.athlete_notes,
             db=db,
         )
         return review

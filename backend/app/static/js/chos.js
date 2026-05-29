@@ -297,12 +297,80 @@ const CHOS = {
             } else {
                CHOS.toast.error((window.t ? t('common.validation_error') : 'Validation error'));
             }
+         } else if (xhr.status === 402) {
+            // Trial expired or subscription not active. Backend sends a
+            // structured detail; we render a sticky modal pointing to
+            // /dashboard/billing. Built once on first 402 and reused.
+            CHOS.billing.showUpgradeModal(xhr);
          } else if (xhr.status >= 500) {
             CHOS.toast.error((window.t ? t('common.server_error') : 'Server error. Please try again later.'));
          }
       }
    },
    
+   // ============================================
+   // Movement video lookup (cheap dynamic search)
+   // ============================================
+   // Build a YouTube search URL biased toward Squat University + CrossFit
+   // so users can quickly understand a movement they don't know. We don't
+   // curate per-movement videos — just hand the user a good search.
+   movementVideoUrl(movement) {
+      if (!movement) return null;
+      const human = CHOS.humanize(movement);
+      // Append biasing keywords so results lean toward the two channels
+      // the user named. YouTube's relevance ranking handles the rest.
+      const q = `${human} technique squat university crossfit`;
+      return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+   },
+
+   // Render a small "watch video" icon link. Returns an HTML string —
+   // callers paste it inline next to a movement name.
+   movementVideoIcon(movement) {
+      const url = CHOS.movementVideoUrl(movement);
+      if (!url) return '';
+      const label = (window.t ? t('common.actions.watch_video') : 'Watch tutorial');
+      const safeLabel = CHOS.escape(label);
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer"
+                 class="text-secondary ms-1"
+                 title="${safeLabel}" aria-label="${safeLabel}"
+                 onclick="event.stopPropagation()"
+                 style="text-decoration: none;">
+                <i class="fab fa-youtube" style="font-size: 0.85em;"></i>
+              </a>`;
+   },
+
+   // ============================================
+   // Cross-page workout handoff
+   // ============================================
+   // Stash a workout/template in sessionStorage and navigate to the workouts
+   // page so it can auto-open the tracking modal without a second round-trip.
+   // Used by:
+   //   - dashboard Start button (today workout)
+   //   - schedule day drawer Start button (planned session template)
+   // The workouts page reads `chos-quick-workout` when ?quick=1 is present.
+   startWorkoutFromTemplate(template, opts) {
+      if (!template) return false;
+      const movements = (template.movements && template.movements.length)
+         ? template.movements
+         : (template.adjusted_movements || []);
+      const response = {
+         template: {
+            name: template.name,
+            workout_type: template.workout_type || 'mixed',
+            duration_minutes: template.duration_minutes || 60,
+            description: template.description || '',
+            movements: movements
+         },
+         adjusted_movements: movements,
+         recommendation: (opts && opts.recommendation) || template.description || ''
+      };
+      try {
+         sessionStorage.setItem('chos-quick-workout', JSON.stringify(response));
+      } catch (_) { /* storage might be disabled */ }
+      window.location.href = '/dashboard/workouts?quick=1';
+      return true;
+   },
+
    // ============================================
    // Formatters
    // ============================================
@@ -428,5 +496,177 @@ $.ajaxSetup({
    }
 });
 
+// ============================================
+// Trial banner
+// ============================================
+// Reads subscription state from /api/v1/users/me on any authenticated
+// page that has a #chos-trial-banner mount point. Renders one of:
+//   - "X days left in trial" (status=trialing, future expiry)
+//   - "Trial expired — upgrade" (status=trialing, past expiry)
+//   - hidden (status=active)
+//
+// Pages opt in by adding `<div id="chos-trial-banner"></div>` near the top
+// of their content block. The banner sits above page content, dismissible
+// per session via sessionStorage.
+CHOS.trial = {
+   _STORAGE_DISMISS_KEY: 'chos-trial-banner-dismissed',
+   _MOUNT_ID: 'chos-trial-banner',
+
+   init() {
+      const $mount = $('#' + this._MOUNT_ID);
+      if (!$mount.length || !CHOS.auth.isAuthenticated()) return;
+      const self = this;
+      CHOS.api.get('/api/v1/users/me')
+         .then(function (user) { self.render($mount, user); })
+         .fail(function () { /* silent */ });
+   },
+
+   render($mount, user) {
+      const status = (user && user.subscription_status) || 'trialing';
+      if (status === 'active') return;  // paid, nothing to show
+
+      const expiresIso = user && user.trial_expires_at;
+      const now = new Date();
+      const expires = expiresIso ? new Date(expiresIso) : null;
+      const expired = !expires || expires <= now;
+
+      // Days remaining (ceil — partial day counts as a day).
+      let daysLeft = 0;
+      if (expires && !expired) {
+         daysLeft = Math.ceil((expires - now) / (1000 * 60 * 60 * 24));
+      }
+
+      const dismissed = sessionStorage.getItem(this._STORAGE_DISMISS_KEY) === '1';
+      if (!expired && dismissed) return;  // user closed the soft banner
+
+      const tr = function (key, vars, fb) {
+         return (window.t ? t(key, vars) : null) || fb || key;
+      };
+
+      const isUrgent = expired || daysLeft <= 3;
+      const cls = expired ? 'alert-danger' : (isUrgent ? 'alert-warning' : 'alert-info');
+      const title = expired
+         ? tr('billing.banner.expired_title', null, 'Your free trial has ended')
+         : tr('billing.banner.trialing_title', { days: daysLeft }, daysLeft + ' day(s) left in your free trial');
+      const cta = tr('billing.banner.cta', null, 'Upgrade');
+      const dismissBtn = expired
+         ? ''
+         : '<button type="button" class="btn-close ms-2" aria-label="Dismiss" data-chos-trial-dismiss></button>';
+
+      const html =
+         '<div class="alert ' + cls + ' d-flex align-items-center mb-3" role="alert">' +
+            '<i class="fas fa-clock me-2"></i>' +
+            '<div class="flex-grow-1">' + title + '</div>' +
+            '<a href="/dashboard/billing" class="btn btn-sm btn-light ms-3">' + cta + '</a>' +
+            dismissBtn +
+         '</div>';
+      $mount.html(html);
+
+      $mount.find('[data-chos-trial-dismiss]').on('click', function () {
+         sessionStorage.setItem(CHOS.trial._STORAGE_DISMISS_KEY, '1');
+         $mount.empty();
+      });
+   }
+};
+
+$(document).ready(function () { CHOS.trial.init(); });
+
+// ============================================
+// Upgrade modal (shown on 402 from premium endpoints)
+// ============================================
+CHOS.billing = {
+   _MODAL_ID: 'chos-upgrade-modal',
+
+   _ensureModal() {
+      let el = document.getElementById(this._MODAL_ID);
+      if (el) return el;
+
+      const tr = function (key, fb) {
+         return (window.t ? t(key) : null) || fb || key;
+      };
+
+      const html =
+         '<div class="modal fade" id="' + this._MODAL_ID + '" tabindex="-1">' +
+            '<div class="modal-dialog modal-dialog-centered">' +
+               '<div class="modal-content">' +
+                  '<div class="modal-header">' +
+                     '<h5 class="modal-title fw-bold">' +
+                        '<i class="fas fa-lock me-2"></i>' +
+                        tr('billing.upgrade_modal.title', 'Upgrade required') +
+                     '</h5>' +
+                     '<button type="button" class="btn-close" data-bs-dismiss="modal"></button>' +
+                  '</div>' +
+                  '<div class="modal-body">' +
+                     '<p class="mb-2" id="' + this._MODAL_ID + '-body">' +
+                        tr('billing.upgrade_modal.body', 'Your free trial has ended. Upgrade to continue using premium features.') +
+                     '</p>' +
+                  '</div>' +
+                  '<div class="modal-footer">' +
+                     '<button class="btn btn-light" data-bs-dismiss="modal">' +
+                        tr('billing.upgrade_modal.dismiss', 'Not now') +
+                     '</button>' +
+                     '<a href="/dashboard/billing" class="btn btn-primary">' +
+                        '<i class="fas fa-arrow-right me-1"></i>' +
+                        tr('billing.upgrade_modal.cta', 'See plans') +
+                     '</a>' +
+                  '</div>' +
+               '</div>' +
+            '</div>' +
+         '</div>';
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      el = wrapper.firstElementChild;
+      document.body.appendChild(el);
+      return el;
+   },
+
+   showUpgradeModal(xhr) {
+      const el = this._ensureModal();
+      // Use the server-supplied message when available.
+      try {
+         const detail = xhr.responseJSON && xhr.responseJSON.detail;
+         if (detail && typeof detail === 'object' && detail.message) {
+            $('#' + this._MODAL_ID + '-body').text(detail.message);
+         }
+      } catch (e) { /* fall through to default copy */ }
+      const modal = bootstrap.Modal.getOrCreateInstance(el);
+      modal.show();
+   }
+};
+
 // Make CHOS available globally
 window.CHOS = CHOS;
+
+// ============================================
+// Pending referral auto-redeem
+// ============================================
+// If the visitor came in via /register?ref=XYZ, the register page stashed
+// the code in sessionStorage. After signup + login the user has a JWT, so
+// the next page load that runs this script applies the code via the same
+// authenticated /redeem endpoint and shows a welcome toast.
+//
+// Storage is cleared on success or any 4xx (terminal — bad/self/dup code).
+// Network errors and 5xx leave it alone for retry on the next page load.
+$(document).ready(function () {
+   if (!CHOS.auth || !CHOS.auth.isAuthenticated || !CHOS.auth.isAuthenticated()) return;
+   let pending;
+   try { pending = sessionStorage.getItem('chos-pending-ref'); } catch (e) { return; }
+   if (!pending) return;
+
+   CHOS.api.post('/api/v1/referrals/redeem', { code: pending })
+      .then(function (data) {
+         try { sessionStorage.removeItem('chos-pending-ref'); } catch (e) {}
+         const inviter = data && data.inviter_name ? data.inviter_name : '';
+         const msg = window.t
+            ? t('referrals.toast.welcome', { name: inviter })
+            : (inviter + ' invited you. Both get a free month.');
+         CHOS.toast.success(msg);
+      })
+      .fail(function (xhr) {
+         // Terminal failures (bad code / self / already-applied) — clear so
+         // we don't keep retrying on every page load.
+         if (xhr && xhr.status >= 400 && xhr.status < 500) {
+            try { sessionStorage.removeItem('chos-pending-ref'); } catch (e) {}
+         }
+      });
+});

@@ -42,11 +42,14 @@
          CHOS.api.get('/api/v1/nutrition/macros/summary').then(r => r).catch(() => null),
       ]);
 
-      // Training: 100% if today's workout exists AND completed; 50% if exists
-      // but not done; 0% if no workout planned.
+      // Training: ring tracks COMPLETION, not planning. Showing 50% when a
+      // workout exists but hasn't been done was misleading — users saw
+      // "Train 50%" before they touched the workout. The "Ready" badge on
+      // the workout card already conveys that one is planned.
+      // 100% iff today's workout has been completed; 0% otherwise.
       let trainPct = 0;
-      if (todayWorkout && todayWorkout.workout) {
-         trainPct = todayWorkout.workout.completed_at ? 1 : 0.5;
+      if (todayWorkout && todayWorkout.workout && todayWorkout.workout.completed_at) {
+         trainPct = 1;
       }
 
       // Recovery: 100% if a record exists for today.

@@ -1,265 +1,326 @@
 {% extends "base.html" %}
 
-{% block title %}CrossFit Health OS{% endblock %}
+{% block title %}CrossFit Health OS — Elite Human Performance{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/landing.css?v={{ asset_version() }}">
+{% endblock %}
 
 {% block navbar %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container">
-        <a class="navbar-brand" href="/">
-            <i class="fas fa-dumbbell"></i> CrossFit Health OS
+<nav class="lp-nav">
+    <div class="lp-container lp-nav__inner">
+        <a class="lp-nav__brand" href="/">
+            <span class="lp-mark" aria-hidden="true"></span>
+            CrossFit Health OS
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="#features">{{ t("landing.nav.features") }}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#pricing">{{ t("landing.nav.pricing") }}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/login">{{ t("landing.nav.login") }}</a>
-                </li>
-                <li class="nav-item">
-                    <a class="btn btn-light ms-2" href="/register">{{ t("landing.nav.get_started") }}</a>
-                </li>
-            </ul>
-        </div>
+        <ul class="lp-nav__links">
+            <li><a href="#features">{{ t("landing.nav.features") }}</a></li>
+            <li><a href="#how">{{ t("landing.loop.title") }}</a></li>
+            <li><a href="#pricing">{{ t("landing.nav.pricing") }}</a></li>
+            <li><a href="#faq">{{ t("landing.nav.faq") }}</a></li>
+            <li><a href="/login">{{ t("landing.nav.login") }}</a></li>
+            <li><a class="lp-nav__cta" href="/register">{{ t("landing.nav.get_started") }}</a></li>
+        </ul>
     </div>
 </nav>
 {% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="hero-section bg-primary text-white py-5">
-    <div class="container text-center py-5">
-        <h1 class="display-3 fw-bold mb-4">
-            {{ t("landing.hero.title_1") }}
-            <br><span class="text-light-emphasis">{{ t("landing.hero.title_2") }}</span>
-        </h1>
-        <p class="lead mb-5 fs-4">
-            {{ t("landing.hero.lead") }}
-        </p>
-        <div class="d-flex gap-3 justify-content-center">
-            <a href="/register" class="btn btn-light btn-lg px-5 py-3">
-                {{ t("landing.hero.cta_trial") }} <i class="fas fa-arrow-right ms-2"></i>
-            </a>
-            <a href="#features" class="btn btn-outline-light btn-lg px-5 py-3">
-                {{ t("landing.hero.cta_learn") }}
-            </a>
-        </div>
-    </div>
-</section>
+<main class="lp">
 
-<!-- Features -->
-<section id="features" class="py-5">
-    <div class="container">
-        <h2 class="display-5 fw-bold text-center mb-5">{{ t("landing.features.title") }}</h2>
-
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="display-4 mb-3"><i class="fas fa-brain text-primary"></i></div>
-                        <h5 class="card-title fw-bold">{{ t("landing.features.ai_title") }}</h5>
-                        <p class="card-text text-muted">
-                            {{ t("landing.features.ai_desc") }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="display-4 mb-3"><i class="fas fa-chart-line text-primary"></i></div>
-                        <h5 class="card-title fw-bold">{{ t("landing.features.adaptive_title") }}</h5>
-                        <p class="card-text text-muted">
-                            {{ t("landing.features.adaptive_desc") }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="display-4 mb-3"><i class="fas fa-sync-alt text-primary"></i></div>
-                        <h5 class="card-title fw-bold">{{ t("landing.features.weekly_title") }}</h5>
-                        <p class="card-text text-muted">
-                            {{ t("landing.features.weekly_desc") }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="display-4 mb-3"><i class="fas fa-utensils text-primary"></i></div>
-                        <h5 class="card-title fw-bold">{{ t("landing.features.meal_title") }}</h5>
-                        <p class="card-text text-muted">
-                            {{ t("landing.features.meal_desc") }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="display-4 mb-3"><i class="fas fa-heartbeat text-primary"></i></div>
-                        <h5 class="card-title fw-bold">{{ t("landing.features.recovery_title") }}</h5>
-                        <p class="card-text text-muted">
-                            {{ t("landing.features.recovery_desc") }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body text-center p-4">
-                        <div class="display-4 mb-3"><i class="fas fa-trophy text-primary"></i></div>
-                        <h5 class="card-title fw-bold">{{ t("landing.features.analytics_title") }}</h5>
-                        <p class="card-text text-muted">
-                            {{ t("landing.features.analytics_desc") }}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- How It Works -->
-<section class="py-5 bg-light">
-    <div class="container">
-        <h2 class="display-5 fw-bold text-center mb-5">{{ t("landing.loop.title") }}</h2>
-
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="timeline">
-                    <div class="timeline-item d-flex mb-4">
-                        <div class="timeline-badge bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 50px; height: 50px; min-width: 50px;">
-                            1
-                        </div>
-                        <div class="ms-4">
-                            <h5 class="fw-bold">{{ t("landing.loop.step1_title") }}</h5>
-                            <p class="text-muted">
-                                {{ t("landing.loop.step1_desc") }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="timeline-item d-flex mb-4">
-                        <div class="timeline-badge bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 50px; height: 50px; min-width: 50px;">
-                            2
-                        </div>
-                        <div class="ms-4">
-                            <h5 class="fw-bold">{{ t("landing.loop.step2_title") }}</h5>
-                            <p class="text-muted">
-                                {{ t("landing.loop.step2_desc") }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="timeline-item d-flex mb-4">
-                        <div class="timeline-badge bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 50px; height: 50px; min-width: 50px;">
-                            3
-                        </div>
-                        <div class="ms-4">
-                            <h5 class="fw-bold">{{ t("landing.loop.step3_title") }}</h5>
-                            <p class="text-muted">
-                                {{ t("landing.loop.step3_desc") }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="timeline-item d-flex mb-4">
-                        <div class="timeline-badge bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 50px; height: 50px; min-width: 50px;">
-                            4
-                        </div>
-                        <div class="ms-4">
-                            <h5 class="fw-bold">{{ t("landing.loop.step4_title") }}</h5>
-                            <p class="text-muted">
-                                {{ t("landing.loop.step4_desc") }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="timeline-item d-flex">
-                        <div class="timeline-badge bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 50px; height: 50px; min-width: 50px;">
-                            5
-                        </div>
-                        <div class="ms-4">
-                            <h5 class="fw-bold">{{ t("landing.loop.step5_title") }}</h5>
-                            <p class="text-muted">
-                                {{ t("landing.loop.step5_desc") }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Pricing -->
-<section id="pricing" class="py-5">
-    <div class="container">
-        <h2 class="display-5 fw-bold text-center mb-5">{{ t("landing.pricing.title") }}</h2>
-
-        <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-5">
-                <div class="card shadow border-0">
-                    <div class="card-body text-center p-5">
-                        <h3 class="display-4 fw-bold text-primary mb-2">$29<span class="fs-4 text-muted">{{ t("landing.pricing.per_month") }}</span></h3>
-                        <p class="text-muted mb-4">{{ t("landing.pricing.subtitle") }}</p>
-
-                        <ul class="list-unstyled text-start mb-4">
-                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat1") }}</li>
-                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat2") }}</li>
-                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat3") }}</li>
-                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat4") }}</li>
-                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat5") }}</li>
-                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat6") }}</li>
-                            <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat7") }}</li>
-                        </ul>
-
-                        <a href="/register" class="btn btn-primary btn-lg w-100">
-                            {{ t("landing.pricing.cta") }}
+    <!-- ===== HERO ===== -->
+    <section class="lp-hero">
+        <div class="lp-container">
+            <div class="lp-hero__grid">
+                <div class="lp-hero__copy">
+                    <span class="lp-hero__eyebrow">Powered by Apple Health · HWPO · Mayhem</span>
+                    <h1 class="lp-hero__title">
+                        {{ t("landing.hero.title_1") }}<br>
+                        <span>{{ t("landing.hero.title_2") }}</span>
+                    </h1>
+                    <p class="lp-hero__lead">{{ t("landing.hero.lead") }}</p>
+                    <div class="lp-hero__ctas">
+                        <a href="/register" class="lp-btn lp-btn--primary">
+                            {{ t("landing.hero.cta_trial") }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
                         </a>
-                        <p class="text-muted small mt-3 mb-0">{{ t("landing.pricing.no_card") }}</p>
+                        <a href="#features" class="lp-btn lp-btn--ghost">{{ t("landing.hero.cta_learn") }}</a>
+                    </div>
+                </div>
+
+                <div class="lp-hero__artifact" aria-hidden="true">
+                    <!-- Activity ring stack: three concentric rings (Move/Exercise/Stand) -->
+                    <svg class="lp-ring-stack" viewBox="0 0 200 200" role="img" aria-label="Activity rings">
+                        <!-- Ring backgrounds -->
+                        <circle class="bg" cx="100" cy="100" r="86" stroke-width="14" fill="none"/>
+                        <circle class="bg" cx="100" cy="100" r="66" stroke-width="14" fill="none"/>
+                        <circle class="bg" cx="100" cy="100" r="46" stroke-width="14" fill="none"/>
+                        <!-- Move ring (outer, 78%) -->
+                        <circle class="fg ring-move"     cx="100" cy="100" r="86" stroke-width="14" fill="none"
+                                stroke-dasharray="540.35" stroke-dashoffset="118.9"/>
+                        <!-- Exercise ring (middle, 92%) -->
+                        <circle class="fg ring-exercise" cx="100" cy="100" r="66" stroke-width="14" fill="none"
+                                stroke-dasharray="414.69" stroke-dashoffset="33.2"/>
+                        <!-- Stand ring (inner, 100%) -->
+                        <circle class="fg ring-stand"    cx="100" cy="100" r="46" stroke-width="14" fill="none"
+                                stroke-dasharray="289.03" stroke-dashoffset="0"/>
+                    </svg>
+                    <div class="lp-ring-readouts">
+                        <div class="lp-ring-center">
+                            <div class="lp-ring-center__value">94<sup>%</sup></div>
+                            <div class="lp-ring-center__label">Readiness</div>
+                        </div>
+                    </div>
+
+                    <div class="lp-metric lp-metric--hrv">
+                        <span class="lp-metric__label">HRV (7d)</span>
+                        <span class="lp-metric__value"><strong>+12</strong>ms</span>
+                    </div>
+                    <div class="lp-metric lp-metric--pr">
+                        <span class="lp-metric__label">Back squat PR</span>
+                        <span class="lp-metric__value">175<strong> kg</strong></span>
+                    </div>
+                    <div class="lp-metric lp-metric--rec">
+                        <span class="lp-metric__label">Sleep</span>
+                        <span class="lp-metric__value">7h <strong>42m</strong></span>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<!-- CTA -->
-<section class="bg-primary text-white py-5">
-    <div class="container text-center py-4">
-        <h2 class="display-5 fw-bold mb-4">{{ t("landing.cta.title") }}</h2>
-        <p class="lead mb-4">
-            {{ t("landing.cta.subtitle") }}
-        </p>
-        <a href="/register" class="btn btn-light btn-lg px-5 py-3">
-            {{ t("landing.cta.btn") }} <i class="fas fa-arrow-right ms-2"></i>
-        </a>
-    </div>
-</section>
+    <!-- ===== TRUST STRIP ===== -->
+    <section class="lp-trust" aria-label="Integrations">
+        <div class="lp-container lp-trust__row">
+            <span><i class="fab fa-apple" aria-hidden="true"></i> Apple Health</span>
+            <span><i class="fas fa-heart-pulse" aria-hidden="true"></i> Apple Watch</span>
+            <span><i class="fas fa-calendar" aria-hidden="true"></i> Calendar sync</span>
+            <span><i class="fas fa-flask" aria-hidden="true"></i> Lab report OCR</span>
+            <span><i class="fas fa-shield-halved" aria-hidden="true"></i> Row-level security</span>
+        </div>
+    </section>
 
-<!-- Footer -->
-<footer class="bg-dark text-white py-4">
-    <div class="container text-center">
-        <p class="mb-2">{{ t("landing.footer.tagline") }}</p>
-        <p class="text-muted small mb-0">
-            {{ t("landing.footer.stack") }}
-        </p>
-    </div>
-</footer>
+    <!-- ===== FEATURES (bento) ===== -->
+    <section id="features" class="lp-features">
+        <div class="lp-container">
+            <div class="lp-section">
+                <span class="lp-section__eyebrow">FEATURES</span>
+                <h2 class="lp-section__title">{{ t("landing.features.title") }}</h2>
+            </div>
+
+            <!-- SVG gradient defs reused by sparklines -->
+            <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+                <defs>
+                    <linearGradient id="lp-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%"   stop-color="#30d158" stop-opacity="0.45"/>
+                        <stop offset="100%" stop-color="#30d158" stop-opacity="0"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+
+            <div class="lp-bento">
+                <!-- AI / Smart Programming (wide, with mini-ring) -->
+                <div class="lp-tile lp-tile--wide">
+                    <h3 class="lp-tile__title">{{ t("landing.features.ai_title") }}</h3>
+                    <p class="lp-tile__desc">{{ t("landing.features.ai_desc") }}</p>
+                    <div class="lp-tile__visual">
+                        <svg class="lp-mini-ring" viewBox="0 0 100 100" aria-hidden="true">
+                            <circle class="bg" cx="50" cy="50" r="42" stroke-width="9" fill="none"/>
+                            <circle class="fg" cx="50" cy="50" r="42" stroke-width="9" fill="none"
+                                    stroke-dasharray="263.89" stroke-dashoffset="60"/>
+                        </svg>
+                        <div style="margin-left:18px;display:flex;flex-direction:column;gap:2px;">
+                            <span class="lp-stat">77<span class="lp-stat__unit">%</span></span>
+                            <span style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;">Plan fit score</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Adaptive (tall, dark, sparkline) -->
+                <div class="lp-tile lp-tile--tall lp-tile--dark">
+                    <h3 class="lp-tile__title">{{ t("landing.features.adaptive_title") }}</h3>
+                    <p class="lp-tile__desc">{{ t("landing.features.adaptive_desc") }}</p>
+                    <div class="lp-tile__visual">
+                        <svg class="lp-spark" viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true">
+                            <path class="area" d="M0,55 L20,48 L40,60 L60,42 L80,50 L100,30 L120,38 L140,22 L160,28 L180,18 L200,24 L200,80 L0,80 Z"/>
+                            <path class="line" d="M0,55 L20,48 L40,60 L60,42 L80,50 L100,30 L120,38 L140,22 L160,28 L180,18 L200,24"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Weekly reviews -->
+                <div class="lp-tile lp-tile--third">
+                    <h3 class="lp-tile__title">{{ t("landing.features.weekly_title") }}</h3>
+                    <p class="lp-tile__desc">{{ t("landing.features.weekly_desc") }}</p>
+                    <div class="lp-tile__visual" style="height:80px;">
+                        <div style="display:flex;flex-direction:column;gap:6px;width:100%;">
+                            <div style="height:8px;width:64%;background:var(--lp-accent-soft);border-radius:4px;"></div>
+                            <div style="height:8px;width:82%;background:var(--lp-accent-soft);border-radius:4px;"></div>
+                            <div style="height:8px;width:48%;background:var(--lp-accent);border-radius:4px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meal planning (macros) -->
+                <div class="lp-tile lp-tile--third">
+                    <h3 class="lp-tile__title">{{ t("landing.features.meal_title") }}</h3>
+                    <p class="lp-tile__desc">{{ t("landing.features.meal_desc") }}</p>
+                    <div class="lp-tile__visual" style="height:96px;align-items:stretch;">
+                        <div class="lp-meter">
+                            <div class="lp-meter__row">
+                                <span class="lp-meter__label">Protein</span>
+                                <div class="lp-meter__bar"><div class="lp-meter__fill lp-meter__fill--p" style="width:82%"></div></div>
+                                <span class="lp-meter__value">186g</span>
+                            </div>
+                            <div class="lp-meter__row">
+                                <span class="lp-meter__label">Carbs</span>
+                                <div class="lp-meter__bar"><div class="lp-meter__fill lp-meter__fill--c" style="width:64%"></div></div>
+                                <span class="lp-meter__value">312g</span>
+                            </div>
+                            <div class="lp-meter__row">
+                                <span class="lp-meter__label">Fat</span>
+                                <div class="lp-meter__bar"><div class="lp-meter__fill lp-meter__fill--f" style="width:48%"></div></div>
+                                <span class="lp-meter__value">68g</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recovery (accent) -->
+                <div class="lp-tile lp-tile--third lp-tile--accent">
+                    <h3 class="lp-tile__title">{{ t("landing.features.recovery_title") }}</h3>
+                    <p class="lp-tile__desc">{{ t("landing.features.recovery_desc") }}</p>
+                    <div class="lp-tile__visual" style="height:96px;">
+                        <div>
+                            <div class="lp-stat" style="color:var(--lp-white);">7.8<span class="lp-stat__unit">/10</span></div>
+                            <span style="font-size:12px;color:rgba(245,245,247,0.6);letter-spacing:.04em;">Recovery score · today</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analytics (full width, big sparkline) -->
+                <div class="lp-tile" style="grid-column: 1 / -1; min-height: 280px;">
+                    <div style="display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+                        <div style="max-width:46ch;">
+                            <h3 class="lp-tile__title">{{ t("landing.features.analytics_title") }}</h3>
+                            <p class="lp-tile__desc" style="margin-top:10px;">{{ t("landing.features.analytics_desc") }}</p>
+                        </div>
+                        <div style="display:flex;gap:32px;align-items:flex-start;">
+                            <div>
+                                <span class="lp-stat">+18<span class="lp-stat__unit">%</span></span>
+                                <div style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;margin-top:2px;">Volume vs. last cycle</div>
+                            </div>
+                            <div>
+                                <span class="lp-stat">12<span class="lp-stat__unit">PRs</span></span>
+                                <div style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;margin-top:2px;">Last 90 days</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lp-tile__visual" style="height:140px;">
+                        <svg class="lp-spark" viewBox="0 0 600 140" preserveAspectRatio="none" aria-hidden="true">
+                            <path class="area" d="M0,100 L40,92 L80,105 L120,80 L160,88 L200,70 L240,82 L280,60 L320,72 L360,46 L400,58 L440,34 L480,46 L520,22 L560,32 L600,18 L600,140 L0,140 Z"/>
+                            <path class="line" d="M0,100 L40,92 L80,105 L120,80 L160,88 L200,70 L240,82 L280,60 L320,72 L360,46 L400,58 L440,34 L480,46 L520,22 L560,32 L600,18"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section id="how" class="lp-loop">
+        <div class="lp-container">
+            <div class="lp-section">
+                <span class="lp-section__eyebrow">THE LOOP</span>
+                <h2 class="lp-section__title">{{ t("landing.loop.title") }}</h2>
+            </div>
+
+            <div class="lp-steps">
+                {% for i in range(1, 6) %}
+                <div class="lp-step">
+                    <span class="lp-step__num">0{{ i }} / 05</span>
+                    <h3 class="lp-step__title">{{ t("landing.loop.step" ~ i ~ "_title") }}</h3>
+                    <p class="lp-step__desc">{{ t("landing.loop.step" ~ i ~ "_desc") }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FAQ ===== -->
+    <section id="faq" class="lp-faq">
+        <div class="lp-container">
+            <div class="lp-section lp-section--center">
+                <span class="lp-section__eyebrow">FAQ</span>
+                <h2 class="lp-section__title">{{ t("landing.faq.title") }}</h2>
+                <p class="lp-section__lead">{{ t("landing.faq.subtitle") | safe }}</p>
+            </div>
+
+            <div class="lp-faq__list">
+                {% for i in range(1, 9) %}
+                <details class="lp-faq__item">
+                    <summary class="lp-faq__q">{{ t("landing.faq.q" ~ i) }}</summary>
+                    <div class="lp-faq__a">{{ t("landing.faq.a" ~ i) | safe }}</div>
+                </details>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== PRICING ===== -->
+    <section id="pricing" class="lp-pricing">
+        <div class="lp-container">
+            <div class="lp-section lp-section--center">
+                <span class="lp-section__eyebrow">PRICING</span>
+                <h2 class="lp-section__title">{{ t("landing.pricing.title") }}</h2>
+            </div>
+
+            <div class="lp-price-card">
+                <div class="lp-price-card__amount"><sup>$</sup>29<span class="lp-price-card__per">{{ t("landing.pricing.per_month") }}</span></div>
+                <p class="lp-price-card__sub">{{ t("landing.pricing.subtitle") }}</p>
+
+                <ul class="lp-price-card__list">
+                    <li>{{ t("landing.pricing.feat1") }}</li>
+                    <li>{{ t("landing.pricing.feat2") }}</li>
+                    <li>{{ t("landing.pricing.feat3") }}</li>
+                    <li>{{ t("landing.pricing.feat4") }}</li>
+                    <li>{{ t("landing.pricing.feat5") }}</li>
+                    <li>{{ t("landing.pricing.feat6") }}</li>
+                    <li>{{ t("landing.pricing.feat7") }}</li>
+                </ul>
+
+                <a href="/register" class="lp-btn lp-btn--dark lp-btn--block">
+                    {{ t("landing.pricing.cta") }}
+                </a>
+                <p class="lp-price-card__fine">{{ t("landing.pricing.no_card") }}</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FINAL CTA ===== -->
+    <section class="lp-cta">
+        <div class="lp-container">
+            <h2 class="lp-cta__title">{{ t("landing.cta.title") }}</h2>
+            <p class="lp-cta__lead">{{ t("landing.cta.subtitle") }}</p>
+            <a href="/register" class="lp-btn lp-btn--primary lp-cta__btn">
+                {{ t("landing.cta.btn") }} <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="lp-footer">
+        <div class="lp-container lp-footer__row">
+            <div>
+                <a href="/terms">{{ t("legal.nav.terms") }}</a>
+                <a href="/privacy">{{ t("legal.nav.privacy") }}</a>
+                <a href="/help">{{ t("landing.nav.help") }}</a>
+            </div>
+            <div style="opacity:.8;">{{ t("landing.footer.tagline") }}</div>
+        </div>
+    </footer>
+
+</main>
 {% endblock %}

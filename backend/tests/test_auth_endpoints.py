@@ -167,6 +167,8 @@ class TestRegisterEndpoint:
                 "password": "SecurePass123",
                 "confirm_password": "SecurePass123",
                 "name": "Duplicate User",
+                "accepted_terms": True,
+                "accepted_health_data": True,
             }
             response = await async_client.post("/api/v1/auth/register", json=payload)
 
@@ -185,13 +187,19 @@ class TestRegisterEndpoint:
                     "name": "New User",
                     "fitness_level": "beginner",
                     "goals": ["strength"],
+                    "accepted_terms": True,
+                    "accepted_health_data": True,
                 }
                 response = await async_client.post("/api/v1/auth/register", json=payload)
 
         assert response.status_code == 201
         data = response.json()
-        assert data["email"] == "new@example.com"
-        assert data["id"] == 42
+        # /register now returns the same shape as /login so the frontend
+        # doesn't need a second round-trip.
+        assert data["token_type"] == "bearer"
+        assert data["access_token"]
+        assert data["user"]["email"] == "new@example.com"
+        assert data["user"]["id"] == 42
 
     @pytest.mark.asyncio
     async def test_register_db_error_returns_500(self, async_client: AsyncClient):
@@ -203,10 +211,42 @@ class TestRegisterEndpoint:
                     "password": "SecurePass123",
                     "confirm_password": "SecurePass123",
                     "name": "New User",
+                    "accepted_terms": True,
+                    "accepted_health_data": True,
                 }
                 response = await async_client.post("/api/v1/auth/register", json=payload)
 
         assert response.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_register_without_terms_returns_400(self, async_client: AsyncClient):
+        """LGPD consent: missing terms checkbox → 400 'terms_required'."""
+        payload = {
+            "email": "new@example.com",
+            "password": "SecurePass123",
+            "confirm_password": "SecurePass123",
+            "name": "New User",
+            "accepted_terms": False,
+            "accepted_health_data": True,
+        }
+        response = await async_client.post("/api/v1/auth/register", json=payload)
+        assert response.status_code == 400
+        assert response.json()["detail"] == "terms_required"
+
+    @pytest.mark.asyncio
+    async def test_register_without_health_consent_returns_400(self, async_client: AsyncClient):
+        """LGPD art. 11: missing health-data consent → 400 'health_consent_required'."""
+        payload = {
+            "email": "new@example.com",
+            "password": "SecurePass123",
+            "confirm_password": "SecurePass123",
+            "name": "New User",
+            "accepted_terms": True,
+            "accepted_health_data": False,
+        }
+        response = await async_client.post("/api/v1/auth/register", json=payload)
+        assert response.status_code == 400
+        assert response.json()["detail"] == "health_consent_required"
 
 
 class TestLoginEndpoint:
