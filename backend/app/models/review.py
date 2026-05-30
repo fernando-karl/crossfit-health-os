@@ -40,11 +40,11 @@ class MovementPerformance(BaseModel):
     prescribed_reps: Optional[int | str] = None
     prescribed_weight_kg: Optional[float] = None
     prescribed_intensity: Optional[str] = None  # "80%", "RPE 8"
-    
+
     actual_sets: int
     actual_reps: List[int] = Field(default_factory=list, description="Reps per set [5,5,5,4,3]")
     actual_weight_kg: List[float] = Field(default_factory=list, description="Weight per set")
-    
+
     breaks_taken: List[str] = Field(default_factory=list, description="List of break points, e.g., 'after_set_3', 'during_set_5'")
     technique_quality: Optional[int] = Field(None, ge=1, le=10, description="1-10 scale")
     notes: Optional[str] = None
@@ -54,19 +54,19 @@ class SessionFeedback(BaseModel):
     """Post-session subjective feedback"""
     session_id: UUID
     date: date
-    
+
     rpe_score: int = Field(..., ge=1, le=10, description="Rate of Perceived Exertion")
     difficulty: str = Field(..., description="too_easy|appropriate|hard_but_manageable|too_hard")
     technique_quality: int = Field(..., ge=1, le=10)
     pacing: str = Field(..., description="too_fast|good|too_slow")
     energy_level_pre: int = Field(..., ge=1, le=10)
     energy_level_post: int = Field(..., ge=1, le=10)
-    
+
     would_repeat: bool = True
     favorite_part: Optional[str] = None
     least_favorite_part: Optional[str] = None
     notes: Optional[str] = None
-    
+
     movements_feedback: List[MovementPerformance] = Field(default_factory=list)
 
 
@@ -125,7 +125,7 @@ class WeeklyReview(BaseModel):
     week_number: int
     week_start_date: date
     week_end_date: date
-    
+
     # Overview
     summary: str
     planned_sessions: int
@@ -134,24 +134,24 @@ class WeeklyReview(BaseModel):
     avg_rpe: float
     avg_readiness: float
     overall_satisfaction: Optional[int] = Field(None, ge=1, le=10)
-    
+
     # Analysis
     strengths: List[PerformanceHighlight]
     weaknesses: List[PerformanceChallenge]
     recovery_status: RecoveryStatus
     volume_assessment: VolumeAssessment
-    
+
     # Progression
     progressions_detected: List[str] = Field(default_factory=list)
-    
+
     # Next week
     next_week_adjustments: NextWeekAdjustments
     coach_message: str = Field(..., description="Motivational message from AI coach")
-    
+
     # Metadata
     created_at: datetime
     ai_model_used: str = Field("claude-3-5-sonnet", description="AI model used for review")
-    
+
     model_config = {"from_attributes": True}
 
 
@@ -181,18 +181,18 @@ class MonthlyAnalysis(BaseModel):
     id: UUID
     user_id: int
     month: str  # "2026-02"
-    
+
     total_sessions: int
     adherence_rate: float
-    
+
     strength_progress: List[StrengthProgress]
     conditioning_progress: List[ConditioningProgress]
-    
+
     body_composition: Optional[Dict[str, float]] = None
     injury_report: Optional[Dict[str, Any]] = None
-    
+
     volume_trend: str = Field(..., description="increasing|stable|decreasing")
     overall_assessment: str
-    
+
     created_at: datetime
     ai_model_used: str = "gemini-1.5-pro"

@@ -217,8 +217,6 @@ class GamificationService:
     def _check_perfect_week(self, streak: StreakData) -> bool:
         """Did the user hit every scheduled planned_session this week?"""
         today = date.today()
-        week_start = today - timedelta(days=today.weekday())
-        week_end = week_start + timedelta(days=6)
 
         macro = self.db.execute(
             select(MacrocycleDB).where(

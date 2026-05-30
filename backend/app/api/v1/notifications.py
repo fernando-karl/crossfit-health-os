@@ -1,7 +1,7 @@
 """
 Notifications API — list / mark-read for the current user (SQLAlchemy).
 """
-from typing import Any, Dict, List
+from typing import Any, Dict
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException

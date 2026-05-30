@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from datetime import date as _Date, datetime as _Datetime, timedelta
 from typing import Optional, Tuple
-from uuid import UUID, uuid4
+from uuid import uuid4
 import logging
 
-from sqlalchemy import and_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import (

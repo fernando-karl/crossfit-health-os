@@ -9,7 +9,6 @@ import io
 import logging
 import re
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import select

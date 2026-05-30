@@ -11,7 +11,6 @@ Flow:
 import base64
 import io
 import logging
-from typing import Optional
 
 from openai import AsyncOpenAI
 

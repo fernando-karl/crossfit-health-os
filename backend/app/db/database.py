@@ -1,8 +1,7 @@
 """
 Database helpers for PostgreSQL (sync version using psycopg2)
 """
-import psycopg2
-from psycopg2 import pool
+import psycopg2.pool  # loads psycopg2 + the .pool submodule (used in type annotations below)
 from contextlib import contextmanager
 from typing import Optional
 import os
@@ -20,7 +19,7 @@ def get_pool():
         # tests/CI can override; fall back to settings.DATABASE_URL, which
         # pydantic-settings loads from .env.
         db_url = os.getenv("DATABASE_URL") or settings.DATABASE_URL
-        
+
         # Parse the URL
         if "://" in db_url:
             # postgresql://user:pass@host:port/dbname
@@ -29,7 +28,7 @@ def get_pool():
             user_pass = parts[0].split(":")
             host_db = parts[1].split("/")
             host_port = host_db[0].split(":")
-            
+
             user = user_pass[0]
             password = user_pass[1] if len(user_pass) > 1 else ""
             host = host_port[0]
@@ -41,7 +40,7 @@ def get_pool():
             host = "127.0.0.1"
             port = "5432"
             database = "crossfit"
-        
+
         connection_pool = psycopg2.pool.ThreadedConnectionPool(
             minconn=2,
             maxconn=10,

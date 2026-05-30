@@ -3,7 +3,6 @@ Health API — recovery metrics and biomarker readings (SQLAlchemy).
 """
 from datetime import date as _Date
 from typing import List, Optional
-from uuid import UUID
 import logging
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile

@@ -31,18 +31,18 @@ class Settings(BaseSettings):
     # must supply its own via env; the post-init guard below refuses to boot
     # in prod with a missing/weak key.
     SECRET_KEY: str = ""
-    
+
     # Supabase (optional — legacy, app now uses DATABASE_URL)
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
     SUPABASE_SERVICE_KEY: str = ""
-    
+
     # Database (fallback for local Postgres)
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/crossfit"
-    
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
-    
+
     # Public domain — single source of truth for FRONTEND_URL, CORS,
     # and the support/DPO email defaults. Override per-environment via
     # APP_DOMAIN env var (e.g. crossfit.leicbit.com in prod).
@@ -67,17 +67,17 @@ class Settings(BaseSettings):
     # mailbox provider (e.g. Google Workspace forwarding).
     SUPPORT_EMAIL: str = ""
     DPO_EMAIL: str = ""
-    
+
     # Integrations
     GOOGLE_CALENDAR_CLIENT_ID: str = ""
     GOOGLE_CALENDAR_CLIENT_SECRET: str = ""
     APPLE_TEAM_ID: str = ""
     TODOIST_API_TOKEN: str = ""
-    
+
     # AI & OCR
     OPENAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
-    
+
     # Stripe — leave empty in CI/tests. Real keys go in backend/.env (gitignored).
     STRIPE_SECRET_KEY: str = ""
     STRIPE_PUBLIC_KEY: str = ""

@@ -3,7 +3,7 @@ Scheduling API — macrocycles, microcycles, and planned sessions (SQLAlchemy).
 """
 from __future__ import annotations
 
-from datetime import date as _Date, datetime as _Datetime, time as _Time, timedelta
+from datetime import date as _Date, timedelta
 from typing import List, Optional
 from uuid import UUID
 import logging

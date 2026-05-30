@@ -1,7 +1,6 @@
 """
 Weekly Review & Session Feedback API (SQLAlchemy).
 """
-from datetime import date as _Date
 from typing import List
 from uuid import UUID
 import logging
@@ -22,7 +21,6 @@ from app.db.models import (
 )
 from app.db.session import get_session
 from app.models.review import (
-    IntensityChange,
     NextWeekAdjustments,
     PerformanceChallenge,
     PerformanceHighlight,

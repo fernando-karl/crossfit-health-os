@@ -8,7 +8,6 @@ Flow:
 3. sync_calendar_events() creates events for next 7 days of training
 """
 import logging
-from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from typing import Optional, TypedDict, List
 
@@ -86,7 +85,6 @@ async def _get_user_token(user_id: int) -> Optional[str]:
     The refresh token is stored under `preferences['google_calendar_refresh_token']`
     on the User row (JSONB).
     """
-    from sqlalchemy import select
     from app.db.models import User as UserDB
     from app.db.session import SessionLocal
 

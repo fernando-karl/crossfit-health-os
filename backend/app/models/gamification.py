@@ -26,7 +26,7 @@ class Badge(BaseModel):
     description: str
     icon: str
     earned_at: Optional[datetime] = None
-    
+
     @classmethod
     def from_db(cls, row: dict) -> "Badge":
         return cls(
@@ -127,12 +127,12 @@ def calculate_level(xp: int) -> tuple[int, int]:
     # XP requirements: 1000, 2500, 5000, 10000, etc (exponential)
     level = 1
     required_xp = 1000
-    
+
     while xp >= required_xp:
         xp -= required_xp
         level += 1
         required_xp = int(required_xp * 1.5)
-    
+
     return level, required_xp
 
 

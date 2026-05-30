@@ -60,25 +60,25 @@ class RegisterRequest(BaseModel):
         False,
         description="User consents to processing of sensitive health data (LGPD art. 11).",
     )
-    
+
     def validate_password(self):
         """Validate password strength"""
         if self.password != self.confirm_password:
             raise ValueError("Passwords do not match")
-        
+
         if len(self.password) < 8:
             raise ValueError("Password must be at least 8 characters")
-        
+
         # Check for complexity
         if not re.search(r'[A-Z]', self.password):
             raise ValueError("Password must contain at least one uppercase letter")
-        
+
         if not re.search(r'[a-z]', self.password):
             raise ValueError("Password must contain at least one lowercase letter")
-        
+
         if not re.search(r'[0-9]', self.password):
             raise ValueError("Password must contain at least one number")
-        
+
         return True
 
 
@@ -304,22 +304,22 @@ async def login(
     """Login user"""
     # Get user by email
     user = get_user_by_email(payload.email)
-    
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     user_id, email, password_hash, name, birth_date, weight_kg, height_cm, fitness_level, goals = user
-    
+
     # Verify password
     if not verify_password(payload.password, password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
     # Issue access + refresh pair (refresh persisted as hash in DB).
     access, refresh = _rt.issue_pair(
         db, user_id, email,

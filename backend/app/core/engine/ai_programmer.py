@@ -8,8 +8,8 @@ real previous-week performance. Also supports single-session regeneration.
 from __future__ import annotations
 
 from datetime import date as _Date, datetime as _Datetime, timedelta
-from typing import List, Optional
-from uuid import UUID, uuid4
+from typing import Optional
+from uuid import uuid4
 import json
 import logging
 

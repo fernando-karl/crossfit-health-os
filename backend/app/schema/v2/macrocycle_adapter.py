@@ -109,11 +109,9 @@ def _phase_from_week(blocks_info: list[tuple[str, int, int]], week: int) -> Phas
 def _movement_to_mp(m: dict) -> MovementPrescription:
     """Converte dict de movement (do DB) -> MovementPrescription (v2)."""
     volume_key = None
-    volume_val = None
     for vk in ("reps", "time_seconds", "distance_meters", "calories"):
         if vk in m and m[vk] is not None:
             volume_key = vk
-            volume_val = m[vk]
             break
 
     load = None

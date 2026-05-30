@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from datetime import date as _Date, timedelta
 from typing import Optional
-from uuid import UUID
 
 from sqlalchemy import update
 from sqlalchemy.orm import Session

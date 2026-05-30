@@ -2,11 +2,11 @@
 Weekly Review Engine
 Analyzes athlete performance and suggests adjustments using Claude 3.5 Sonnet
 """
-from datetime import date, timedelta
-from typing import Dict, List, Optional
-from uuid import UUID
+from datetime import date
+from typing import Dict, Optional
 import json
 import logging
+
 from anthropic import AsyncAnthropic
 
 from app.core.config import settings
@@ -39,14 +39,13 @@ class WeeklyReviewEngine:
     AI-powered weekly performance review
     Uses Claude 3.5 Sonnet for deep analysis
     """
-    
+
     def __init__(self):
         # Try Claude first (best for analysis), fallback to OpenAI
         self.anthropic_client = None
         self.openai_client = None
-        
+
         if hasattr(settings, 'ANTHROPIC_API_KEY') and settings.ANTHROPIC_API_KEY:
-            from anthropic import AsyncAnthropic
             self.anthropic_client = AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
             logger.info("Weekly reviewer using Claude 3.5 Sonnet")
         elif hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY:
@@ -55,7 +54,7 @@ class WeeklyReviewEngine:
             logger.info("Weekly reviewer using GPT-4o (fallback)")
         else:
             logger.warning("No AI API keys configured for weekly review")
-    
+
     async def generate_weekly_review(
         self,
         user_id: int,
@@ -67,14 +66,14 @@ class WeeklyReviewEngine:
     ) -> WeeklyReview:
         """
         Generate comprehensive weekly review with AI analysis
-        
+
         Args:
             user_id: User UUID
             week_number: Week number in mesocycle
             week_start: Start date of week
             week_end: End date of week
             athlete_notes: Optional feedback from athlete
-            
+
         Returns:
             WeeklyReview object with analysis and recommendations
         """
@@ -88,7 +87,7 @@ class WeeklyReviewEngine:
 
             # Get user profile
             user_profile = self._get_user_profile(db, user_id)
-        
+
             # Generate review using AI
             if self.anthropic_client:
                 review_data = await self._generate_review_claude(
@@ -105,7 +104,6 @@ class WeeklyReviewEngine:
                 model_used = "rule-based"
 
             # Build review and persist
-            from datetime import datetime as _dt_now
             saved_review = self._save_review(
                 db=db,
                 user_id=user_id,
@@ -119,7 +117,7 @@ class WeeklyReviewEngine:
         finally:
             if owns_session:
                 db.close()
-    
+
     def _collect_weekly_data(
         self,
         db: Session,
@@ -185,7 +183,7 @@ class WeeklyReviewEngine:
             "goals": user.goals or [],
             "preferences": user.preferences or {},
         }
-    
+
     async def _generate_review_claude(
         self,
         user_profile: Dict,
@@ -197,7 +195,7 @@ class WeeklyReviewEngine:
         Generate review using Claude 3.5 Sonnet
         """
         prompt = self._build_review_prompt(user_profile, weekly_data, week_number, athlete_notes)
-        
+
         try:
             response = await self.anthropic_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
@@ -211,24 +209,24 @@ class WeeklyReviewEngine:
                     }
                 ]
             )
-            
+
             # Parse response
             review_text = response.content[0].text
-            
+
             # Extract JSON from markdown code block if present
             if "```json" in review_text:
                 json_start = review_text.find("```json") + 7
                 json_end = review_text.find("```", json_start)
                 review_text = review_text[json_start:json_end].strip()
-            
+
             review_data = json.loads(review_text)
-            
+
             return self._parse_review_response(review_data, weekly_data)
-            
+
         except Exception as e:
             logger.error(f"Failed to generate review with Claude: {e}", exc_info=True)
             return self._generate_review_fallback(weekly_data, week_number)
-    
+
     async def _generate_review_openai(
         self,
         user_profile: Dict,
@@ -240,7 +238,7 @@ class WeeklyReviewEngine:
         Fallback: Generate review using GPT-4o
         """
         prompt = self._build_review_prompt(user_profile, weekly_data, week_number, athlete_notes)
-        
+
         try:
             response = await self.openai_client.chat.completions.create(
                 model="gpt-4o",
@@ -257,15 +255,15 @@ class WeeklyReviewEngine:
                 temperature=0.7,
                 response_format={"type": "json_object"}
             )
-            
+
             review_data = json.loads(response.choices[0].message.content)
-            
+
             return self._parse_review_response(review_data, weekly_data)
-            
+
         except Exception as e:
             logger.error(f"Failed to generate review with GPT-4: {e}", exc_info=True)
             return self._generate_review_fallback(weekly_data, week_number)
-    
+
     def _get_coach_system_prompt(self) -> str:
         """System prompt for AI coach"""
         return """You are an elite CrossFit coach analyzing athlete performance for a weekly review.
@@ -287,7 +285,7 @@ Communication style:
 - Keep coach message under 200 words
 
 Return structured JSON with your analysis."""
-    
+
     def _build_review_prompt(
         self,
         user_profile: Dict,
@@ -296,7 +294,7 @@ Return structured JSON with your analysis."""
         athlete_notes: Optional[str]
     ) -> str:
         """Build prompt for AI review"""
-        
+
         # Determine phase
         if week_number <= 3:
             phase = "Accumulation"
@@ -306,7 +304,7 @@ Return structured JSON with your analysis."""
             phase = "Intensification"
         else:
             phase = "Test Week"
-        
+
         prompt = f"""Analyze this athlete's Week {week_number} ({phase} phase) performance:
 
 ATHLETE PROFILE:
@@ -355,22 +353,22 @@ Provide review in this JSON format:
   }},
   "coach_message": "Personalized, motivational message addressing specific performance"
 }}"""
-        
+
         return prompt
-    
+
     def _parse_review_response(self, review_data: Dict, weekly_data: Dict) -> Dict:
         """Parse AI response into WeeklyReview fields"""
-        
+
         # Parse strengths
         strengths = [
             PerformanceHighlight(**s) for s in review_data.get("strengths", [])
         ]
-        
+
         # Parse weaknesses
         weaknesses = [
             PerformanceChallenge(**w) for w in review_data.get("weaknesses", [])
         ]
-        
+
         # Parse adjustments
         adjustments_data = review_data.get("next_week_adjustments", {})
         next_week_adjustments = NextWeekAdjustments(
@@ -381,7 +379,7 @@ Provide review in this JSON format:
             add_skill_work_minutes=adjustments_data.get("add_skill_work_minutes", 0),
             add_mobility_work=adjustments_data.get("add_mobility_work", False)
         )
-        
+
         return {
             "summary": review_data.get("summary", "Week completed successfully."),
             "planned_sessions": weekly_data["planned_sessions"],
@@ -398,14 +396,14 @@ Provide review in this JSON format:
             "next_week_adjustments": next_week_adjustments,
             "coach_message": review_data.get("coach_message", "Keep up the great work!")
         }
-    
+
     def _generate_review_fallback(self, weekly_data: Dict, week_number: int) -> Dict:
         """Rule-based fallback review"""
-        
+
         adherence = weekly_data["adherence_rate"]
         avg_rpe = weekly_data["avg_rpe"]
         avg_readiness = weekly_data["avg_readiness"]
-        
+
         # Simple rule-based assessment
         if adherence >= 90:
             summary = f"Excellent adherence this week ({adherence:.0f}%). "
@@ -413,7 +411,7 @@ Provide review in this JSON format:
             summary = f"Good adherence ({adherence:.0f}%). "
         else:
             summary = f"Low adherence ({adherence:.0f}%). Consider adjusting schedule. "
-        
+
         if avg_rpe > 8:
             summary += "High RPE suggests volume may be too high."
             volume_assessment = VolumeAssessment.TOO_HIGH
@@ -423,14 +421,14 @@ Provide review in this JSON format:
         else:
             summary += "RPE indicates appropriate training load."
             volume_assessment = VolumeAssessment.APPROPRIATE
-        
+
         if avg_readiness < 60:
             recovery_status = RecoveryStatus.COMPROMISED
         elif avg_readiness < 75:
             recovery_status = RecoveryStatus.ADEQUATE
         else:
             recovery_status = RecoveryStatus.OPTIMAL
-        
+
         return {
             "summary": summary,
             "planned_sessions": weekly_data["planned_sessions"],
@@ -452,7 +450,7 @@ Provide review in this JSON format:
             ),
             "coach_message": f"Week {week_number} completed. Keep training consistently!"
         }
-    
+
     def _save_review(
         self,
         db: Session,

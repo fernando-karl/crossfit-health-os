@@ -7,7 +7,7 @@ this service only handles cross-user batch operations like streak checks and
 onboarding email reminders.
 """
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session

@@ -396,11 +396,11 @@ async def onboarding_page(request: Request):
 async def auth_callback(request: Request):
     """Handle Supabase auth callback"""
     from app.core.config import settings
-    
+
     token = request.query_params.get("token")
     type_param = request.query_params.get("type")
     redirect_to = request.query_params.get("redirect_to", "/dashboard")
-    
+
     return templates.TemplateResponse("auth_callback.html", {
         "request": request,
         "token": token,
@@ -416,7 +416,7 @@ async def auth_verify(request: Request):
     """Alternative verify route"""
     token = request.query_params.get("token")
     type_param = request.query_params.get("type")
-    
+
     return templates.TemplateResponse("auth_callback.html", {
         "request": request,
         "token": token,
@@ -468,7 +468,7 @@ async def reset_password_redirect(request: Request):
 async def update_password_page(request: Request):
     """Page to set new password after recovery link"""
     from app.core.config import settings
-    
+
     return templates.TemplateResponse("update_password.html", {
         "request": request,
         "supabase_url": settings.SUPABASE_URL,

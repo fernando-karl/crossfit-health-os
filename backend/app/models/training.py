@@ -2,10 +2,10 @@
 Pydantic models for Training domain
 """
 import logging
-from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
-from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Optional, List, Dict
 import datetime as dt_module
-from datetime import datetime, date, time as dt_time
+from datetime import datetime, date, time as dt_time, timedelta
 from enum import Enum
 from uuid import UUID
 
@@ -176,16 +176,16 @@ class WorkoutSessionUpdate(BaseModel):
     score: Optional[float] = None
     score_type: Optional[ScoreType] = None
     rpe_score: Optional[int] = Field(None, ge=1, le=10)
-    
+
     # Heart rate data
     avg_heart_rate_bpm: Optional[int] = None
     max_heart_rate_bpm: Optional[int] = None
     calories_burned: Optional[int] = None
-    
+
     # Pre-workout metrics
     hrv_pre_workout: Optional[int] = None
     sleep_quality_pre: Optional[int] = Field(None, ge=1, le=10)
-    
+
     # Post-workout
     muscle_groups_worked: List[str] = []
     video_url: Optional[str] = None
@@ -196,28 +196,28 @@ class WorkoutSession(WorkoutSessionBase):
     id: UUID
     user_id: int
     template_id: Optional[UUID] = None
-    
+
     scheduled_at: Optional[datetime] = None
     started_at: datetime
     completed_at: Optional[datetime] = None
     duration_minutes: Optional[float] = None
-    
+
     actual_weight_kg: Optional[Dict[str, float]] = None
     actual_reps: Optional[Dict[str, int]] = None
     score: Optional[float] = None
     score_type: Optional[ScoreType] = None
     rpe_score: Optional[int] = None
-    
+
     avg_heart_rate_bpm: Optional[int] = None
     max_heart_rate_bpm: Optional[int] = None
     calories_burned: Optional[int] = None
-    
+
     hrv_pre_workout: Optional[int] = None
     sleep_quality_pre: Optional[int] = None
-    
+
     muscle_groups_worked: List[str] = []
     video_url: Optional[str] = None
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 

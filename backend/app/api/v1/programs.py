@@ -22,7 +22,6 @@ from app.core.rate_limit import limiter
 from app.core.program_projection import project_program_to_periodization
 from app.db.models import (
     Injury as InjuryDB,
-    Macrocycle as MacrocycleDB,
     PersonalRecord as PersonalRecordDB,
     Program as ProgramDB,
     User as UserDB,

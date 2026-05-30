@@ -2,7 +2,7 @@
 AI-Powered Training Programmer - Enhanced with Nutrition and Health Integration
 Generates progressive training programs using LLM with full athlete context
 """
-from datetime import date, timedelta
+from datetime import date
 from typing import List, Dict, Optional
 from uuid import UUID
 import json
@@ -30,10 +30,10 @@ class AITrainingProgrammerV2:
     - Health metrics (HRV, recovery, sleep)
     - Goals and preferences
     """
-    
+
     def __init__(self):
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
-    
+
     async def generate_weekly_program(
         self,
         user_profile: dict,
@@ -49,7 +49,7 @@ class AITrainingProgrammerV2:
     ) -> Dict[DayOfWeek, WorkoutTemplate]:
         """
         Generate complete weekly training program using AI with full context
-        
+
         Args:
             user_profile: User fitness level, goals, weaknesses, PRs, dietary restrictions
             methodology: HWPO, Mayhem, CompTrain, Custom
@@ -65,7 +65,7 @@ class AITrainingProgrammerV2:
         if not self.client:
             logger.warning("OpenAI API key not configured, using fallback templates")
             return self._generate_fallback_program(training_days, session_durations)
-        
+
         context = self._build_enhanced_context(
             user_profile=user_profile,
             methodology=methodology,
@@ -78,9 +78,9 @@ class AITrainingProgrammerV2:
             health_metrics=health_metrics,
             user_restrictions=user_restrictions
         )
-        
+
         prompt = self._build_enhanced_prompt(context)
-        
+
         try:
             response = await self.client.chat.completions.create(
                 model="gpt-4o",
@@ -97,17 +97,17 @@ class AITrainingProgrammerV2:
                 temperature=0.7,
                 response_format={"type": "json_object"}
             )
-            
+
             program_json = json.loads(response.choices[0].message.content)
             weekly_program = self._parse_ai_response(program_json, training_days)
-            
+
             logger.info(f"Generated weekly program for week {week_number}")
             return weekly_program
-            
+
         except Exception as e:
             logger.error(f"Failed to generate AI program: {e}", exc_info=True)
             return self._generate_fallback_program(training_days, session_durations)
-    
+
     def _get_enhanced_system_prompt(self) -> str:
         """
         Enhanced system prompt with nutrition and health integration
@@ -180,13 +180,13 @@ Return valid JSON with:
 2. Nutrition recommendations (meal timing, macro targets, supplements)
 3. Recovery suggestions (sleep targets, mobility, stress management)
 
-IMPORTANT: 
+IMPORTANT:
 - Always specify reps_unit for calorie/distance work
 - Never put meters or calories in "reps" field without unit
 - Include scaling options for all fitness levels
 - Add mobility/recovery recommendations
 - Give specific, actionable nutrition advice"""
-    
+
     def _build_enhanced_context(
         self,
         user_profile: dict,
@@ -201,7 +201,7 @@ IMPORTANT:
         user_restrictions: Optional[dict]
     ) -> dict:
         """Build comprehensive context for AI prompt"""
-        
+
         # Extract user info
         fitness_level = user_profile.get("fitness_level", "intermediate")
         weight_kg = user_profile.get("weight_kg", 80)
@@ -209,25 +209,25 @@ IMPORTANT:
         goals = user_profile.get("preferences", {}).get("goals", ["strength", "conditioning"])
         weaknesses = user_profile.get("preferences", {}).get("weaknesses", [])
         prs = user_profile.get("personal_records", [])
-        
+
         # Dietary restrictions
         diet_type = user_restrictions.get("diet_type", "omnivore") if user_restrictions else "omnivore"
         allergies = user_restrictions.get("allergies", []) if user_restrictions else []
         supplements = user_restrictions.get("supplements", []) if user_restrictions else []
-        
+
         # Nutrition data
         avg_daily_protein = 0
         avg_daily_carbs = 0
         avg_daily_fat = 0
         avg_calories = 0
         protein_adequacy = "unknown"
-        
+
         if nutrition_data:
             avg_daily_protein = nutrition_data.get("avg_daily_protein_g", 0)
             avg_daily_carbs = nutrition_data.get("avg_daily_carbs_g", 0)
             avg_daily_fat = nutrition_data.get("avg_daily_fat_g", 0)
             avg_calories = nutrition_data.get("avg_daily_calories", 0)
-            
+
             # Calculate protein adequacy (g per kg bodyweight)
             protein_per_kg = avg_daily_protein / weight_kg if weight_kg else 0
             if protein_per_kg < 1.2:
@@ -238,20 +238,20 @@ IMPORTANT:
                 protein_adequacy = "OPTIMAL for muscle growth"
             else:
                 protein_adequacy = "HIGH - may be excessive"
-        
+
         # Health metrics
         avg_hrv = 0
         avg_sleep_hours = 0
         avg_readiness = 0
         avg_muscle_soreness = 0
         recovery_status = "unknown"
-        
+
         if health_metrics:
             avg_hrv = health_metrics.get("avg_hrv", 0)
             avg_sleep_hours = health_metrics.get("avg_sleep_hours", 0)
             avg_readiness = health_metrics.get("avg_readiness", 0)
             avg_muscle_soreness = health_metrics.get("avg_muscle_soreness", 0)
-            
+
             # Determine recovery status
             if avg_readiness >= 80 and avg_sleep_hours >= 7:
                 recovery_status = "OPTIMAL - Ready for high intensity"
@@ -261,7 +261,7 @@ IMPORTANT:
                 recovery_status = "MODERATE - Consider reducing intensity"
             else:
                 recovery_status = "COMPROMISED - Focus on recovery, reduce volume"
-        
+
         # Calculate mesocycle phase
         if week_number <= 3:
             phase = "accumulation"
@@ -275,11 +275,11 @@ IMPORTANT:
         else:
             phase = "test_week"
             phase_description = "Test fitness gains"
-        
+
         # Calculate recommended training adjustments based on recovery
         intensity_adjustment = "maintain"
         volume_adjustment = "maintain"
-        
+
         if recovery_status == "COMPROMISED":
             intensity_adjustment = "reduce_by_15%"
             volume_adjustment = "reduce_by_25%"
@@ -289,7 +289,7 @@ IMPORTANT:
         elif recovery_status == "OPTIMAL":
             intensity_adjustment = "increase_by_5%"
             volume_adjustment = "maintain"
-        
+
         # Calculate protein targets based on diet
         if diet_type == "vegan":
             protein_recommendation = "1.8-2.2g/kg bodyweight (focus on complete proteins: tofu, tempeh, seitan + leucine-rich foods)"
@@ -303,7 +303,7 @@ IMPORTANT:
             protein_recommendation = "1.6-2.0g/kg bodyweight (animal sources complete)"
             bcaas_recommendation = "Not necessary with adequate protein intake"
             iron_zinc_note = ""
-        
+
         context = {
             "athlete": {
                 "profile": {
@@ -348,18 +348,18 @@ IMPORTANT:
             },
             "previous_week": previous_week_data
         }
-        
+
         return context
-    
+
     def _build_enhanced_prompt(self, context: dict) -> str:
         """Build enhanced prompt with nutrition and health integration"""
-        
+
         athlete = context["athlete"]
         profile = athlete["profile"]
         diet = athlete["diet"]
         health = athlete["health"]
         program = context["program"]
-        
+
         prompt = f"""Generate a COMPLETE weekly training program with holistic recommendations.
 
 ## ATHLETE PROFILE
@@ -373,10 +373,10 @@ IMPORTANT:
 ## DIETARY INFORMATION
 - **Diet Type:** {diet['diet_type'].upper()}
 - **Allergies:** {', '.join(diet['allergies']) if diet['allergies'] else 'None'}
-- **Supplements:** {', '.join(diet['supplements']) if diet['supplements']) else 'None reported'}
+- **Supplements:** {', '.join(diet['supplements']) if diet['supplements'] else 'None reported'}
 
 ### Current Nutrition (Last 7 Days Average):
-- **Protein:** {diet['avg_daily_protein_g']:.0f}g/day ({protein_adequacy if diet['avg_daily_protein_g'] else 'N/A'})
+- **Protein:** {diet['avg_daily_protein_g']:.0f}g/day
 - **Carbs:** {diet['avg_daily_carbs_g']:.0f}g/day
 - **Fat:** {diet['avg_daily_fat_g']:.0f}g/day
 - **Calories:** {diet['avg_calories']:.0f} kcal/day
@@ -520,7 +520,7 @@ Generate a complete weekly program with the following JSON structure:
 Generate the complete program now."""
 
         return prompt
-    
+
     def _parse_ai_response(
         self,
         program_json: dict,
@@ -530,15 +530,15 @@ Generate the complete program now."""
         # Same as original implementation
         weekly_program = {}
         workouts = program_json.get("workouts", {})
-        
+
         for day in training_days:
             day_key = day.value
             if day_key not in workouts:
                 continue
-            
+
             workout_data = workouts[day_key]
             all_movements = []
-            
+
             for part in workout_data.get("parts", []):
                 for mov in part.get("movements", []):
                     movement = Movement(
@@ -554,9 +554,9 @@ Generate the complete program now."""
                         notes=mov.get("notes")
                     )
                     all_movements.append(movement)
-            
+
             workout_type = self._normalize_workout_type(workout_data.get("workout_type", "mixed"))
-            
+
             template = WorkoutTemplate(
                 id=UUID("00000000-0000-0000-0000-000000000000"),
                 name=workout_data.get("name", f"{day_key.title()} Workout"),
@@ -572,19 +572,19 @@ Generate the complete program now."""
                 created_at=date.today(),
                 is_public=False
             )
-            
+
             weekly_program[day] = template
-        
+
         return weekly_program
-    
+
     def _normalize_workout_type(self, raw_type: str) -> WorkoutType:
         """Map workout type strings to valid enum values"""
         raw = raw_type.lower().strip()
-        
+
         for wt in WorkoutType:
             if wt.value == raw:
                 return wt
-        
+
         if any(k in raw for k in ["strength", "squat", "deadlift", "press", "heavy"]):
             return WorkoutType.MIXED if any(k in raw for k in ["metcon", "wod"]) else WorkoutType.STRENGTH
         if any(k in raw for k in ["metcon", "wod", "amrap", "emom", "chipper", "for time"]):
@@ -593,9 +593,9 @@ Generate the complete program now."""
             return WorkoutType.SKILL
         if any(k in raw for k in ["conditioning", "cardio", "aerobic", "run", "row", "bike"]):
             return WorkoutType.CONDITIONING
-        
+
         return WorkoutType.MIXED
-    
+
     def _generate_fallback_program(
         self,
         training_days: List[DayOfWeek],

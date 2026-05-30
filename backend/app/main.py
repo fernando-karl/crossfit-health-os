@@ -4,7 +4,7 @@ Main entry point for the backend API
 """
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging
@@ -31,9 +31,9 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 CrossFit Health OS API starting...")
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Supabase URL: {settings.SUPABASE_URL}")
-    
+
     yield
-    
+
     # Shutdown
     logger.info("⏹️  CrossFit Health OS API shutting down...")
 
