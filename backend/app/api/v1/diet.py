@@ -193,15 +193,21 @@ convert_to_24h = _convert_to_24h
 def _extract_pdf_text(content: bytes) -> str:
     try:
         import pdfplumber
-        with pdfplumber.open(io.BytesIO(content)) as pdf:
-            text = ""
-            for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"
-            return text
     except ImportError:
-        pass
+        pdfplumber = None
+    if pdfplumber is not None:
+        try:
+            with pdfplumber.open(io.BytesIO(content)) as pdf:
+                text = ""
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
+                return text
+        except Exception:
+            # Corrupt / non-PDF bytes — fall through to PyMuPDF, then "".
+            # The caller treats "" as "couldn't extract" → clean 400.
+            pass
     try:
         import fitz  # PyMuPDF
         doc = fitz.open(stream=content, filetype="pdf")

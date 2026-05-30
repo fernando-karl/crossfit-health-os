@@ -109,6 +109,48 @@
     </div>
 </div>
 
+<!-- Diet plan (PDF upload → macro targets) -->
+<div class="chos-card mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="fas fa-file-pdf text-danger me-2"></i>{{ t("nutrition.diet_plan_title") }}</h5>
+                <p class="text-secondary mb-0 small">{{ t("nutrition.diet_plan_subtitle") }}</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label for="diet-plan-input" class="btn btn-primary mb-0" style="cursor: pointer;">
+                    <i class="fas fa-upload me-2"></i>{% if diet_plan %}{{ t("nutrition.diet_plan_replace") }}{% else %}{{ t("nutrition.diet_plan_upload") }}{% endif %}
+                </label>
+                {% if diet_plan %}
+                <button type="button" id="diet-plan-remove" class="btn btn-outline-secondary mb-0">
+                    <i class="fas fa-trash me-1"></i>{{ t("nutrition.diet_plan_remove") }}
+                </button>
+                {% endif %}
+                <input type="file" id="diet-plan-input" accept="application/pdf,.pdf" class="d-none">
+            </div>
+        </div>
+
+        {% if diet_plan %}
+        <div class="mt-3 p-3 bg-light rounded d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <span class="fw-medium">{{ diet_plan.file_name }}</span>
+                {% if diet_plan.uploaded_at %}<span class="small text-muted ms-2">{{ t("nutrition.diet_plan_uploaded") }} {{ diet_plan.uploaded_at }}</span>{% endif %}
+            </div>
+            <div class="small text-secondary">
+                {{ diet_plan.calories }} kcal · {{ diet_plan.protein }}g {{ t("nutrition.protein") }} · {{ diet_plan.carbs }}g {{ t("nutrition.carbs") }} · {{ diet_plan.fat }}g {{ t("nutrition.fat") }}
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0 mt-3">{{ t("nutrition.diet_plan_none") }}</p>
+        {% endif %}
+
+        <div id="diet-plan-loading" class="d-none text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+            <span class="text-secondary small">{{ t("nutrition.diet_plan_uploading") }}</span>
+        </div>
+    </div>
+</div>
+
 <!-- Photo analysis (AI macro estimation from a plate photo) -->
 <div class="chos-card chos-card-feature is-nutrition mb-4">
     <div class="card-body">
@@ -463,6 +505,63 @@
                 CHOS.loading.button($saveBtn, false);
             }
         });
+    })();
+
+    // ---- Diet plan: PDF upload / remove ----
+    (function () {
+        const $input   = document.getElementById('diet-plan-input');
+        const $loading = document.getElementById('diet-plan-loading');
+        const $remove  = document.getElementById('diet-plan-remove');
+        const authHeaders = function () {
+            const tok = localStorage.getItem('access_token');
+            return tok ? { 'Authorization': 'Bearer ' + tok } : {};
+        };
+
+        if ($input) {
+            $input.addEventListener('change', async function (ev) {
+                const file = ev.target.files && ev.target.files[0];
+                ev.target.value = '';   // allow re-selecting the same file
+                if (!file) return;
+                if (!file.name.toLowerCase().endsWith('.pdf')) {
+                    CHOS.toast.error(t('nutrition.diet_plan_error'));
+                    return;
+                }
+                $loading.classList.remove('d-none');
+                try {
+                    const form = new FormData();
+                    form.append('file', file);
+                    const res = await fetch('/api/v1/diet/upload', {
+                        method: 'POST', headers: authHeaders(), body: form
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(function () { return {}; });
+                        throw new Error(err.detail || res.statusText);
+                    }
+                    CHOS.toast.success(t('nutrition.diet_plan_success'));
+                    // Server re-renders targets + the plan card on reload.
+                    window.location.reload();
+                } catch (e) {
+                    $loading.classList.add('d-none');
+                    CHOS.toast.error(e.message || t('nutrition.diet_plan_error'));
+                }
+            });
+        }
+
+        if ($remove) {
+            $remove.addEventListener('click', async function () {
+                if (!window.confirm(t('nutrition.diet_plan_remove_confirm'))) return;
+                try {
+                    const res = await fetch('/api/v1/diet/current', {
+                        method: 'DELETE', headers: authHeaders()
+                    });
+                    if (!res.ok) throw new Error(res.statusText);
+                    CHOS.toast.success(t('nutrition.diet_plan_removed'));
+                    window.location.reload();
+                } catch (e) {
+                    CHOS.toast.error(e.message || t('nutrition.diet_plan_error'));
+                }
+            });
+        }
     })();
 </script>
 {% endblock %}

@@ -255,6 +255,7 @@ async def nutrition_page(request: Request):
     today_macros = {"protein": 0, "carbs": 0, "fat": 0, "calories": 0}
     targets = dict(_DEFAULT_MACRO_TARGETS)
     recent_meals = []
+    diet_plan = None
 
     user_id = _web_user_id(request)
     if user_id is not None:
@@ -305,6 +306,14 @@ async def nutrition_page(request: Request):
                         "fat": plan.fat_g or _DEFAULT_MACRO_TARGETS["fat"],
                         "calories": plan.daily_calories or _DEFAULT_MACRO_TARGETS["calories"],
                     }
+                    diet_plan = {
+                        "file_name": plan.file_name or "diet-plan.pdf",
+                        "uploaded_at": plan.uploaded_at.strftime("%Y-%m-%d") if plan.uploaded_at else "",
+                        "calories": plan.daily_calories,
+                        "protein": plan.protein_g,
+                        "carbs": plan.carbs_g,
+                        "fat": plan.fat_g,
+                    }
             except Exception:  # noqa: BLE001 — schema drift on user_diet_plans
                 db.rollback()
 
@@ -314,6 +323,7 @@ async def nutrition_page(request: Request):
         "today_macros": today_macros,
         "targets": targets,
         "recent_meals": recent_meals,
+        "diet_plan": diet_plan,
     })
 
 

@@ -517,7 +517,19 @@
     "photo_no_ai": "Photo analysis unavailable: no AI key configured on the server.",
     "photo_confidence_low": "Low confidence — review before saving.",
     "photo_confidence_medium": "Medium confidence.",
-    "photo_confidence_high": "High confidence."
+    "photo_confidence_high": "High confidence.",
+    "diet_plan_title": "Diet plan",
+    "diet_plan_subtitle": "Upload your nutrition plan PDF to set your macro targets",
+    "diet_plan_none": "No diet plan uploaded yet",
+    "diet_plan_upload": "Upload PDF",
+    "diet_plan_replace": "Replace",
+    "diet_plan_remove": "Remove",
+    "diet_plan_uploaded": "Uploaded",
+    "diet_plan_uploading": "Uploading and parsing…",
+    "diet_plan_success": "Diet plan updated",
+    "diet_plan_error": "Could not upload the diet plan",
+    "diet_plan_remove_confirm": "Remove the current diet plan?",
+    "diet_plan_removed": "Diet plan removed"
   },
   "programs": {
     "page_title": "AI Programs",

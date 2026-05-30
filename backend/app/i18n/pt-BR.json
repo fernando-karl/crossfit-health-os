@@ -517,7 +517,19 @@
     "photo_no_ai": "Análise de foto indisponível: nenhuma chave de IA configurada no servidor.",
     "photo_confidence_low": "Confiança baixa — revise antes de salvar.",
     "photo_confidence_medium": "Confiança média.",
-    "photo_confidence_high": "Confiança alta."
+    "photo_confidence_high": "Confiança alta.",
+    "diet_plan_title": "Plano alimentar",
+    "diet_plan_subtitle": "Envie o PDF do seu plano para definir as metas de macros",
+    "diet_plan_none": "Nenhum plano alimentar enviado ainda",
+    "diet_plan_upload": "Enviar PDF",
+    "diet_plan_replace": "Substituir",
+    "diet_plan_remove": "Remover",
+    "diet_plan_uploaded": "Enviado em",
+    "diet_plan_uploading": "Enviando e processando…",
+    "diet_plan_success": "Plano alimentar atualizado",
+    "diet_plan_error": "Não foi possível enviar o plano alimentar",
+    "diet_plan_remove_confirm": "Remover o plano alimentar atual?",
+    "diet_plan_removed": "Plano alimentar removido"
   },
   "programs": {
     "page_title": "Programas AI",
