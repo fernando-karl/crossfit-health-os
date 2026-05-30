@@ -529,7 +529,9 @@
     "diet_plan_success": "Diet plan updated",
     "diet_plan_error": "Could not upload the diet plan",
     "diet_plan_remove_confirm": "Remove the current diet plan?",
-    "diet_plan_removed": "Diet plan removed"
+    "diet_plan_removed": "Diet plan removed",
+    "meal_added": "Meal added",
+    "meal_add_error": "Enter calories or macros to add a meal"
   },
   "programs": {
     "page_title": "AI Programs",

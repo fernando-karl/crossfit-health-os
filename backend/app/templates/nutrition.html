@@ -67,40 +67,40 @@
             <div class="card-body p-4">
                 <h5 class="fw-bold mb-3">{{ t("nutrition.add_meal") }}</h5>
 
-                <form>
+                <form id="add-meal-form">
                     <div class="mb-3">
                         <label class="form-label small fw-medium">{{ t("nutrition.meal") }}</label>
-                        <select class="form-select">
-                            <option>{{ t("nutrition.meal_options.breakfast") }}</option>
-                            <option>{{ t("nutrition.meal_options.lunch") }}</option>
-                            <option>{{ t("nutrition.meal_options.snack") }}</option>
-                            <option>{{ t("nutrition.meal_options.dinner") }}</option>
-                            <option>{{ t("nutrition.meal_options.pre_workout") }}</option>
-                            <option>{{ t("nutrition.meal_options.post_workout") }}</option>
+                        <select class="form-select" id="add-meal-type">
+                            <option value="breakfast">{{ t("nutrition.meal_options.breakfast") }}</option>
+                            <option value="lunch">{{ t("nutrition.meal_options.lunch") }}</option>
+                            <option value="snack">{{ t("nutrition.meal_options.snack") }}</option>
+                            <option value="dinner">{{ t("nutrition.meal_options.dinner") }}</option>
+                            <option value="pre_workout">{{ t("nutrition.meal_options.pre_workout") }}</option>
+                            <option value="post_workout">{{ t("nutrition.meal_options.post_workout") }}</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label small fw-medium">{{ t("nutrition.calories") }}</label>
-                        <input type="number" class="form-control" placeholder="kcal" min="0">
+                        <input type="number" class="form-control" id="add-meal-cals" placeholder="kcal" min="0">
                     </div>
 
                     <div class="row g-2 mb-3">
                         <div class="col-4">
                             <label class="form-label small fw-medium mb-1">{{ t("nutrition.protein") }}</label>
-                            <input type="number" class="form-control form-control-sm" placeholder="g" min="0">
+                            <input type="number" class="form-control form-control-sm" id="add-meal-protein" placeholder="g" min="0">
                         </div>
                         <div class="col-4">
                             <label class="form-label small fw-medium mb-1">{{ t("nutrition.carbs") }}</label>
-                            <input type="number" class="form-control form-control-sm" placeholder="g" min="0">
+                            <input type="number" class="form-control form-control-sm" id="add-meal-carbs" placeholder="g" min="0">
                         </div>
                         <div class="col-4">
                             <label class="form-label small fw-medium mb-1">{{ t("nutrition.fat") }}</label>
-                            <input type="number" class="form-control form-control-sm" placeholder="g" min="0">
+                            <input type="number" class="form-control form-control-sm" id="add-meal-fat" placeholder="g" min="0">
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100">
+                    <button type="submit" class="btn btn-primary w-100" id="add-meal-submit">
                         <i class="fas fa-plus me-2"></i>{{ t("nutrition.btn_add") }}
                     </button>
                 </form>
@@ -562,6 +562,54 @@
                 }
             });
         }
+    })();
+
+    // ---- Quick add meal (manual macro entry) ----
+    (function () {
+        const $form = document.getElementById('add-meal-form');
+        if (!$form) return;
+        const num = function (id) {
+            const v = parseFloat(document.getElementById(id).value);
+            return isFinite(v) ? v : null;
+        };
+        const authHeaders = function () {
+            const tok = localStorage.getItem('access_token');
+            const h = { 'Content-Type': 'application/json' };
+            if (tok) h['Authorization'] = 'Bearer ' + tok;
+            return h;
+        };
+        $form.addEventListener('submit', async function (ev) {
+            ev.preventDefault();
+            const payload = {
+                meal_type: document.getElementById('add-meal-type').value,
+                calories: num('add-meal-cals'),
+                protein_g: num('add-meal-protein'),
+                carbs_g: num('add-meal-carbs'),
+                fat_g: num('add-meal-fat')
+            };
+            if (payload.calories === null && payload.protein_g === null &&
+                payload.carbs_g === null && payload.fat_g === null) {
+                CHOS.toast.error(t('nutrition.meal_add_error'));
+                return;
+            }
+            const $btn = document.getElementById('add-meal-submit');
+            $btn.disabled = true;
+            try {
+                const res = await fetch('/api/v1/nutrition/meals', {
+                    method: 'POST', headers: authHeaders(), body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(function () { return {}; });
+                    throw new Error(err.detail || res.statusText);
+                }
+                CHOS.toast.success(t('nutrition.meal_added'));
+                // Server re-renders today's macros + the meal list on reload.
+                window.location.reload();
+            } catch (e) {
+                $btn.disabled = false;
+                CHOS.toast.error(e.message || t('nutrition.meal_add_error'));
+            }
+        });
     })();
 </script>
 {% endblock %}

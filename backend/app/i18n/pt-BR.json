@@ -529,7 +529,9 @@
     "diet_plan_success": "Plano alimentar atualizado",
     "diet_plan_error": "Não foi possível enviar o plano alimentar",
     "diet_plan_remove_confirm": "Remover o plano alimentar atual?",
-    "diet_plan_removed": "Plano alimentar removido"
+    "diet_plan_removed": "Plano alimentar removido",
+    "meal_added": "Refeição adicionada",
+    "meal_add_error": "Informe calorias ou macros para adicionar uma refeição"
   },
   "programs": {
     "page_title": "Programas AI",
