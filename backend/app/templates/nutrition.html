@@ -278,13 +278,16 @@
                     <button class="btn btn-sm btn-outline-secondary" aria-label="Editar">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" aria-label="Excluir">
+                    <button class="btn btn-sm btn-outline-danger meal-delete" data-meal-id="{{ meal.id }}" aria-label="{{ t('nutrition.diet_plan_remove') }}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
         </div>
         {% endfor %}
+        {% if not recent_meals %}
+        <p class="text-muted small text-center mb-0 py-2">{{ t("nutrition.no_meals_today") }}</p>
+        {% endif %}
     </div>
 </div>
 
@@ -609,6 +612,32 @@
                 $btn.disabled = false;
                 CHOS.toast.error(e.message || t('nutrition.meal_add_error'));
             }
+        });
+    })();
+
+    // ---- Delete a logged meal ----
+    (function () {
+        const auth = function () {
+            const tok = localStorage.getItem('access_token');
+            return tok ? { 'Authorization': 'Bearer ' + tok } : {};
+        };
+        document.querySelectorAll('.meal-delete').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+                const id = btn.getAttribute('data-meal-id');
+                if (!id || !window.confirm(t('nutrition.meal_delete_confirm'))) return;
+                btn.disabled = true;
+                try {
+                    const res = await fetch('/api/v1/nutrition/meals/' + encodeURIComponent(id), {
+                        method: 'DELETE', headers: auth()
+                    });
+                    if (!res.ok) throw new Error(res.statusText);
+                    CHOS.toast.success(t('nutrition.meal_deleted'));
+                    window.location.reload();
+                } catch (e) {
+                    btn.disabled = false;
+                    CHOS.toast.error(e.message || t('nutrition.meal_delete_error'));
+                }
+            });
         });
     })();
 </script>

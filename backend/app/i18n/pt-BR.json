@@ -531,7 +531,11 @@
     "diet_plan_remove_confirm": "Remover o plano alimentar atual?",
     "diet_plan_removed": "Plano alimentar removido",
     "meal_added": "Refeição adicionada",
-    "meal_add_error": "Informe calorias ou macros para adicionar uma refeição"
+    "meal_add_error": "Informe calorias ou macros para adicionar uma refeição",
+    "meal_deleted": "Refeição excluída",
+    "meal_delete_confirm": "Excluir esta refeição?",
+    "meal_delete_error": "Não foi possível excluir a refeição",
+    "no_meals_today": "Nenhuma refeição registrada hoje"
   },
   "programs": {
     "page_title": "Programas AI",

@@ -275,6 +275,7 @@ async def nutrition_page(request: Request):
             }
             recent_meals = [
                 {
+                    "id": str(r.id),
                     "time": r.logged_at.strftime("%H:%M") if r.logged_at else "",
                     "name": (r.description
                              or (r.meal_type or "").replace("_", " ").title()

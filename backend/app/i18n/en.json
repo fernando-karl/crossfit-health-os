@@ -531,7 +531,11 @@
     "diet_plan_remove_confirm": "Remove the current diet plan?",
     "diet_plan_removed": "Diet plan removed",
     "meal_added": "Meal added",
-    "meal_add_error": "Enter calories or macros to add a meal"
+    "meal_add_error": "Enter calories or macros to add a meal",
+    "meal_deleted": "Meal deleted",
+    "meal_delete_confirm": "Delete this meal?",
+    "meal_delete_error": "Could not delete the meal",
+    "no_meals_today": "No meals logged today"
   },
   "programs": {
     "page_title": "AI Programs",
