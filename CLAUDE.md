@@ -676,6 +676,11 @@ pytest tests/ -v --cov=app
 
 ## Deployment
 
+> **The production host does not use this stack.** It runs as a systemd service
+> (`crossfit.service`) under a dedicated `crossfit` user, against a host-level
+> PostgreSQL — see [`DEPLOYMENT.md`](DEPLOYMENT.md) for the authoritative setup.
+> The Coolify/Docker/Supabase description below is the original aspirational plan.
+
 **Platform:** Coolify (Docker orchestration)
 
 **Services:**
