@@ -299,7 +299,7 @@
     color: var(--lp-text-on-dark-muted);
 }
 
-/* Floating metric pills around the ring */
+/* Metric pills around the ring */
 .lp-metric {
     position: absolute;
     background: rgba(255,255,255,0.04);
@@ -311,7 +311,6 @@
     display: grid;
     gap: 4px;
     min-width: 132px;
-    animation: lp-float 6s ease-in-out infinite;
 }
 .lp-metric__label {
     font-size: 10px;
@@ -327,13 +326,9 @@
     letter-spacing: -0.01em;
 }
 .lp-metric__value strong { color: var(--lp-accent); font-weight: 600; }
-.lp-metric--hrv  { top: 6%; left: -4%; animation-delay: -1s; }
-.lp-metric--pr   { top: 18%; right: -6%; animation-delay: -3s; }
-.lp-metric--rec  { bottom: 8%; left: 4%; animation-delay: -5s; }
-@keyframes lp-float {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(-6px); }
-}
+.lp-metric--hrv  { top: 6%; left: -4%; }
+.lp-metric--pr   { top: 18%; right: -6%; }
+.lp-metric--rec  { bottom: 8%; left: 4%; }
 @media (max-width: 900px) {
     .lp-hero__artifact { max-width: 360px; margin-top: 8px; }
     .lp-metric { display: none; }
