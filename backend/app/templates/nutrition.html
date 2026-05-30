@@ -275,7 +275,11 @@
                 </div>
 
                 <div class="d-flex gap-2 flex-shrink-0">
-                    <button class="btn btn-sm btn-outline-secondary" aria-label="Editar">
+                    <button class="btn btn-sm btn-outline-secondary meal-edit"
+                            data-meal-id="{{ meal.id }}" data-meal-type="{{ meal.meal_type }}"
+                            data-calories="{{ meal.calories }}" data-protein="{{ meal.protein }}"
+                            data-carbs="{{ meal.carbs }}" data-fat="{{ meal.fat }}"
+                            aria-label="{{ t('nutrition.edit_meal_title') }}">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-danger meal-delete" data-meal-id="{{ meal.id }}" aria-label="{{ t('nutrition.diet_plan_remove') }}">
@@ -295,8 +299,55 @@
 <div class="chos-card">
     <div class="card-body p-4">
         <h5 class="fw-bold mb-3">{{ t("nutrition.weekly_trend") }}</h5>
-        {# Placeholder series — will be replaced by /api/v1/nutrition/macros/summary range query. #}
         <div id="macro-trend-chart"></div>
+    </div>
+</div>
+
+<!-- Edit meal modal -->
+<div class="modal fade" id="edit-meal-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ t("nutrition.edit_meal_title") }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-meal-id">
+                <div class="mb-3">
+                    <label class="form-label small fw-medium">{{ t("nutrition.meal") }}</label>
+                    <select class="form-select" id="edit-meal-type">
+                        <option value="breakfast">{{ t("nutrition.meal_options.breakfast") }}</option>
+                        <option value="lunch">{{ t("nutrition.meal_options.lunch") }}</option>
+                        <option value="snack">{{ t("nutrition.meal_options.snack") }}</option>
+                        <option value="dinner">{{ t("nutrition.meal_options.dinner") }}</option>
+                        <option value="pre_workout">{{ t("nutrition.meal_options.pre_workout") }}</option>
+                        <option value="post_workout">{{ t("nutrition.meal_options.post_workout") }}</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-medium">{{ t("nutrition.calories") }}</label>
+                    <input type="number" class="form-control" id="edit-meal-cals" min="0">
+                </div>
+                <div class="row g-2">
+                    <div class="col-4">
+                        <label class="form-label small fw-medium mb-1">{{ t("nutrition.protein") }}</label>
+                        <input type="number" class="form-control form-control-sm" id="edit-meal-protein" min="0">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small fw-medium mb-1">{{ t("nutrition.carbs") }}</label>
+                        <input type="number" class="form-control form-control-sm" id="edit-meal-carbs" min="0">
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small fw-medium mb-1">{{ t("nutrition.fat") }}</label>
+                        <input type="number" class="form-control form-control-sm" id="edit-meal-fat" min="0">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t("common.actions.cancel") }}</button>
+                <button type="button" class="btn btn-primary" id="edit-meal-save">{{ t("nutrition.btn_save") }}</button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -342,12 +393,13 @@
     {% set fat_pct = (today_macros.fat / targets.fat * 100) | round %}
     new ApexCharts(document.querySelector("#fat-ring"), _macroRing("#fat-ring", {{ fat_pct }}, _cssVar('--cat-fat'))).render();
 
-    // Weekly Macro Trend (placeholder series until backend wired)
+    // Weekly Macro Trend — real 7-day series from the server (oldest→today)
+    var macroTrend = {{ macro_trend | tojson }};
     var macroTrendOptions = {
         series: [
-            { name: t('nutrition.protein'), data: [175, 180, 185, 178, 180, 182, 180] },
-            { name: t('nutrition.carbs'), data: [220, 230, 240, 235, 245, 248, 245] },
-            { name: t('nutrition.fat'), data: [70, 75, 72, 76, 78, 80, 78] }
+            { name: t('nutrition.protein'), data: macroTrend.protein },
+            { name: t('nutrition.carbs'), data: macroTrend.carbs },
+            { name: t('nutrition.fat'), data: macroTrend.fat }
         ],
         chart: {
             type: 'line',
@@ -356,11 +408,7 @@
         },
         stroke: { curve: 'smooth', width: 2 },
         xaxis: {
-            categories: [
-                t('nutrition.weekday.mon'), t('nutrition.weekday.tue'), t('nutrition.weekday.wed'),
-                t('nutrition.weekday.thu'), t('nutrition.weekday.fri'), t('nutrition.weekday.sat'),
-                t('nutrition.weekday.sun')
-            ],
+            categories: macroTrend.label_keys.map(function (k) { return t('nutrition.weekday.' + k); }),
             labels: { style: { colors: 'var(--color-text-secondary)' } }
         },
         yaxis: { labels: { style: { colors: 'var(--color-text-secondary)' } } },
@@ -639,6 +687,60 @@
                 }
             });
         });
+    })();
+
+    // ---- Edit a logged meal (modal) ----
+    (function () {
+        const modalEl = document.getElementById('edit-meal-modal');
+        if (!modalEl || typeof bootstrap === 'undefined') return;
+        const modal = new bootstrap.Modal(modalEl);
+        const auth = function () {
+            const tok = localStorage.getItem('access_token');
+            const h = { 'Content-Type': 'application/json' };
+            if (tok) h['Authorization'] = 'Bearer ' + tok;
+            return h;
+        };
+        const num = function (v) { const n = parseFloat(v); return isFinite(n) ? n : null; };
+        const setVal = function (id, v) { document.getElementById(id).value = (v == null ? '' : v); };
+
+        document.querySelectorAll('.meal-edit').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                setVal('edit-meal-id', btn.getAttribute('data-meal-id'));
+                setVal('edit-meal-type', btn.getAttribute('data-meal-type') || 'lunch');
+                setVal('edit-meal-cals', btn.getAttribute('data-calories'));
+                setVal('edit-meal-protein', btn.getAttribute('data-protein'));
+                setVal('edit-meal-carbs', btn.getAttribute('data-carbs'));
+                setVal('edit-meal-fat', btn.getAttribute('data-fat'));
+                modal.show();
+            });
+        });
+
+        const $save = document.getElementById('edit-meal-save');
+        if ($save) {
+            $save.addEventListener('click', async function () {
+                const id = document.getElementById('edit-meal-id').value;
+                if (!id) return;
+                const payload = {
+                    meal_type: document.getElementById('edit-meal-type').value,
+                    calories: num(document.getElementById('edit-meal-cals').value),
+                    protein_g: num(document.getElementById('edit-meal-protein').value),
+                    carbs_g: num(document.getElementById('edit-meal-carbs').value),
+                    fat_g: num(document.getElementById('edit-meal-fat').value)
+                };
+                $save.disabled = true;
+                try {
+                    const res = await fetch('/api/v1/nutrition/meals/' + encodeURIComponent(id), {
+                        method: 'PATCH', headers: auth(), body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error(res.statusText);
+                    CHOS.toast.success(t('nutrition.meal_updated'));
+                    window.location.reload();
+                } catch (e) {
+                    $save.disabled = false;
+                    CHOS.toast.error(e.message || t('nutrition.meal_update_error'));
+                }
+            });
+        }
     })();
 </script>
 {% endblock %}

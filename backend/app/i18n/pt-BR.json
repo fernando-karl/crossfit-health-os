@@ -535,7 +535,11 @@
     "meal_deleted": "Refeição excluída",
     "meal_delete_confirm": "Excluir esta refeição?",
     "meal_delete_error": "Não foi possível excluir a refeição",
-    "no_meals_today": "Nenhuma refeição registrada hoje"
+    "no_meals_today": "Nenhuma refeição registrada hoje",
+    "edit_meal_title": "Editar refeição",
+    "btn_save": "Salvar",
+    "meal_updated": "Refeição atualizada",
+    "meal_update_error": "Não foi possível atualizar a refeição"
   },
   "programs": {
     "page_title": "Programas AI",

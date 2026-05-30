@@ -535,7 +535,11 @@
     "meal_deleted": "Meal deleted",
     "meal_delete_confirm": "Delete this meal?",
     "meal_delete_error": "Could not delete the meal",
-    "no_meals_today": "No meals logged today"
+    "no_meals_today": "No meals logged today",
+    "edit_meal_title": "Edit meal",
+    "btn_save": "Save",
+    "meal_updated": "Meal updated",
+    "meal_update_error": "Could not update the meal"
   },
   "programs": {
     "page_title": "AI Programs",

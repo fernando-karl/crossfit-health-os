@@ -213,6 +213,7 @@ async def health_page(request: Request):
 
 
 _DEFAULT_MACRO_TARGETS = {"protein": 150, "carbs": 200, "fat": 70, "calories": 2000}
+_WEEKDAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]  # Python weekday() order
 
 
 def _web_user_id(request: Request):
@@ -245,7 +246,7 @@ def _web_user_id(request: Request):
 async def nutrition_page(request: Request):
     """Nutrition page — server-rendered with the user's real macros, targets
     and today's logged meals (falls back to empty/defaults when logged out)."""
-    from datetime import datetime as _dt
+    from datetime import datetime as _dt, timedelta as _td
 
     from sqlalchemy import select
 
@@ -257,6 +258,16 @@ async def nutrition_page(request: Request):
     recent_meals = []
     diet_plan = None
 
+    # Weekly macro trend: last 7 days (oldest→today). label_keys map to the
+    # nutrition.weekday.* i18n keys client-side; series default to zeros.
+    _week_days = [_dt.utcnow().date() - _td(days=i) for i in range(6, -1, -1)]
+    macro_trend = {
+        "label_keys": [_WEEKDAY_KEYS[d.weekday()] for d in _week_days],
+        "protein": [0] * 7,
+        "carbs": [0] * 7,
+        "fat": [0] * 7,
+    }
+
     user_id = _web_user_id(request)
     if user_id is not None:
         with SessionLocal() as db:
@@ -267,6 +278,20 @@ async def nutrition_page(request: Request):
                 .order_by(_MealLog.logged_at)
             ).scalars().all()
 
+            # 7-day buckets for the trend chart.
+            week_start = _dt.combine(_week_days[0], _dt.min.time())
+            day_index = {d: i for i, d in enumerate(_week_days)}
+            for r in db.execute(
+                select(_MealLog).where(
+                    _MealLog.user_id == user_id, _MealLog.logged_at >= week_start
+                )
+            ).scalars().all():
+                i = day_index.get(r.logged_at.date()) if r.logged_at else None
+                if i is not None:
+                    macro_trend["protein"][i] += round(r.protein_g or 0)
+                    macro_trend["carbs"][i] += round(r.carbs_g or 0)
+                    macro_trend["fat"][i] += round(r.fat_g or 0)
+
             today_macros = {
                 "protein": round(sum(r.protein_g or 0 for r in rows)),
                 "carbs": round(sum(r.carbs_g or 0 for r in rows)),
@@ -276,6 +301,7 @@ async def nutrition_page(request: Request):
             recent_meals = [
                 {
                     "id": str(r.id),
+                    "meal_type": r.meal_type or "",
                     "time": r.logged_at.strftime("%H:%M") if r.logged_at else "",
                     "name": (r.description
                              or (r.meal_type or "").replace("_", " ").title()
@@ -325,6 +351,7 @@ async def nutrition_page(request: Request):
         "targets": targets,
         "recent_meals": recent_meals,
         "diet_plan": diet_plan,
+        "macro_trend": macro_trend,
     })
 
 

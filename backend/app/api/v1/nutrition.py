@@ -100,6 +100,37 @@ async def get_todays_meals(
     return [_meal_to_dict(r) for r in rows]
 
 
+@router.patch("/meals/{meal_id}")
+async def update_meal(
+    meal_id: str,
+    meal_data: dict,
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    """Update fields on one of the current user's logged meals."""
+    from uuid import UUID
+
+    user_id = int(current_user["id"])
+    try:
+        mid = UUID(meal_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=404, detail="Meal not found")
+
+    row = db.get(MealLogDB, mid)
+    if not row or row.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Meal not found")
+
+    editable = ("meal_type", "description", "calories", "protein_g",
+                "carbs_g", "fat_g", "fiber_g", "notes")
+    for field in editable:
+        if field in meal_data:
+            setattr(row, field, meal_data[field])
+
+    db.commit()
+    db.refresh(row)
+    return _meal_to_dict(row)
+
+
 @router.delete("/meals/{meal_id}")
 async def delete_meal(
     meal_id: str,
