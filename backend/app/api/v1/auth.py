@@ -2,7 +2,7 @@
 Authentication API Endpoints (PostgreSQL version)
 Registration, Login, Password Reset
 """
-from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Request
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Request, Response
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 import logging
@@ -123,6 +123,28 @@ def create_jwt_token(user_id: int, email: str) -> str:
         "iat": datetime.now(timezone.utc)
     }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+ACCESS_COOKIE_NAME = "access_token"
+
+
+def _set_access_cookie(response: Response, token: str) -> None:
+    """Mirror the access token into an HttpOnly cookie so server-rendered web
+    pages can identify the user (JS still uses the localStorage token for the
+    API). Secure only in production; SameSite=Lax so it rides top-level nav."""
+    response.set_cookie(
+        key=ACCESS_COOKIE_NAME,
+        value=token,
+        max_age=settings.JWT_EXPIRATION_HOURS * 3600,
+        httponly=True,
+        secure=(settings.ENVIRONMENT == "production"),
+        samesite="lax",
+        path="/",
+    )
+
+
+def _clear_access_cookie(response: Response) -> None:
+    response.delete_cookie(key=ACCESS_COOKIE_NAME, path="/")
+
 
 def verify_jwt_token(token: str) -> Optional[dict]:
     """Verify JWT token and return payload"""
@@ -276,6 +298,7 @@ async def register(
 async def login(
     request: Request,
     payload: LoginRequest,
+    response: Response,
     db: _OrmSession = Depends(get_session),
 ):
     """Login user"""
@@ -303,6 +326,8 @@ async def login(
         user_agent=request.headers.get("user-agent"),
         ip=request.client.host if request.client else None,
     )
+
+    _set_access_cookie(response, access)
 
     return {
         "access_token": access,
@@ -376,6 +401,7 @@ class RefreshRequest(BaseModel):
 async def refresh_access_token(
     request: Request,
     payload: RefreshRequest,
+    response: Response,
     db: _OrmSession = Depends(get_session),
 ):
     """Rotate the refresh token and mint a new access token.
@@ -396,6 +422,7 @@ async def refresh_access_token(
             detail="Invalid or expired refresh token",
         )
     access, new_refresh, _user_id = result
+    _set_access_cookie(response, access)
     return {
         "access_token": access,
         "refresh_token": new_refresh,
@@ -409,6 +436,7 @@ class LogoutRequest(BaseModel):
 
 @router.post("/logout")
 async def logout(
+    response: Response,
     payload: Optional[LogoutRequest] = None,
     db: _OrmSession = Depends(get_session),
 ):
@@ -420,4 +448,5 @@ async def logout(
     """
     if payload and payload.refresh_token:
         _rt.revoke(db, payload.refresh_token)
+    _clear_access_cookie(response)
     return {"message": "Logged out successfully"}

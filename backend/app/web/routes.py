@@ -212,18 +212,108 @@ async def health_page(request: Request):
     })
 
 
+_DEFAULT_MACRO_TARGETS = {"protein": 150, "carbs": 200, "fat": 70, "calories": 2000}
+
+
+def _web_user_id(request: Request):
+    """Best-effort current user id for server-rendered pages, read from the
+    HttpOnly ``access_token`` cookie set at login. Returns an int id or None.
+
+    Never raises: an unauthenticated page still renders (client JS redirects
+    to /login), so this stays a soft lookup."""
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    try:
+        from jose import jwt
+
+        from app.db.models import User as _UserDB
+        from app.db.session import SessionLocal
+
+        payload = jwt.decode(token, _settings.SECRET_KEY, algorithms=[_settings.JWT_ALGORITHM])
+        uid = payload.get("sub")
+        if uid is None:
+            return None
+        with SessionLocal() as db:
+            user = db.get(_UserDB, int(uid))
+            return user.id if user else None
+    except Exception:  # noqa: BLE001 — soft auth; render the page regardless
+        return None
+
+
 @router.get("/dashboard/nutrition")
 async def nutrition_page(request: Request):
-    """Nutrition page"""
+    """Nutrition page — server-rendered with the user's real macros, targets
+    and today's logged meals (falls back to empty/defaults when logged out)."""
+    from datetime import datetime as _dt
+
+    from sqlalchemy import select
+
+    from app.db.models import MealLog as _MealLog, UserDietPlan as _DietPlan
+    from app.db.session import SessionLocal
+
+    today_macros = {"protein": 0, "carbs": 0, "fat": 0, "calories": 0}
+    targets = dict(_DEFAULT_MACRO_TARGETS)
+    recent_meals = []
+
+    user_id = _web_user_id(request)
+    if user_id is not None:
+        with SessionLocal() as db:
+            today_start = _dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            rows = db.execute(
+                select(_MealLog)
+                .where(_MealLog.user_id == user_id, _MealLog.logged_at >= today_start)
+                .order_by(_MealLog.logged_at)
+            ).scalars().all()
+
+            today_macros = {
+                "protein": round(sum(r.protein_g or 0 for r in rows)),
+                "carbs": round(sum(r.carbs_g or 0 for r in rows)),
+                "fat": round(sum(r.fat_g or 0 for r in rows)),
+                "calories": round(sum(r.calories or 0 for r in rows)),
+            }
+            recent_meals = [
+                {
+                    "time": r.logged_at.strftime("%H:%M") if r.logged_at else "",
+                    "name": (r.description
+                             or (r.meal_type or "").replace("_", " ").title()
+                             or "Meal"),
+                    "calories": round(r.calories or 0),
+                    "protein": round(r.protein_g or 0),
+                    "carbs": round(r.carbs_g or 0),
+                    "fat": round(r.fat_g or 0),
+                }
+                for r in rows
+            ]
+
+            # Targets come from the user's active diet plan. The
+            # user_diet_plans table currently drifts from the UserDietPlan
+            # model (missing columns), so this is best-effort: on any failure
+            # we keep the default targets rather than 500 the whole page.
+            try:
+                plan = db.execute(
+                    select(_DietPlan)
+                    .where(_DietPlan.user_id == user_id, _DietPlan.active.is_(True))
+                    .order_by(_DietPlan.uploaded_at.desc())
+                    .limit(1)
+                ).scalar_one_or_none()
+                if plan:
+                    # Keep each target non-zero — the template divides by them.
+                    targets = {
+                        "protein": plan.protein_g or _DEFAULT_MACRO_TARGETS["protein"],
+                        "carbs": plan.carbs_g or _DEFAULT_MACRO_TARGETS["carbs"],
+                        "fat": plan.fat_g or _DEFAULT_MACRO_TARGETS["fat"],
+                        "calories": plan.daily_calories or _DEFAULT_MACRO_TARGETS["calories"],
+                    }
+            except Exception:  # noqa: BLE001 — schema drift on user_diet_plans
+                db.rollback()
+
     return templates.TemplateResponse("nutrition.html", {
         "request": request,
         "active_page": "nutrition",
-        "today_macros": {"protein": 0, "carbs": 0, "fat": 0, "calories": 0},
-        "targets": {"protein": 150, "carbs": 200, "fat": 70, "calories": 2000},
-        "meals": [],
-        "protein_pct": 0,
-        "carbs_pct": 0,
-        "fat_pct": 0
+        "today_macros": today_macros,
+        "targets": targets,
+        "recent_meals": recent_meals,
     })
 
 
@@ -311,7 +401,7 @@ async def logout_page(request: Request):
     progressive-enhancement JS handler hasn't attached yet (e.g. behind
     Cloudflare Rocket Loader)."""
     from fastapi.responses import HTMLResponse
-    return HTMLResponse(
+    resp = HTMLResponse(
         """<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <title>Saindo...</title><meta name="robots" content="noindex"></head>
 <body><script>
@@ -323,6 +413,9 @@ window.location.replace('/');
 </script><noscript><meta http-equiv="refresh" content="0; url=/">
 <a href="/">Voltar para o início</a></noscript></body></html>"""
     )
+    # Also drop the server-side HttpOnly auth cookie.
+    resp.delete_cookie("access_token", path="/")
+    return resp
 
 
 @router.get("/reset-password")
