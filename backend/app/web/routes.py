@@ -183,6 +183,15 @@ async def billing_page(request: Request):
     })
 
 
+@router.get("/dashboard/integrations")
+async def integrations_page(request: Request):
+    """Third-party integrations (Google Calendar, HealthKit instructions)."""
+    return templates.TemplateResponse("integrations.html", {
+        "request": request,
+        "active_page": "integrations",
+    })
+
+
 @router.get("/dashboard/referrals")
 async def referrals_page(request: Request):
     """Referral code + invitations dashboard."""

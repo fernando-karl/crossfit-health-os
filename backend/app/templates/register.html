@@ -246,11 +246,11 @@ $(document).ready(function() {
                 localStorage.setItem('access_token', response.access_token);
                 localStorage.setItem('user', JSON.stringify(response.user));
                 
-                // Redirect to dashboard
-                window.location.href = '/dashboard';
+                // Send new users through onboarding (name, goal, level) before the dashboard.
+                window.location.href = '/onboarding';
             },
             error: function(xhr) {
-                let errorMsg = 'Registration failed. Please try again.';
+                let errorMsg = window.t('auth.register.error_generic');
                 if (xhr.responseJSON && xhr.responseJSON.detail) {
                     errorMsg = xhr.responseJSON.detail;
                 }

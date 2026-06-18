@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t("nav.integrations") }} - CrossFit Health OS{% endblock %}
+
+{% block navbar %}
+{% include "partials/navbar.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 900px;">
+    <h1 class="h2 fw-bold mb-1">{{ t("nav.integrations") }}</h1>
+    <p class="text-muted mb-4">{{ t("integrations.page_subtitle") }}</p>
+
+    <div class="chos-card mb-4">
+        <div class="card-body">
+            <h5 class="fw-bold"><i class="fab fa-google me-2"></i>Google Calendar</h5>
+            <p class="text-secondary">{{ t("integrations.gcal_desc") }}</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="chos-btn chos-btn-primary" id="btn-calendar-connect">
+                    <i class="fas fa-link me-1"></i>{{ t("integrations.btn_connect") }}
+                </button>
+                <button class="chos-btn chos-btn-outline" id="btn-calendar-sync">
+                    <i class="fas fa-sync me-1"></i>{{ t("integrations.btn_sync_week") }}
+                </button>
+            </div>
+            <div id="calendar-status" class="small text-secondary mt-2"></div>
+        </div>
+    </div>
+
+    <div class="chos-card">
+        <div class="card-body">
+            <h5 class="fw-bold"><i class="fab fa-apple me-2"></i>Apple HealthKit</h5>
+            <p class="text-secondary mb-3">
+                {{ t("integrations.healthkit_desc") }}
+            </p>
+            <div class="d-flex gap-2 flex-wrap mb-3">
+                <a class="chos-btn chos-btn-outline" href="/help#healthkit">
+                    <i class="fas fa-book me-1"></i>{{ t("integrations.healthkit_guide") }}
+                </a>
+            </div>
+            <p class="small text-muted mb-1">{{ t("integrations.endpoint_label") }}</p>
+            <code class="d-block p-2 bg-light rounded">POST /api/v1/integrations/healthkit/sync</code>
+            <p class="small text-muted mt-2 mb-0">{{ t("integrations.fields_note") }}</p>
+            <p class="small text-secondary mt-2 mb-0">{{ t("integrations.source_note") }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#btn-calendar-connect').on('click', function() {
+        CHOS.api.get('/api/v1/integrations/calendar/oauth/url')
+            .done(function(data) {
+                const url = data.auth_url || data.authorization_url;
+                if (url) window.location.href = url;
+            })
+            .fail(function() {
+                CHOS.toast.error(window.t('integrations.toast_gcal_not_configured'));
+            });
+    });
+
+    $('#btn-calendar-sync').on('click', function() {
+        CHOS.api.post('/api/v1/integrations/calendar/sync')
+            .done(function(data) {
+                $('#calendar-status').text(
+                    window.t('integrations.events_created', { count: data.created || 0, status: data.status || 'ok' })
+                );
+                CHOS.toast.success(window.t('integrations.toast_synced'));
+            })
+            .fail(function(xhr) {
+                const detail = xhr.responseJSON && xhr.responseJSON.detail;
+                CHOS.toast.error(detail || window.t('integrations.toast_sync_failed'));
+            });
+    });
+});
+</script>
+{% endblock %}

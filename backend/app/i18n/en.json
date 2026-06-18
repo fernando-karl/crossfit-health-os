@@ -53,7 +53,8 @@
     "workout_bar": {
       "label": "Workout in progress — tap to resume",
       "stop": "Stop"
-    }
+    },
+    "integrations": "Integrations"
   },
   "schedule": {
     "page_title": "Training Calendar",
@@ -221,7 +222,8 @@
       "submitting": "Creating account…",
       "terms": "By creating an account, you agree to our Terms of Service and Privacy Policy.",
       "go_to_login": "Sign In",
-      "fix_form_errors": "Please fix the errors in the form before submitting."
+      "fix_form_errors": "Please fix the errors in the form before submitting.",
+      "error_generic": "Registration failed. Please try again."
     }
   },
   "dashboard": {
@@ -698,7 +700,7 @@
       "q7": "Can I cancel anytime?",
       "a7": "Yes. 14-day free trial, no credit card needed. Cancel from Profile → Subscription. Your data stays available to export for 30 days after.",
       "q8": "Is the app in Portuguese?",
-      "a8": "Sim. Full Portuguese, including the workouts and lab report reading. Switch language from your profile."
+      "a8": "Yes. Full Portuguese, including the workouts and lab report reading. Switch language from your profile."
     },
     "footer": {
       "tagline": "© 2026 CrossFit Health OS. Built for athletes, by athletes.",
@@ -854,7 +856,8 @@
       "body": "Your free trial has ended. Upgrade to continue using premium features.",
       "dismiss": "Not now",
       "cta": "See plans"
-    }
+    },
+    "menu_link": "Billing"
   },
   "legal": {
     "nav": {
@@ -1196,5 +1199,20 @@
     "birthdate_future": "Birth date cannot be in the future",
     "min_age": "You must be at least 13 years old",
     "birthdate_invalid": "Please enter a valid birth date"
+  },
+  "integrations": {
+    "btn_connect": "Connect",
+    "btn_sync_week": "Sync week",
+    "endpoint_label": "Endpoint:",
+    "events_created": "{count} event(s) created — {status}",
+    "fields_note": "Fields: hrv_rmssd_ms, sleep_duration_hours, sleep_quality_score, resting_heart_rate_bpm. The response includes readiness_score after the sync.",
+    "gcal_desc": "Sync your planned sessions for the next 7 days.",
+    "healthkit_desc": "Sync HRV, sleep and resting HR from your Apple Watch to adjust workouts automatically.",
+    "healthkit_guide": "Apple Health guide",
+    "page_subtitle": "Connect your calendar and devices to sync workouts and metrics.",
+    "source_note": "SwiftUI app source: the ios/ repository — see ios/README.md to build in Xcode.",
+    "toast_gcal_not_configured": "Google Calendar is not configured on this server.",
+    "toast_sync_failed": "Failed to sync calendar",
+    "toast_synced": "Calendar synced"
   }
 }

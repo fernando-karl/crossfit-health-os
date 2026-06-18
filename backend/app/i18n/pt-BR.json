@@ -53,7 +53,8 @@
     "workout_bar": {
       "label": "Sessão em andamento — toque para retomar",
       "stop": "Encerrar"
-    }
+    },
+    "integrations": "Integrações"
   },
   "schedule": {
     "page_title": "Calendário de Treinos",
@@ -221,7 +222,8 @@
       "submitting": "Criando conta…",
       "terms": "Ao criar uma conta, você aceita nossos Termos de Serviço e Política de Privacidade.",
       "go_to_login": "Entrar",
-      "fix_form_errors": "Corrija os erros do formulário antes de enviar."
+      "fix_form_errors": "Corrija os erros do formulário antes de enviar.",
+      "error_generic": "Falha no cadastro. Tente novamente."
     }
   },
   "dashboard": {
@@ -854,7 +856,8 @@
       "body": "Seu trial grátis terminou. Faça upgrade para continuar usando recursos premium.",
       "dismiss": "Agora não",
       "cta": "Ver planos"
-    }
+    },
+    "menu_link": "Assinatura"
   },
   "legal": {
     "nav": {
@@ -1196,5 +1199,20 @@
     "birthdate_future": "Data de nascimento não pode ser no futuro",
     "min_age": "Você precisa ter no mínimo 13 anos",
     "birthdate_invalid": "Digite uma data de nascimento válida"
+  },
+  "integrations": {
+    "btn_connect": "Conectar",
+    "btn_sync_week": "Sincronizar semana",
+    "endpoint_label": "Endpoint:",
+    "events_created": "{count} evento(s) criado(s) — {status}",
+    "fields_note": "Campos: hrv_rmssd_ms, sleep_duration_hours, sleep_quality_score, resting_heart_rate_bpm. A resposta inclui readiness_score após o sync.",
+    "gcal_desc": "Sincronize sessões planejadas para os próximos 7 dias.",
+    "healthkit_desc": "Sincronize HRV, sono e FC de repouso do Apple Watch para ajustar treinos automaticamente.",
+    "healthkit_guide": "Guia Apple Health",
+    "page_subtitle": "Conecte calendário e dispositivos para sincronizar treinos e métricas.",
+    "source_note": "Código-fonte do app SwiftUI: repositório ios/ — veja ios/README.md para build no Xcode.",
+    "toast_gcal_not_configured": "Google Calendar não configurado neste servidor.",
+    "toast_sync_failed": "Falha ao sincronizar calendário",
+    "toast_synced": "Calendário sincronizado"
   }
 }
