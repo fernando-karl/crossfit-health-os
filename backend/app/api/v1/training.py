@@ -7,10 +7,11 @@ from uuid import UUID
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import and_, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user, require_active_subscription
+from app.core.datetime_utils import user_today
 from app.core.rate_limit import limiter
 from app.core.engine.adaptive import adaptive_engine
 from app.db.models import (
@@ -45,6 +46,7 @@ def _ws_to_schema(row: WorkoutSessionDB) -> WorkoutSession:
         id=row.id,
         user_id=row.user_id,
         template_id=row.template_id,
+        planned_session_id=row.planned_session_id,
         scheduled_at=row.scheduled_at,
         started_at=row.started_at,
         completed_at=row.completed_at,
@@ -110,7 +112,11 @@ async def generate_adaptive_workout(
     target_date = payload.date or _Date.today()
     try:
         return await adaptive_engine.generate_workout(
-            db=db, user_id=user_id, target_date=target_date, force_rest=payload.force_rest
+            db=db,
+            user_id=user_id,
+            target_date=target_date,
+            force_rest=payload.force_rest,
+            recovery_override=payload.recovery_override_dict(),
         )
     except Exception as e:
         logger.error(f"generate_adaptive_workout failed: {e}", exc_info=True)
@@ -129,7 +135,7 @@ async def get_today_workout(
     The dashboard's "Generate Today's Workout" CTA fires when workout is null.
     """
     uid = int(current_user["id"])
-    today = _Date.today()
+    today = user_today(current_user)
 
     macro = db.execute(
         select(MacrocycleDB).where(
@@ -158,6 +164,20 @@ async def get_today_workout(
     if not session or not session.generated_template_id:
         return {"workout": None}
 
+    already_done = db.execute(
+        select(WorkoutSessionDB.id).where(
+            WorkoutSessionDB.user_id == uid,
+            WorkoutSessionDB.planned_session_id == session.id,
+            WorkoutSessionDB.completed_at.isnot(None),
+        )
+    ).scalar_one_or_none()
+    if already_done:
+        return {
+            "workout": None,
+            "completed": True,
+            "planned_session_id": str(session.id),
+        }
+
     template = db.get(WorkoutTemplateDB, session.generated_template_id)
     if not template:
         return {"workout": None}
@@ -173,11 +193,17 @@ async def get_today_workout(
         )
     except Exception as e:  # noqa: BLE001 — overlay must never break the page
         logger.warning("adapt_template failed for user %s: %s", uid, e)
-        return {"workout": template_schema.model_dump(mode="json")}
+        return {
+            "workout": template_schema.model_dump(mode="json"),
+            "planned_session_id": str(session.id),
+            "template_id": str(template.id),
+        }
 
     workout = template_schema.model_copy(update={"movements": adapted.adjusted_movements})
     return {
         "workout": workout.model_dump(mode="json"),
+        "planned_session_id": str(session.id),
+        "template_id": str(template.id),
         "adapted_meta": {
             "volume_multiplier": adapted.volume_multiplier,
             "readiness_score": adapted.readiness_score,
@@ -229,6 +255,38 @@ async def get_next_workout(
     return result
 
 
+def _resolve_planned_session_id(
+    db: Session,
+    user_id: int,
+    user: dict,
+    explicit_id: Optional[UUID],
+    template_id: Optional[UUID],
+) -> Optional[UUID]:
+    """Link workout session to calendar planned session when possible."""
+    if explicit_id:
+        ps = db.get(PlannedSessionDB, explicit_id)
+        if ps and ps.user_id == user_id:
+            return explicit_id
+        return None
+
+    if not template_id:
+        return None
+
+    today = user_today(user)
+    ps = db.execute(
+        select(PlannedSessionDB)
+        .where(
+            PlannedSessionDB.user_id == user_id,
+            PlannedSessionDB.date == today,
+            PlannedSessionDB.generated_template_id == template_id,
+            PlannedSessionDB.status != "skipped",
+        )
+        .order_by(PlannedSessionDB.order_in_day)
+        .limit(1)
+    ).scalar_one_or_none()
+    return ps.id if ps else None
+
+
 # ==========================================================
 # Workout sessions
 # ==========================================================
@@ -240,13 +298,23 @@ async def create_workout_session(
     current_user: dict = Depends(get_current_user),
 ):
     user_id = int(current_user["id"])
+    planned_session_id = _resolve_planned_session_id(
+        db,
+        user_id,
+        current_user,
+        payload.planned_session_id,
+        payload.template_id,
+    )
     row = WorkoutSessionDB(
         user_id=user_id,
         template_id=payload.template_id,
+        planned_session_id=planned_session_id,
         scheduled_at=payload.scheduled_at,
         started_at=_Datetime.utcnow(),
         workout_type=payload.workout_type.value,
         notes=payload.notes,
+        duration_minutes=payload.duration_minutes,
+        rpe_score=payload.rpe_score,
     )
     db.add(row)
     db.commit()
@@ -286,16 +354,19 @@ async def complete_workout_session(
 async def list_workout_sessions(
     limit: int = 20,
     offset: int = 0,
+    start_date: Optional[_Date] = None,
+    end_date: Optional[_Date] = None,
     db: Session = Depends(get_session),
     current_user: dict = Depends(get_current_user),
 ):
     user_id = int(current_user["id"])
+    stmt = select(WorkoutSessionDB).where(WorkoutSessionDB.user_id == user_id)
+    if start_date is not None:
+        stmt = stmt.where(func.date(WorkoutSessionDB.started_at) >= start_date)
+    if end_date is not None:
+        stmt = stmt.where(func.date(WorkoutSessionDB.started_at) <= end_date)
     rows = db.execute(
-        select(WorkoutSessionDB)
-        .where(WorkoutSessionDB.user_id == user_id)
-        .order_by(WorkoutSessionDB.started_at.desc())
-        .limit(limit)
-        .offset(offset)
+        stmt.order_by(WorkoutSessionDB.started_at.desc()).limit(limit).offset(offset)
     ).scalars().all()
     return [_ws_to_schema(r) for r in rows]
 

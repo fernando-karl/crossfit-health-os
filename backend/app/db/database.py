@@ -102,6 +102,16 @@ def execute(query: str, *args):
             cur.execute(query, args)
             return cur.rowcount
 
+
+def execute_returning(query: str, *args):
+    """Execute a query with RETURNING and fetch the first column of the first row."""
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, args)
+            row = cur.fetchone()
+            return row[0] if row else None
+
+
 def fetchone(query: str, *args):
     """Fetch one row"""
     with get_connection() as conn:

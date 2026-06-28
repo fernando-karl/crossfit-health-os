@@ -1,6 +1,27 @@
 {% extends "base.html" %}
 
-{% block title %}CrossFit Health OS — Elite Human Performance{% endblock %}
+{% set seo = get_landing_seo() %}
+{% set schema_json = get_landing_schema() %}
+
+{% block title %}{{ seo.title }}{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="{{ seo.description }}">
+<link rel="canonical" href="{{ seo.canonical_url }}">
+<link rel="alternate" hreflang="en" href="{{ seo.hreflang_en }}">
+<link rel="alternate" hreflang="pt-BR" href="{{ seo.hreflang_pt_br }}">
+<link rel="alternate" hreflang="x-default" href="{{ seo.hreflang_default }}">
+<meta property="og:type" content="{{ seo.og_type }}">
+<meta property="og:site_name" content="CrossFit Health OS">
+<meta property="og:title" content="{{ seo.title }}">
+<meta property="og:description" content="{{ seo.description }}">
+<meta property="og:url" content="{{ seo.og_url }}">
+<meta property="og:locale" content="{{ seo.og_locale }}">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ seo.title }}">
+<meta name="twitter:description" content="{{ seo.description }}">
+<script type="application/ld+json">{{ schema_json | safe }}</script>
+{% endblock %}
 
 {% block extra_css %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,6 +42,11 @@
             <li><a href="#how">{{ t("landing.loop.title") }}</a></li>
             <li><a href="#pricing">{{ t("landing.nav.pricing") }}</a></li>
             <li><a href="#faq">{{ t("landing.nav.faq") }}</a></li>
+            <li class="lp-nav__lang" aria-label="Language / Idioma">
+                <a href="?lang=pt-BR" class="lp-lang{% if locale() != 'en' %} is-active{% endif %}" hreflang="pt-BR">PT</a>
+                <span class="lp-lang__sep" aria-hidden="true">/</span>
+                <a href="?lang=en" class="lp-lang{% if locale() == 'en' %} is-active{% endif %}" hreflang="en">EN</a>
+            </li>
             <li><a href="/login">{{ t("landing.nav.login") }}</a></li>
             <li><a class="lp-nav__cta" href="/register">{{ t("landing.nav.get_started") }}</a></li>
         </ul>
@@ -36,7 +62,7 @@
         <div class="lp-container">
             <div class="lp-hero__grid">
                 <div class="lp-hero__copy">
-                    <span class="lp-hero__eyebrow">Powered by Apple Health · HWPO · Mayhem</span>
+                    <a href="#how" class="lp-hero__eyebrow">{{ t("landing.hero.eyebrow") }}</a>
                     <h1 class="lp-hero__title">
                         {{ t("landing.hero.title_1") }}<br>
                         <span>{{ t("landing.hero.title_2") }}</span>
@@ -52,7 +78,7 @@
 
                 <div class="lp-hero__artifact" aria-hidden="true">
                     <!-- Activity ring stack: three concentric rings (Move/Exercise/Stand) -->
-                    <svg class="lp-ring-stack" viewBox="0 0 200 200" role="img" aria-label="Activity rings">
+                    <svg class="lp-ring-stack" viewBox="0 0 200 200" role="img" aria-label="{{ t('shared.readiness') }}">
                         <!-- Ring backgrounds -->
                         <circle class="bg" cx="100" cy="100" r="86" stroke-width="14" fill="none"/>
                         <circle class="bg" cx="100" cy="100" r="66" stroke-width="14" fill="none"/>
@@ -70,20 +96,20 @@
                     <div class="lp-ring-readouts">
                         <div class="lp-ring-center">
                             <div class="lp-ring-center__value">94<sup>%</sup></div>
-                            <div class="lp-ring-center__label">Readiness</div>
+                            <div class="lp-ring-center__label">{{ t("shared.readiness") }}</div>
                         </div>
                     </div>
 
                     <div class="lp-metric lp-metric--hrv">
-                        <span class="lp-metric__label">HRV (7d)</span>
+                        <span class="lp-metric__label">{{ t("shared.hrv_7d") }}</span>
                         <span class="lp-metric__value"><strong>+12</strong>ms</span>
                     </div>
                     <div class="lp-metric lp-metric--pr">
-                        <span class="lp-metric__label">Back squat PR</span>
+                        <span class="lp-metric__label">{{ t("landing.demo.back_squat_pr") }}</span>
                         <span class="lp-metric__value">175<strong> kg</strong></span>
                     </div>
                     <div class="lp-metric lp-metric--rec">
-                        <span class="lp-metric__label">Sleep</span>
+                        <span class="lp-metric__label">{{ t("shared.sleep_label") }}</span>
                         <span class="lp-metric__value">7h <strong>42m</strong></span>
                     </div>
                 </div>
@@ -94,11 +120,29 @@
     <!-- ===== TRUST STRIP ===== -->
     <section class="lp-trust" aria-label="Integrations">
         <div class="lp-container lp-trust__row">
-            <span><i class="fab fa-apple" aria-hidden="true"></i> Apple Health</span>
-            <span><i class="fas fa-heart-pulse" aria-hidden="true"></i> Apple Watch</span>
-            <span><i class="fas fa-calendar" aria-hidden="true"></i> Calendar sync</span>
-            <span><i class="fas fa-flask" aria-hidden="true"></i> Lab report OCR</span>
-            <span><i class="fas fa-shield-halved" aria-hidden="true"></i> Row-level security</span>
+            <span><i class="fas fa-sun" aria-hidden="true"></i> {{ t("landing.trust.checkin") }}</span>
+            <span><i class="fas fa-heart-pulse" aria-hidden="true"></i> {{ t("landing.trust.adaptive") }}</span>
+            <span><i class="fas fa-calendar" aria-hidden="true"></i> {{ t("landing.trust.calendar") }}</span>
+            <span><i class="fas fa-flask" aria-hidden="true"></i> {{ t("landing.trust.lab_ocr") }}</span>
+            <span><i class="fas fa-shield-halved" aria-hidden="true"></i> {{ t("landing.trust.security") }}</span>
+        </div>
+    </section>
+
+    <!-- ===== GETTING STARTED ===== -->
+    <section id="requirements" class="lp-requirements">
+        <div class="lp-container">
+            <div class="lp-section">
+                <span class="lp-section__eyebrow">{{ t("landing.eyebrow.requirements") }}</span>
+                <h2 class="lp-section__title">{{ t("landing.requirements.title") }}</h2>
+                <p class="lp-section__lead">{{ t("landing.requirements.lead") }}</p>
+            </div>
+            <ul class="lp-requirements__list">
+                <li><i class="fas fa-check" aria-hidden="true"></i>{{ t("landing.requirements.item1") }}</li>
+                <li><i class="fas fa-check" aria-hidden="true"></i>{{ t("landing.requirements.item2") }}</li>
+                <li><i class="fas fa-check" aria-hidden="true"></i>{{ t("landing.requirements.item3") }}</li>
+                <li><i class="fas fa-check" aria-hidden="true"></i>{{ t("landing.requirements.item4") }}</li>
+            </ul>
+            <p class="lp-requirements__note">{{ t("landing.requirements.checkin_note") }}</p>
         </div>
     </section>
 
@@ -106,7 +150,7 @@
     <section id="features" class="lp-features">
         <div class="lp-container">
             <div class="lp-section">
-                <span class="lp-section__eyebrow">FEATURES</span>
+                <span class="lp-section__eyebrow">{{ t("landing.eyebrow.features") }}</span>
                 <h2 class="lp-section__title">{{ t("landing.features.title") }}</h2>
             </div>
 
@@ -133,7 +177,7 @@
                         </svg>
                         <div style="margin-left:18px;display:flex;flex-direction:column;gap:2px;">
                             <span class="lp-stat">77<span class="lp-stat__unit">%</span></span>
-                            <span style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;">Plan fit score</span>
+                            <span style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;">{{ t("landing.demo.plan_fit_score") }}</span>
                         </div>
                     </div>
                 </div>
@@ -170,17 +214,17 @@
                     <div class="lp-tile__visual" style="height:96px;align-items:stretch;">
                         <div class="lp-meter">
                             <div class="lp-meter__row">
-                                <span class="lp-meter__label">Protein</span>
+                                <span class="lp-meter__label">{{ t("landing.demo.protein") }}</span>
                                 <div class="lp-meter__bar"><div class="lp-meter__fill lp-meter__fill--p" style="width:82%"></div></div>
                                 <span class="lp-meter__value">186g</span>
                             </div>
                             <div class="lp-meter__row">
-                                <span class="lp-meter__label">Carbs</span>
+                                <span class="lp-meter__label">{{ t("landing.demo.carbs") }}</span>
                                 <div class="lp-meter__bar"><div class="lp-meter__fill lp-meter__fill--c" style="width:64%"></div></div>
                                 <span class="lp-meter__value">312g</span>
                             </div>
                             <div class="lp-meter__row">
-                                <span class="lp-meter__label">Fat</span>
+                                <span class="lp-meter__label">{{ t("landing.demo.fat") }}</span>
                                 <div class="lp-meter__bar"><div class="lp-meter__fill lp-meter__fill--f" style="width:48%"></div></div>
                                 <span class="lp-meter__value">68g</span>
                             </div>
@@ -195,7 +239,7 @@
                     <div class="lp-tile__visual" style="height:96px;">
                         <div>
                             <div class="lp-stat" style="color:var(--lp-white);">7.8<span class="lp-stat__unit">/10</span></div>
-                            <span style="font-size:12px;color:rgba(245,245,247,0.6);letter-spacing:.04em;">Recovery score · today</span>
+                            <span style="font-size:12px;color:rgba(245,245,247,0.6);letter-spacing:.04em;">{{ t("landing.demo.recovery_score_today") }}</span>
                         </div>
                     </div>
                 </div>
@@ -210,11 +254,11 @@
                         <div style="display:flex;gap:32px;align-items:flex-start;">
                             <div>
                                 <span class="lp-stat">+18<span class="lp-stat__unit">%</span></span>
-                                <div style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;margin-top:2px;">Volume vs. last cycle</div>
+                                <div style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;margin-top:2px;">{{ t("landing.demo.volume_vs_last") }}</div>
                             </div>
                             <div>
                                 <span class="lp-stat">12<span class="lp-stat__unit">PRs</span></span>
-                                <div style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;margin-top:2px;">Last 90 days</div>
+                                <div style="font-size:12px;color:var(--lp-text-muted);letter-spacing:.04em;margin-top:2px;">{{ t("landing.demo.prs_last_90") }}</div>
                             </div>
                         </div>
                     </div>
@@ -233,18 +277,154 @@
     <section id="how" class="lp-loop">
         <div class="lp-container">
             <div class="lp-section">
-                <span class="lp-section__eyebrow">THE LOOP</span>
+                <span class="lp-section__eyebrow">{{ t("landing.eyebrow.loop") }}</span>
                 <h2 class="lp-section__title">{{ t("landing.loop.title") }}</h2>
             </div>
 
-            <div class="lp-steps">
-                {% for i in range(1, 6) %}
-                <div class="lp-step">
-                    <span class="lp-step__num">0{{ i }} / 05</span>
-                    <h3 class="lp-step__title">{{ t("landing.loop.step" ~ i ~ "_title") }}</h3>
-                    <p class="lp-step__desc">{{ t("landing.loop.step" ~ i ~ "_desc") }}</p>
+            <div class="lp-loop__demo" id="lp-loop-demo" data-step-count="5">
+                <div class="lp-loop__nav" role="tablist" aria-label="{{ t('landing.loop.title') }}">
+                    {% for i in range(1, 6) %}
+                    <button
+                        type="button"
+                        class="lp-loop__tab{% if i == 1 %} is-active{% endif %}"
+                        role="tab"
+                        id="lp-loop-tab-{{ i }}"
+                        aria-controls="lp-loop-panel-{{ i }}"
+                        aria-selected="{{ 'true' if i == 1 else 'false' }}"
+                        data-step="{{ i }}"
+                    >
+                        <span class="lp-loop__tab-num">0{{ i }} / 05</span>
+                        <span class="lp-loop__tab-title">{{ t("landing.loop.step" ~ i ~ "_title") }}</span>
+                        <span class="lp-loop__tab-desc">{{ t("landing.loop.step" ~ i ~ "_desc") }}</span>
+                    </button>
+                    {% endfor %}
                 </div>
-                {% endfor %}
+
+                <div class="lp-loop__stage">
+                    <div class="lp-loop__toolbar">
+                        <span class="lp-loop__status" id="lp-loop-status" aria-live="polite"
+                              data-step-format="{{ t('landing.loop.demo.step_of') }}"></span>
+                        <button type="button" class="lp-loop__play" id="lp-loop-play" aria-pressed="true">
+                            <i class="fas fa-pause" aria-hidden="true"></i>
+                            <span>{{ t("landing.loop.demo.pause") }}</span>
+                        </button>
+                    </div>
+
+                    <div class="lp-loop__device" aria-hidden="true">
+                        <div class="lp-loop__device-notch"></div>
+                        <div class="lp-loop__screen">
+                            <!-- Step 1: morning check-in -->
+                            <div class="lp-loop__panel is-active" id="lp-loop-panel-1" data-step="1" role="tabpanel" aria-labelledby="lp-loop-tab-1">
+                                <div class="lp-loop__screen-head">
+                                    <span>{{ t("landing.loop.demo.s1_time") }}</span>
+                                    <span class="lp-loop__pill">{{ t("shared.recovery_source_pill") }}</span>
+                                </div>
+                                <div class="lp-loop__readiness">
+                                    <svg class="lp-loop__mini-ring" viewBox="0 0 100 100">
+                                        <circle class="bg" cx="50" cy="50" r="42" stroke-width="9" fill="none"/>
+                                        <circle class="fg" cx="50" cy="50" r="42" stroke-width="9" fill="none"
+                                                stroke-dasharray="263.89" stroke-dashoffset="42"/>
+                                    </svg>
+                                    <div>
+                                        <div class="lp-loop__big-num">87<sup>%</sup></div>
+                                        <div class="lp-loop__micro">{{ t("shared.readiness") }}</div>
+                                    </div>
+                                </div>
+                                <div class="lp-loop__metrics">
+                                    <div class="lp-loop__metric">
+                                        <span>{{ t("shared.hrv") }}</span>
+                                        <strong>62 ms</strong>
+                                    </div>
+                                    <div class="lp-loop__metric">
+                                        <span>{{ t("shared.sleep_label") }}</span>
+                                        <strong>7h 24m</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: workout ready -->
+                            <div class="lp-loop__panel" id="lp-loop-panel-2" data-step="2" role="tabpanel" aria-labelledby="lp-loop-tab-2" hidden>
+                                <div class="lp-loop__screen-head">
+                                    <span>{{ t("dashboard.today_workout") }}</span>
+                                    <span class="lp-loop__pill lp-loop__pill--accent">{{ t("shared.adapted_to_recovery") }}</span>
+                                </div>
+                                <div class="lp-loop__workout-card">
+                                    <h4>{{ t("landing.loop.demo.s2_workout") }}</h4>
+                                    <p>{{ t("landing.loop.demo.s2_stimulus") }}</p>
+                                    <div class="lp-loop__chip">{{ t("dashboard.adapted.volume", mult="1.0") }}</div>
+                                </div>
+                                <div class="lp-loop__movements">
+                                    <div class="lp-loop__movement"><span>Back Squat</span><span>5 × 5</span></div>
+                                    <div class="lp-loop__movement"><span>Chipper</span><span>AMRAP 12</span></div>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: train & log -->
+                            <div class="lp-loop__panel" id="lp-loop-panel-3" data-step="3" role="tabpanel" aria-labelledby="lp-loop-tab-3" hidden>
+                                <div class="lp-loop__screen-head">
+                                    <span>{{ t("shared.session_log") }}</span>
+                                </div>
+                                <div class="lp-loop__log-card">
+                                    <div class="lp-loop__log-head">
+                                        <strong>{{ t("landing.loop.demo.s3_movement") }}</strong>
+                                        <span>{{ t("landing.loop.demo.s3_sets") }}</span>
+                                    </div>
+                                    <ul class="lp-loop__log-sets">
+                                        <li class="is-done"><span>1</span><span>{{ t("landing.loop.demo.s3_weight") }}</span><i class="fas fa-check"></i></li>
+                                        <li class="is-done"><span>2</span><span>{{ t("landing.loop.demo.s3_weight") }}</span><i class="fas fa-check"></i></li>
+                                        <li class="is-active"><span>3</span><span>{{ t("landing.loop.demo.s3_weight") }}</span><span class="lp-loop__rpe">{{ t("landing.loop.demo.s3_rpe") }}</span></li>
+                                        <li><span>4</span><span>—</span></li>
+                                        <li><span>5</span><span>—</span></li>
+                                    </ul>
+                                    <div class="lp-loop__toast">{{ t("shared.set_logged") }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: weekly review -->
+                            <div class="lp-loop__panel" id="lp-loop-panel-4" data-step="4" role="tabpanel" aria-labelledby="lp-loop-tab-4" hidden>
+                                <div class="lp-loop__screen-head">
+                                    <span>{{ t("reviews.page_title") }}</span>
+                                    <span class="lp-loop__pill">{{ t("landing.loop.demo.s4_week") }}</span>
+                                </div>
+                                <div class="lp-loop__review">
+                                    <div class="lp-loop__review-row">
+                                        <span class="lp-loop__review-label">{{ t("reviews.metric_adherence") }}</span>
+                                        <div class="lp-loop__review-bar"><div class="lp-loop__review-fill" data-w="82%"></div></div>
+                                    </div>
+                                    <div class="lp-loop__review-row">
+                                        <span class="lp-loop__review-label">{{ t("reviews.metric_readiness") }}</span>
+                                        <div class="lp-loop__review-bar"><div class="lp-loop__review-fill lp-loop__review-fill--warn" data-w="68%"></div></div>
+                                    </div>
+                                    <div class="lp-loop__review-row">
+                                        <span class="lp-loop__review-label">{{ t("reviews.metric_rpe") }}</span>
+                                        <div class="lp-loop__review-bar"><div class="lp-loop__review-fill" data-w="74%"></div></div>
+                                    </div>
+                                    <div class="lp-loop__review-next">{{ t("landing.loop.demo.s4_insight") }} · {{ t("landing.loop.demo.s4_next") }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Step 5: mesocycle -->
+                            <div class="lp-loop__panel" id="lp-loop-panel-5" data-step="5" role="tabpanel" aria-labelledby="lp-loop-tab-5" hidden>
+                                <div class="lp-loop__screen-head">
+                                    <span>{{ t("dashboard.mesocycle.title") }}</span>
+                                </div>
+                                <div class="lp-loop__phases">
+                                    <div class="lp-loop__phase"><div class="lp-loop__phase-bar" data-h="72%"></div><span>{{ t("shared.phases.build") }}</span></div>
+                                    <div class="lp-loop__phase"><div class="lp-loop__phase-bar" data-h="38%"></div><span>{{ t("shared.phases.deload") }}</span></div>
+                                    <div class="lp-loop__phase is-current"><div class="lp-loop__phase-bar" data-h="88%"></div><span>{{ t("shared.phases.intensity") }}</span></div>
+                                    <div class="lp-loop__phase"><div class="lp-loop__phase-bar" data-h="64%"></div><span>{{ t("shared.phases.test") }}</span></div>
+                                </div>
+                                <div class="lp-loop__pr-badge">PR <strong>175 kg</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lp-loop__dots" aria-hidden="true">
+                        {% for i in range(1, 6) %}
+                        <span class="lp-loop__dot{% if i == 1 %} is-active{% endif %}" data-step="{{ i }}"></span>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -273,7 +453,7 @@
     <section id="pricing" class="lp-pricing">
         <div class="lp-container">
             <div class="lp-section lp-section--center">
-                <span class="lp-section__eyebrow">PRICING</span>
+                <span class="lp-section__eyebrow">{{ t("landing.eyebrow.pricing") }}</span>
                 <h2 class="lp-section__title">{{ t("landing.pricing.title") }}</h2>
             </div>
 
@@ -323,4 +503,8 @@
     </footer>
 
 </main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/landing-loop.js?v={{ asset_version() }}"></script>
 {% endblock %}

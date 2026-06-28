@@ -7,30 +7,57 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid py-4 chos-page chos-training-page">
+  <div class="chos-page-header">
         <div>
-            <h1 class="h3 fw-bold mb-0">{{ t("training.page_title") }}</h1>
-            <p class="text-muted mb-0">{{ t("training.subtitle") }}</p>
+            <h1 class="h3">{{ t("training.page_title") }}</h1>
+            <p class="chos-page-header__sub">{{ t("training.subtitle") }}</p>
         </div>
-        <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-outline-secondary active">
-                <i class="fas fa-th-large me-2"></i>{{ t("training.view_cards") }}
+        <div class="chos-view-toggle" role="group" aria-label="{{ t('training.view_cards') }}">
+            <button type="button" class="chos-view-toggle__btn is-active" aria-pressed="true">
+                <i class="fas fa-th-large me-1"></i><span class="d-none d-sm-inline">{{ t("training.view_cards") }}</span>
             </button>
-            <button class="btn btn-sm btn-outline-secondary">
-                <i class="fas fa-list me-2"></i>{{ t("training.view_list") }}
+            <button type="button" class="chos-view-toggle__btn" aria-pressed="false" disabled>
+                <i class="fas fa-list me-1"></i><span class="d-none d-sm-inline">{{ t("training.view_list") }}</span>
             </button>
+        </div>
+    </div>
+
+    <div id="schedule-complete-banner" class="mb-4 d-none"></div>
+
+    <!-- Today's workout hero (landing-aligned) -->
+    <div id="training-today-hero" class="chos-workout-hero mb-4 d-none">
+        <div class="chos-workout-hero__head">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <span class="fw-bold">{{ t("dashboard.today_workout") }}</span>
+                    <span class="chos-badge chos-badge-primary" id="hero-adapted-badge">{{ t("shared.adapted_to_recovery") }}</span>
+                </div>
+                <h2 class="h4 fw-bold mb-0" id="hero-workout-name">—</h2>
+                <p class="text-secondary small mb-0 mt-1" id="hero-workout-stimulus"></p>
+            </div>
+            <div class="d-flex flex-wrap gap-2" id="hero-workout-chips"></div>
+        </div>
+        <div class="chos-workout-hero__body">
+            <div class="chos-workout-hero__movements" id="hero-movements-list"></div>
+            <div class="d-flex gap-2 mt-3 flex-wrap">
+                <button class="chos-btn chos-btn-primary chos-btn-lg" id="hero-start-workout">
+                    <i class="fas fa-play me-2"></i>{{ t("training.btn_start_session") }}
+                </button>
+                <button class="chos-btn chos-btn-outline" id="hero-generate-workout">
+                    <i class="fas fa-magic me-2"></i>{{ t("training.btn_generate") }}
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Action Buttons -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex gap-2">
-            <button class="btn btn-primary" id="generate-workout-btn">
+            <button class="chos-btn chos-btn-primary" id="generate-workout-btn">
                 <i class="fas fa-magic me-2"></i>{{ t("training.btn_generate") }}
             </button>
-            <button class="btn btn-outline-primary">
+            <button class="chos-btn chos-btn-outline">
                 <i class="fas fa-plus me-2"></i>{{ t("training.btn_manual") }}
             </button>
         </div>
@@ -40,10 +67,10 @@
     <div id="next-workout-banner" class="chos-card chos-card-feature is-recovery mb-4" style="display:none;">
         <div class="card-body d-flex align-items-center justify-content-between">
             <div>
-                <h5 class="fw-bold mb-1"><i class="fas fa-calendar-check me-2 text-primary"></i>{{ t("training.next_workout") }}</h5>
+                <h5 class="fw-bold mb-1"><i class="fas fa-calendar-check me-2" style="color: var(--brand-accent);"></i>{{ t("training.next_workout") }}</h5>
                 <div id="next-workout-info" class="text-muted small"></div>
             </div>
-            <button class="btn btn-primary" id="start-next-workout-btn">
+            <button class="chos-btn chos-btn-primary" id="start-next-workout-btn">
                 <i class="fas fa-play me-2"></i>{{ t("training.btn_start") }}
             </button>
         </div>
@@ -52,7 +79,7 @@
     <!-- Recent Workouts (loaded dynamically) -->
     <div class="row g-3 mb-4" id="workouts-container">
         <div class="col-12 text-center py-4">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border chos-spinner-brand" role="status">
                 <span class="visually-hidden">{{ t("common.loading") }}</span>
             </div>
         </div>
@@ -63,12 +90,12 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold mb-0">{{ t("training.personal_records") }}</h5>
-                <button class="chos-btn chos-btn-outline chos-btn-sm">
+                <button class="chos-btn chos-btn-outline chos-btn-sm" id="btn-add-pr" data-bs-toggle="modal" data-bs-target="#addPrModal">
                     <i class="fas fa-plus me-2"></i>{{ t("training.btn_add_pr") }}
                 </button>
             </div>
 
-            <div class="row g-3">
+            <div class="row g-3" id="prs-container">
                 {% if personal_records %}
                     {% for pr in personal_records %}
                     <div class="col-md-4">
@@ -130,6 +157,31 @@
     <!-- Toast Container -->
     <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
         <div id="toast-container"></div>
+    </div>
+
+    <!-- Add PR Modal -->
+    <div class="modal fade" id="addPrModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content chos-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ t("training.btn_add_pr") }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="chos-label">{{ t("training.pr_modal.movement") }}</label>
+                        <input type="text" class="chos-input" id="pr-movement" placeholder="back squat">
+                    </div>
+                    <div class="mb-3">
+                        <label class="chos-label">{{ t("training.pr_modal.value_kg") }}</label>
+                        <input type="number" class="chos-input" id="pr-value" step="0.5">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="chos-btn chos-btn-primary" id="btn-save-pr">{{ t("training.pr_modal.save") }}</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -199,35 +251,74 @@
 
     $(function() {
         loadNextWorkout();
+        loadTodayTrainingHero();
     });
+
+    let heroWorkoutPayload = null;
+
+    async function loadTodayTrainingHero() {
+        const $hero = $('#training-today-hero');
+        try {
+            const data = await CHOS.api.get('/api/v1/training/today');
+            if (!data || !data.workout) {
+                $hero.addClass('d-none');
+                return;
+            }
+            const w = data.workout;
+            const meta = data.adapted_meta || {};
+            heroWorkoutPayload = {
+                template: w,
+                adjusted_movements: w.movements || [],
+                readiness_score: meta.readiness_score,
+                volume_multiplier: meta.volume_multiplier,
+                recommendation: meta.recommendation || w.description || ''
+            };
+
+            $('#hero-workout-name').text(w.name || t('training.adaptive_workout_default'));
+            $('#hero-workout-stimulus').text(meta.recommendation || w.description || '');
+
+            const chips = [];
+            if (meta.volume_multiplier != null) {
+                chips.push(`<span class="chos-chip is-recovery"><span class="chip-dot"></span>${t('dashboard.adapted.volume', { mult: meta.volume_multiplier })}</span>`);
+            }
+            if (meta.readiness_score != null) {
+                chips.push(`<span class="chos-chip is-mind"><span class="chip-dot"></span>${t('dashboard.adapted.readiness_score', { score: Math.round(meta.readiness_score) })}</span>`);
+            }
+            $('#hero-workout-chips').html(chips.join(' '));
+
+            const movHtml = (w.movements || []).slice(0, 6).map(function (m) {
+                const name = CHOS.humanize(m.movement || m.name || '?');
+                const reps = m.reps ? ` · ${CHOS.escape(m.reps)}` : '';
+                const sets = m.sets ? `${m.sets} × ` : '';
+                return `<div class="chos-workout-hero__movement"><span>${CHOS.escape(name)}</span><span class="text-secondary num">${sets}${CHOS.escape(m.reps || '')}${m.weight_kg ? ' @ ' + m.weight_kg + 'kg' : ''}</span></div>`;
+            }).join('');
+            $('#hero-movements-list').html(movHtml || `<p class="text-secondary small mb-0">${t('training.no_movements')}</p>`);
+
+            $hero.removeClass('d-none');
+
+            $('#hero-start-workout').off('click').on('click', function () {
+                displayGeneratedWorkout({
+                    name: w.name,
+                    workout_type: w.workout_type,
+                    duration_minutes: w.duration_minutes,
+                    description: meta.recommendation || w.description,
+                    movements: w.movements || []
+                }, heroWorkoutPayload);
+            });
+            $('#hero-generate-workout').off('click').on('click', function () {
+                $('#generate-workout-btn').trigger('click');
+            });
+        } catch (e) {
+            $hero.addClass('d-none');
+        }
+    }
 
     // Generate adaptive workout
     $('#generate-workout-btn').on('click', async function() {
         showLoading();
         
         try {
-            // Get latest recovery metrics
-            let recoveryMetrics = {
-                readiness_score: 75,
-                hrv: 60,
-                sleep_hours: 7.5,
-                muscle_soreness: 3
-            };
-            
-            try {
-                const recovery = await CHOS.api.get('/api/v1/health/recovery/latest');
-                if (recovery) {
-                    recoveryMetrics = {
-                        readiness_score: recovery.readiness_score || 75,
-                        hrv: recovery.hrv || 60,
-                        sleep_hours: recovery.sleep_hours || 7.5,
-                        muscle_soreness: recovery.muscle_soreness || 3
-                    };
-                }
-            } catch (err) {
-                console.log('Using default recovery metrics');
-            }
-            
+            const recoveryMetrics = await CHOS.buildRecoveryGeneratePayload();
             const response = await CHOS.api.post('/api/v1/training/generate', recoveryMetrics);
             
             hideLoading();
@@ -307,6 +398,45 @@
         ).join('');
     }
 
+    // Set-by-set log UI (landing demo style).
+    function buildSetLogHtml(mov, idx) {
+        const sets = parseInt(mov.sets, 10);
+        if (!sets || sets < 1 || sets > 20) return '';
+        const movName = CHOS.humanize(mov.movement || mov.movement_name || mov.name || t('training.movement_default'));
+        const reps = mov.reps || '—';
+        const weightPlaceholder = mov.weight_kg ? String(mov.weight_kg) + ' kg' : '—';
+        let rows = '';
+        for (let i = 1; i <= sets; i++) {
+            const active = i === 1 ? ' is-active' : '';
+            rows += `<li class="chos-set-log__row${active}" data-set="${i}">
+                <span class="chos-set-log__num">${i}</span>
+                <input type="text" class="chos-input chos-set-log__weight" placeholder="${CHOS.escape(weightPlaceholder)}" />
+                <span class="chos-set-log__reps">${CHOS.escape(String(reps))}</span>
+                <button type="button" class="chos-set-log__done" title="${t('training.log_set')}"><i class="fas fa-check"></i></button>
+            </li>`;
+        }
+        return `<div class="chos-set-log" data-movement-id="${idx}">
+            <div class="chos-set-log__head">
+                <strong>${CHOS.escape(movName)}</strong>
+                <span class="text-secondary num">${sets} × ${CHOS.escape(String(reps))}</span>
+            </div>
+            <ul class="chos-set-log__sets">${rows}</ul>
+            <div class="chos-set-log__toast">${t('shared.set_logged')}</div>
+        </div>`;
+    }
+
+    function wireSetLogHandlers($root) {
+        $root.find('.chos-set-log__done').on('click', function () {
+            const $row = $(this).closest('.chos-set-log__row');
+            const $log = $(this).closest('.chos-set-log');
+            $row.addClass('is-done').removeClass('is-active');
+            const $next = $row.next('.chos-set-log__row:not(.is-done)');
+            if ($next.length) $next.addClass('is-active');
+            $log.find('.chos-set-log__toast').addClass('is-visible');
+            setTimeout(function () { $log.find('.chos-set-log__toast').removeClass('is-visible'); }, 1800);
+        });
+    }
+
     // Compact prescription line: "5 × 5 reps · @ 80kg"
     function prescriptionLine(mov) {
         const parts = [];
@@ -351,6 +481,11 @@
                     ? `<div class="text-secondary small fst-italic mt-1">${CHOS.escape(mov.notes)}</div>`
                     : '';
 
+                const setLog = buildSetLogHtml(mov, idx);
+                if (setLog) {
+                    return `<div class="movement-item mb-2" data-movement-id="${idx}">${setLog}</div>`;
+                }
+
                 return `
                 <div class="movement-item chos-card mb-3" data-movement-id="${idx}">
                     <details class="card-body" style="padding: var(--space-4);">
@@ -372,23 +507,23 @@
                             <div class="row g-3 mb-3">
                                 ${mov.sets != null ? `<div class="col-6 col-md-3">
                                     <label class="chos-label">${t('training.actual_sets')}</label>
-                                    <input type="number" class="form-control actual-sets" value="${mov.sets || 1}" min="1">
+                                    <input type="number" class="chos-input actual-sets" value="${mov.sets || 1}" min="1">
                                 </div>` : ''}
                                 ${mov.reps != null ? `<div class="col-6 col-md-3">
                                     <label class="chos-label">${t('training.actual_reps')}</label>
-                                    <input type="text" class="form-control actual-reps" value="${CHOS.escape(mov.reps || '')}" placeholder="5,5,5">
+                                    <input type="text" class="chos-input actual-reps" value="${CHOS.escape(mov.reps || '')}" placeholder="5,5,5">
                                 </div>` : ''}
                                 ${mov.weight_kg != null ? `<div class="col-6 col-md-3">
                                     <label class="chos-label">${t('training.weight_kg')}</label>
-                                    <input type="number" class="form-control actual-weight" value="${CHOS.escape(mov.weight_kg || '')}" step="2.5">
+                                    <input type="number" class="chos-input actual-weight" value="${CHOS.escape(mov.weight_kg || '')}" step="2.5">
                                 </div>` : ''}
                                 ${mov.distance_meters != null ? `<div class="col-6 col-md-3">
                                     <label class="chos-label">${t('training.distance_m')}</label>
-                                    <input type="number" class="form-control actual-distance" value="${CHOS.escape(mov.distance_meters || '')}" step="10">
+                                    <input type="number" class="chos-input actual-distance" value="${CHOS.escape(mov.distance_meters || '')}" step="10">
                                 </div>` : ''}
                                 ${mov.duration_seconds != null ? `<div class="col-6 col-md-3">
                                     <label class="chos-label">${t('training.time_sec')}</label>
-                                    <input type="number" class="form-control actual-duration" value="${CHOS.escape(mov.duration_seconds || '')}" step="1">
+                                    <input type="number" class="chos-input actual-duration" value="${CHOS.escape(mov.duration_seconds || '')}" step="1">
                                 </div>` : ''}
                             </div>
 
@@ -402,7 +537,7 @@
 
                             <div>
                                 <label class="chos-label">${t('training.notes')}</label>
-                                <input type="text" class="form-control movement-notes" placeholder="${t('training.optional_notes')}" value="${CHOS.escape(mov.notes || '')}">
+                                <input type="text" class="chos-input movement-notes" placeholder="${t('training.optional_notes')}" value="${CHOS.escape(mov.notes || '')}">
                             </div>
                         </div>
                     </details>
@@ -421,12 +556,16 @@
         const catCls = catModifier[wtKey] || 'is-recovery';
         const wtLabel = t('schedule.workout_type.' + wtKey);
         const readiness = fullResponse.readiness_score;
+        const volMult = fullResponse.volume_multiplier;
+        const adaptChip = volMult != null
+            ? `<span class="chos-chip is-recovery"><span class="chip-dot"></span>${t('dashboard.adapted.volume', { mult: volMult })}</span>`
+            : '';
 
         // Create tracking modal
         const modalHtml = `
             <div class="modal fade" id="workoutTrackingModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
-                    <div class="modal-content">
+                    <div class="modal-content chos-modal">
                         <div class="modal-header">
                             <div>
                                 <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
@@ -434,6 +573,7 @@
                                     <span class="text-secondary">·</span>
                                     <span class="text-secondary small num"><i class="fas fa-clock me-1"></i>${workout.duration_minutes || 60} ${t('training.min')}</span>
                                     ${readiness != null ? `<span class="text-secondary">·</span><span class="text-secondary small num"><i class="fas fa-heart-pulse me-1"></i>${t('training.readiness')} ${readiness}/100</span>` : ''}
+                                    ${adaptChip}
                                 </div>
                                 <h5 class="modal-title fw-bold mb-0">${CHOS.escape(workout.name || t('training.adaptive_workout_default'))}</h5>
                             </div>
@@ -499,7 +639,7 @@
                             <!-- Workout Notes -->
                             <div class="mt-3">
                                 <label class="chos-label">${t('training.workout_notes')}</label>
-                                <textarea class="form-control" id="workout-notes" rows="2" placeholder="${t('training.notes_placeholder')}"></textarea>
+                                <textarea class="chos-input" id="workout-notes" rows="2" placeholder="${t('training.notes_placeholder')}"></textarea>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -538,6 +678,7 @@
     
     // Setup workout tracking event handlers
     function setupWorkoutTracking() {
+        wireSetLogHandlers($('#workoutTrackingModal'));
         // Timer controls
         $('#timer-start').on('click', function() {
             workoutTimer = setInterval(() => {
@@ -641,6 +782,19 @@
         );
     }
     
+    function showScheduleCompleteBanner() {
+        const $host = $('#schedule-complete-banner');
+        if (!$host.length) return;
+        $host.removeClass('d-none').html(`
+            <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2 mb-0" role="status">
+                <span><i class="fas fa-check-circle me-2"></i>${t('training.from_schedule_done')}</span>
+                <a href="/dashboard/schedule" class="chos-btn chos-btn-outline chos-btn-sm">
+                    <i class="fas fa-calendar-week me-1"></i>${t('training.view_schedule')}
+                </a>
+            </div>
+        `);
+    }
+
     async function completeWorkout() {
         try {
             showLoading();
@@ -648,9 +802,10 @@
             // Collect movement feedback
             const movementsFeedback = [];
             $('.movement-item').each(function() {
-                const movement = currentWorkout.workout.movements[$(this).data('movement-id')];
+                const movement = currentWorkout.workout?.movements?.[$(this).data('movement-id')];
+                if (!movement) return;
                 movementsFeedback.push({
-                    movement: movement.movement || movement.movement_name || movement.name,
+                    movement: movement.movement || movement.movement_name || movement.name || 'movement',
                     prescribed_sets: movement.sets || null,
                     prescribed_reps: movement.reps || null,
                     prescribed_weight_kg: movement.weight_kg || null,
@@ -669,60 +824,95 @@
             // Create session first
             const sessionData = {
                 workout_type: currentWorkout.workout.workout_type || 'mixed',
-                duration_minutes: Math.floor(workoutSeconds / 60),
-                rpe_score: parseInt($('#overall-rpe').val()) || 5,
-                notes: $('#workout-notes').val()
+                template_id: currentWorkout.template?.id || null,
+                planned_session_id: currentWorkout.planned_session_id || null,
+                movements: (currentWorkout.workout.movements || []).map((m) => ({
+                    movement: m.movement || m.movement_name || m.name || 'movement',
+                    sets: m.sets ?? null,
+                    reps: m.reps ?? null,
+                    weight_kg: m.weight_kg ?? null,
+                    distance_meters: m.distance_meters ?? null,
+                    duration_seconds: m.duration_seconds ?? null,
+                })),
+                duration_minutes: Math.max(1, Math.floor(workoutSeconds / 60)),
+                rpe_score: parseInt($('#overall-rpe').val(), 10) || 5,
+                notes: $('#workout-notes').val(),
             };
-            
+
             const session = await CHOS.api.post('/api/v1/training/sessions', sessionData);
             currentSessionId = session.id;
-            
-            // Update session as complete
+
+            // Mark session complete
             await CHOS.api.patch(`/api/v1/training/sessions/${currentSessionId}`, {
-                completed: true,
-                completed_at: new Date().toISOString()
+                completed_at: new Date().toISOString(),
+                duration_minutes: sessionData.duration_minutes,
+                rpe_score: sessionData.rpe_score,
             });
-            
-            // Submit feedback
-            const feedbackData = {
-                session_id: currentSessionId,
-                date: new Date().toISOString().split('T')[0],
-                rpe_score: parseInt($('#overall-rpe').val()) || 5,
-                difficulty: 'moderate',
-                technique_quality: parseInt($('#overall-rpe').val()) || 5,
-                pacing: 'good',
-                energy_level_pre: 7,
-                energy_level_post: 5,
-                would_repeat: true,
-                notes: $('#workout-notes').val(),
-                movements_feedback: movementsFeedback
-            };
-            
-            await CHOS.api.post('/api/v1/review/feedback', feedbackData);
+
+            // Submit feedback (non-blocking — session is already saved)
+            try {
+                const feedbackData = {
+                    session_id: currentSessionId,
+                    date: CHOS.todayLocalIso(),
+                    rpe_score: parseInt($('#overall-rpe').val(), 10) || 5,
+                    difficulty: 'moderate',
+                    technique_quality: parseInt($('#overall-rpe').val(), 10) || 5,
+                    pacing: 'good',
+                    energy_level_pre: 7,
+                    energy_level_post: 5,
+                    would_repeat: true,
+                    notes: $('#workout-notes').val(),
+                    movements_feedback: movementsFeedback,
+                };
+                await CHOS.api.post('/api/v1/review/feedback', feedbackData);
+            } catch (feedbackErr) {
+                console.warn('Session feedback failed (session saved):', feedbackErr);
+            }
+
+            try {
+                await CHOS.api.post('/api/v1/gamification/workout-complete', {
+                    session_id: currentSessionId,
+                    duration_seconds: workoutSeconds,
+                });
+            } catch (e) { /* gamification optional */ }
             
             hideLoading();
             
-            // Show summary
-            const avgRPE = movementsFeedback.reduce((sum, m) => sum + (m.technique_quality || 0), 0) / movementsFeedback.length;
+            const avgRPE = movementsFeedback.length
+                ? movementsFeedback.reduce((sum, m) => sum + (m.technique_quality || 0), 0) / movementsFeedback.length
+                : (parseInt($('#overall-rpe').val(), 10) || 5);
             const totalVolume = movementsFeedback.reduce((sum, m) => {
                 const sets = m.actual_sets || 0;
-                const reps = parseInt(m.actual_reps) || 0;
+                const reps = parseInt(m.actual_reps, 10) || 0;
                 const weight = m.actual_weight_kg || 0;
                 return sum + (sets * reps * weight);
             }, 0);
             
-            alert(
-                t('training.summary_title') + '\n\n' +
-                t('training.summary_total_time', { minutes: Math.floor(workoutSeconds / 60) }) + '\n' +
-                t('training.summary_avg_rpe', { rpe: avgRPE.toFixed(1) }) + '\n' +
-                t('training.summary_total_volume', { volume: totalVolume.toFixed(0) })
-            );
+            try {
+                CHOS.toast.success(
+                    t('training.summary_title') + ' — ' +
+                    t('training.summary_total_time', { minutes: Math.max(1, Math.floor(workoutSeconds / 60)) }) + ', ' +
+                    t('training.summary_avg_rpe', { rpe: avgRPE.toFixed(1) }) + ', ' +
+                    t('training.summary_total_volume', { volume: totalVolume.toFixed(0) })
+                );
+            } catch (toastErr) {
+                CHOS.toast.success(t('training.session_complete'));
+            }
 
-            // Workout finished — drop it from the persistent bar.
-            if (window.CHOS && CHOS.workoutBar) CHOS.workoutBar.clear();
+            if (currentWorkout.planned_session_id) {
+                try { sessionStorage.setItem('chos-schedule-refresh', '1'); } catch (_) { /* optional */ }
+                showScheduleCompleteBanner();
+            }
+
+            if (window.CHOS && CHOS.workoutBar) {
+                try { CHOS.workoutBar.clear(); } catch (e) { /* optional */ }
+            }
             
-            // Close modal and reload workouts
-            bootstrap.Modal.getInstance(document.getElementById('workoutTrackingModal')).hide();
+            const modalEl = document.getElementById('workoutTrackingModal');
+            if (modalEl) {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+                modalInstance.hide();
+            }
             loadRecentWorkouts();
             
         } catch (error) {
@@ -874,9 +1064,50 @@
         }
     }
 
+    async function loadPRs() {
+        try {
+            const prs = await CHOS.api.get('/api/v1/training/prs');
+            if (!Array.isArray(prs) || prs.length === 0) return;
+            let html = '';
+            prs.forEach(function(pr) {
+                html += `<div class="col-md-4"><div class="chos-pr-card h-100">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <i class="fas fa-trophy" style="color: var(--cat-fat); font-size: 1.5rem;"></i>
+                        <span class="small text-secondary">${(pr.achieved_at || '').split('T')[0]}</span>
+                    </div>
+                    <h6 class="fw-semibold text-secondary mb-2">${CHOS.escape(pr.movement_name)}</h6>
+                    <p class="pr-value mb-0">${pr.value}<small class="fs-6 text-secondary ms-1">${CHOS.escape(pr.unit)}</small></p>
+                </div></div>`;
+            });
+            $('#prs-container').html(html);
+        } catch (e) {
+            console.error('PR load error', e);
+        }
+    }
+
+    $('#btn-save-pr').on('click', async function() {
+        const movement = $('#pr-movement').val().trim();
+        const value = parseFloat($('#pr-value').val());
+        if (!movement || !value) return;
+        try {
+            await CHOS.api.post('/api/v1/training/prs', {
+                movement_name: movement,
+                record_type: '1rm',
+                value: value,
+                unit: 'kg',
+            });
+            bootstrap.Modal.getInstance(document.getElementById('addPrModal')).hide();
+            CHOS.toast.success('PR saved');
+            loadPRs();
+        } catch (e) {
+            CHOS.toast.error('Failed to save PR');
+        }
+    });
+
     // Load real chart data
     $(document).ready(async function() {
         await loadRecentWorkouts();
+        await loadPRs();
         await loadWorkoutTypeChart();
         await loadRPEChart();
 

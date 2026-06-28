@@ -126,6 +126,45 @@ All have safe empty defaults, so the app boots without them.
 |------------|---------|
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLIC_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID` | Billing endpoints |
 | `INTERNAL_CRON_SECRET` | `POST /api/v1/internal/cron/weekly-reviews` (wire to an external scheduler) |
+| `SMTP_HOST`, `SMTP_FROM`, … | Password-reset emails via `/api/v1/auth/forgot-password` (logs link if unset) |
+
+### Weekly review cron (systemd)
+
+Copy the unit files from `infra/systemd/` and enable the timer:
+
+```bash
+sudo cp infra/systemd/crossfit-weekly-reviews.{service,timer} /etc/systemd/system/
+# Ensure INTERNAL_CRON_SECRET is set in backend/.env
+sudo systemctl daemon-reload
+sudo systemctl enable --now crossfit-weekly-reviews.timer
+systemctl list-timers crossfit-weekly-reviews.timer
+```
+
+Manual trigger (for testing):
+
+```bash
+curl -X POST -H "X-Internal-Cron-Secret: $INTERNAL_CRON_SECRET" \
+  http://127.0.0.1:8003/api/v1/internal/cron/weekly-reviews
+```
+
+### Password reset email (SMTP)
+
+When `SMTP_HOST` and `SMTP_FROM` are set in `backend/.env`, forgot-password sends
+a real email. Otherwise the reset URL is written to the app log (dev-friendly).
+
+Example (typical STARTTLS on port 587):
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=noreply@example.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM="CrossFit Health OS <noreply@example.com>"
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+```
+
+Quote values that contain spaces in `.env` (e.g. `APP_NAME="CrossFit Health OS"`).
 | `APP_DOMAIN`, `APP_SCHEME`, `SUPPORT_EMAIL`, `DPO_EMAIL` | Absolute URLs / legal pages |
 
 ## Rollback

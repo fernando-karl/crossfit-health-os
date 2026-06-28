@@ -1,51 +1,49 @@
-<!-- Dashboard Navbar Partial -->
-<nav class="navbar navbar-expand-lg navbar-dark chos-navbar sticky-top">
+<!-- Dashboard Navbar — landing-aligned shell (light frosted bar, brand mark) -->
+<nav class="navbar navbar-expand-lg chos-navbar sticky-top">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/dashboard">
-            <i class="fas fa-dumbbell"></i> CrossFit Health OS
+        <a class="navbar-brand chos-brand" href="/dashboard">
+            {% include "partials/brand_logo.html" %}
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Menu">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
                     <a class="nav-link {{ 'active' if active_page == 'dashboard' }}" href="/dashboard">
-                        <i class="fas fa-home me-1"></i> {{ t("nav.menu.dashboard") }}
+                        <i class="fas fa-house me-1"></i>{{ t("nav.tabs.today") }}
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if active_page == 'workouts' }}" href="/dashboard/workouts">
-                        <i class="fas fa-dumbbell me-1"></i> {{ t("nav.menu.workouts") }}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ 'active' if active_page in ('schedule', 'workouts', 'programs', 'reviews') }}" href="#" id="trainDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-dumbbell me-1"></i>{{ t("nav.menu.train") }}
                     </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if active_page == 'schedule' }}" href="/dashboard/schedule">
-                        <i class="fas fa-calendar me-1"></i> {{ t("nav.menu.schedule") }}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if active_page == 'programs' }}" href="/dashboard/programs">
-                        <i class="fas fa-magic me-1"></i> {{ t("nav.menu.programs") }}
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if active_page == 'reviews' }}" href="/dashboard/reviews">
-                        <i class="fas fa-chart-line me-1"></i> {{ t("nav.menu.reviews") }}
-                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="trainDropdown">
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'schedule' }}" href="/dashboard/schedule"><i class="fas fa-calendar-week me-2"></i>{{ t("nav.menu.schedule") }}</a></li>
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'workouts' }}" href="/dashboard/workouts"><i class="fas fa-list-check me-2"></i>{{ t("nav.menu.workouts") }}</a></li>
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'programs' }}" href="/dashboard/programs"><i class="fas fa-magic me-2"></i>{{ t("nav.menu.programs") }}</a></li>
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'reviews' }}" href="/dashboard/reviews"><i class="fas fa-chart-line me-2"></i>{{ t("nav.menu.reviews") }}</a></li>
+                    </ul>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link {{ 'active' if active_page == 'health' }}" href="/dashboard/health">
-                        <i class="fas fa-heartbeat me-1"></i> {{ t("nav.menu.health") }}
+                        <i class="fas fa-heart-pulse me-1"></i>{{ t("nav.tabs.progress") }}
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item nav-nutrition">
                     <a class="nav-link {{ 'active' if active_page == 'nutrition' }}" href="/dashboard/nutrition">
-                        <i class="fas fa-utensils me-1"></i> {{ t("nav.menu.nutrition") }}
+                        <i class="fas fa-utensils me-1"></i>{{ t("nav.tabs.nutrition") }}
                     </a>
                 </li>
             </ul>
             <ul class="navbar-nav align-items-center">
+                <li class="nav-item d-none" id="nav-train-now-item">
+                    <button type="button" class="chos-nav-train-now" id="nav-train-now" aria-label="{{ t('nav.train_now.label') }}">
+                        <i class="fas fa-play" aria-hidden="true"></i>
+                        <span class="nav-train-now__label">{{ t("nav.train_now.label") }}</span>
+                        <span class="nav-train-now__sub d-none d-lg-inline" aria-hidden="true"></span>
+                    </button>
+                </li>
                 <li class="nav-item">
                     <button type="button" class="chos-theme-toggle" data-action="toggle-theme" aria-label="Toggle theme" title="Toggle theme">
                         <i class="fas fa-moon icon-moon"></i>
@@ -63,17 +61,18 @@
                     </ul>
                 </li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user-circle me-1"></i> <span id="user-name">{{ t("nav.user_menu.default_name") }}</span>
+                    <a class="nav-link dropdown-toggle {{ 'active' if active_page in ('profile', 'badges', 'integrations', 'billing', 'referrals') }}" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user-circle me-1"></i><span id="user-name">{{ t("nav.tabs.you") }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="/dashboard/profile"><i class="fas fa-cog me-2"></i> {{ t("nav.user_menu.settings") }}</a></li>
-                        <li><a class="dropdown-item" href="/dashboard/integrations"><i class="fas fa-plug me-2"></i> {{ t("nav.integrations") }}</a></li>
-                        <li><a class="dropdown-item" href="/dashboard/billing"><i class="fas fa-credit-card me-2"></i> {{ t("billing.menu_link") }}</a></li>
-                        <li><a class="dropdown-item" href="/dashboard/referrals"><i class="fas fa-user-friends me-2"></i> {{ t("referrals.menu_link") }}</a></li>
-                        <li><a class="dropdown-item" href="/help"><i class="fas fa-life-ring me-2"></i> {{ t("landing.nav.help") }}</a></li>
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'profile' }}" href="/dashboard/profile"><i class="fas fa-cog me-2"></i>{{ t("nav.user_menu.settings") }}</a></li>
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'badges' }}" href="/dashboard/badges"><i class="fas fa-trophy me-2"></i>{{ t("dashboard.achievements.title") }}</a></li>
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'integrations' }}" href="/dashboard/integrations"><i class="fas fa-plug me-2"></i>{{ t("nav.integrations") }}</a></li>
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'billing' }}" href="/dashboard/billing"><i class="fas fa-credit-card me-2"></i>{{ t("billing.menu_link") }}</a></li>
+                        <li><a class="dropdown-item {{ 'active' if active_page == 'referrals' }}" href="/dashboard/referrals"><i class="fas fa-user-friends me-2"></i>{{ t("referrals.menu_link") }}</a></li>
+                        <li><a class="dropdown-item" href="/help"><i class="fas fa-life-ring me-2"></i>{{ t("landing.nav.help") }}</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/logout" id="logout-btn"><i class="fas fa-sign-out-alt me-2"></i> {{ t("nav.user_menu.logout") }}</a></li>
+                        <li><a class="dropdown-item" href="/logout" id="logout-btn"><i class="fas fa-sign-out-alt me-2"></i>{{ t("nav.user_menu.logout") }}</a></li>
                     </ul>
                 </li>
             </ul>

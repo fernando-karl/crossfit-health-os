@@ -7,8 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 import logging
 from pathlib import Path
+
+from sqlalchemy import text
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -112,11 +115,31 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Detailed health check with dependencies"""
+    db_status = "disconnected"
+    redis_status = "disconnected"
+
+    try:
+        from app.db.session import SessionLocal
+        with SessionLocal() as session:
+            session.execute(text("SELECT 1"))
+            db_status = "connected"
+    except Exception as exc:
+        logger.warning("Health check DB failed: %s", exc)
+
+    try:
+        import redis
+        client = redis.from_url(settings.REDIS_URL, socket_connect_timeout=2)
+        if client.ping():
+            redis_status = "connected"
+    except Exception as exc:
+        logger.warning("Health check Redis failed: %s", exc)
+
+    overall = "healthy" if db_status == "connected" else "degraded"
     return {
-        "status": "healthy",
-        "database": "connected",
-        "redis": "connected",
-        "timestamp": "2026-02-08T06:45:00Z"
+        "status": overall,
+        "database": db_status,
+        "redis": redis_status,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
 

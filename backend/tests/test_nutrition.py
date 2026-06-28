@@ -79,6 +79,8 @@ class TestMacroSummary:
         assert data["carbs_g"] == 105
         assert data["fat_g"] == 28
         assert data["meals_logged"] == 2
+        assert data["targets"]["calories"] == 2000
+        assert data["target_source"] == "default"
 
     @pytest.mark.asyncio
     async def test_get_macro_summary_no_meals(
@@ -110,6 +112,49 @@ class TestMacroSummary:
         assert data["calories"] == 350
         assert data["protein_g"] == 0
         assert data["carbs_g"] == 55
+
+
+class TestMacroTargets:
+    @pytest.mark.asyncio
+    async def test_set_and_get_manual_targets(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        response = await authenticated_client.put(
+            "/api/v1/nutrition/targets",
+            json={"calories": 2600, "protein": 180, "carbs": 250, "fat": 80},
+        )
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["calories"] == 2600
+        assert data["source"] == "manual"
+
+        get_resp = await authenticated_client.get("/api/v1/nutrition/targets")
+        assert get_resp.status_code == 200
+        assert get_resp.json()["calories"] == 2600
+        assert get_resp.json()["source"] == "manual"
+
+    @pytest.mark.asyncio
+    async def test_reset_manual_targets(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        await authenticated_client.put(
+            "/api/v1/nutrition/targets",
+            json={"calories": 2400, "protein": 160, "carbs": 220, "fat": 75},
+        )
+        reset = await authenticated_client.delete("/api/v1/nutrition/targets")
+        assert reset.status_code == 200
+        assert reset.json()["source"] == "default"
+        assert reset.json()["calories"] == 2000
+
+    @pytest.mark.asyncio
+    async def test_set_targets_rejects_invalid_calories(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        response = await authenticated_client.put(
+            "/api/v1/nutrition/targets",
+            json={"calories": 500},
+        )
+        assert response.status_code == 422
 
 
 class TestMealPhotoAnalysis:

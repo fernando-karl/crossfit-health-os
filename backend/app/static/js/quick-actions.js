@@ -25,7 +25,30 @@
       setTimeout(() => { sheet.hidden = true; }, 250);
    }
 
-   fab.addEventListener('click', () => {
+   fab.addEventListener('click', (e) => {
+      const direct = fab.dataset.directAction;
+      if (direct === 'checkin' && typeof window.openRecoveryModal === 'function') {
+         e.preventDefault();
+         e.stopImmediatePropagation();
+         window.openRecoveryModal();
+         return;
+      }
+      if (direct === 'train') {
+         e.preventDefault();
+         e.stopImmediatePropagation();
+         if (window.CHOS && CHOS.trainNow) {
+            CHOS.trainNow.start({ trigger: fab });
+         } else if (typeof window.startWorkout === 'function') {
+            window.startWorkout();
+         }
+         return;
+      }
+      if (direct === 'generate' && typeof window.generateWorkout === 'function') {
+         e.preventDefault();
+         e.stopImmediatePropagation();
+         window.generateWorkout();
+         return;
+      }
       sheet.classList.contains('is-open') ? close() : open();
    });
    backdrop.addEventListener('click', close);

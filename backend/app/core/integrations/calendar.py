@@ -8,8 +8,9 @@ Flow:
 3. sync_calendar_events() creates events for next 7 days of training
 """
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Optional, TypedDict, List
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -99,6 +100,22 @@ async def _get_user_token(user_id: int) -> Optional[str]:
     return await refresh_access_token(refresh_token)
 
 
+async def find_calendar_event_by_session(access_token: str, session_id: str) -> Optional[dict]:
+    """Return an existing CHOS-tagged event for a planned session, if any."""
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{GOOGLE_CALENDAR_API}/calendars/primary/events",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                "privateExtendedProperty": f"chos_session_id={session_id}",
+                "singleEvents": "true",
+            },
+        )
+        resp.raise_for_status()
+        items = resp.json().get("items", [])
+        return items[0] if items else None
+
+
 async def create_calendar_event(
     access_token: str,
     summary: str,
@@ -107,9 +124,9 @@ async def create_calendar_event(
     end: datetime,
     timezone: str = None,
     color_id: str = "9",  # blueberry
+    session_id: Optional[str] = None,
 ) -> dict:
     """Create a single Google Calendar event."""
-    # Use provided timezone or default
     tz = timezone or settings.DEFAULT_TIMEZONE
 
     event = {
@@ -125,6 +142,8 @@ async def create_calendar_event(
             ],
         },
     }
+    if session_id:
+        event["extendedProperties"] = {"private": {"chos_session_id": session_id}}
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -151,7 +170,7 @@ async def sync_calendar_events(user_id: int) -> dict:
     if not access_token:
         return {"created": 0, "status": "not_connected", "message": "Google Calendar not connected. Please authorize first."}
 
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(dt_timezone.utc).date()
     end = today + timedelta(days=6)
 
     with SessionLocal() as session:
@@ -182,6 +201,7 @@ async def sync_calendar_events(user_id: int) -> dict:
         "mixed": "5",         # banana
     }
     created = 0
+    skipped = 0
 
     for ps in sessions:
         workout_type = ps.workout_type or "training"
@@ -194,9 +214,14 @@ async def sync_calendar_events(user_id: int) -> dict:
         else:
             hour, minute = 6, 0
 
+        try:
+            tz = ZoneInfo(user_timezone)
+        except Exception:
+            tz = ZoneInfo(settings.DEFAULT_TIMEZONE)
+
         start_dt = datetime(
             session_date.year, session_date.month, session_date.day,
-            hour, minute, tzinfo=timezone.utc,
+            hour, minute, tzinfo=tz,
         )
         end_dt = start_dt + timedelta(minutes=duration_min)
 
@@ -213,14 +238,21 @@ async def sync_calendar_events(user_id: int) -> dict:
         description = "\n".join(description_parts)
 
         color_id = color_map.get(workout_type.lower(), "9")
+        session_id = str(ps.id)
 
         try:
+            existing = await find_calendar_event_by_session(access_token, session_id)
+            if existing:
+                skipped += 1
+                continue
+
             await create_calendar_event(
                 access_token, summary, description,
                 start_dt, end_dt, user_timezone, color_id,
+                session_id=session_id,
             )
             created += 1
         except Exception as e:
             logger.error(f"Failed to create calendar event: {e}")
 
-    return {"created": created, "status": "success"}
+    return {"created": created, "skipped": skipped, "status": "success"}

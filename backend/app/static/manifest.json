@@ -1,0 +1,10 @@
+{
+  "name": "CrossFit Health OS",
+  "short_name": "CHOS",
+  "description": "Biometrics, nutrition, and adaptive training intelligence",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#30d158",
+  "icons": []
+}

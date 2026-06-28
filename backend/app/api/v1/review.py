@@ -80,6 +80,7 @@ def _wr_to_schema(row: WeeklyReviewDB) -> WeeklyReview:
         coach_message=row.coach_message,
         created_at=row.created_at,
         ai_model_used=row.ai_model_used,
+        applied=bool((row.next_week_adjustments or {}).get("_applied")),
     )
 
 
@@ -221,6 +222,19 @@ async def list_weekly_reviews(
     return [_wr_to_schema(r) for r in rows]
 
 
+@router.get("/weekly/by-id/{review_id}", response_model=WeeklyReview)
+async def get_review_by_id(
+    review_id: UUID,
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = int(current_user["id"])
+    row = db.get(WeeklyReviewDB, review_id)
+    if not row or row.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return _wr_to_schema(row)
+
+
 @router.get("/weekly/{week_number}", response_model=WeeklyReview)
 async def get_review_by_week(
     week_number: int,
@@ -310,6 +324,11 @@ async def apply_review_adjustments(
         if adjustments.focus_movements else ""
     )
     micro.notes = f"Auto-adjusted from week {review_row.week_number} review" + focus_note
+
+    adj_dict = dict(review_row.next_week_adjustments or {})
+    adj_dict["_applied"] = True
+    review_row.next_week_adjustments = adj_dict
+    db.add(review_row)
     db.commit()
 
     try:

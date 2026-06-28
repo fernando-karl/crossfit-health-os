@@ -7,24 +7,22 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 chos-page chos-programs-page">
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="chos-page-header">
         <div>
-            <h1 class="h2 fw-bold mb-1">{{ t("programs.page_title") }}</h1>
-            <p class="text-muted mb-0">{{ t("programs.subtitle") }}</p>
+            <h1 class="h2">{{ t("programs.page_title") }}</h1>
+            <p class="chos-page-header__sub">{{ t("programs.subtitle") }}</p>
         </div>
     </div>
 
-    <!-- Generation form -->
-    <div class="chos-card mb-4">
+    <div class="chos-card chos-card-feature is-mind chos-program-form mb-4">
         <div class="card-body">
-            <h5 class="fw-bold mb-3"><i class="fas fa-magic me-2"></i>{{ t("programs.btn_generate") }}</h5>
+            <h5 class="fw-bold mb-3"><i class="fas fa-magic me-2" style="color: var(--cat-mind);"></i>{{ t("programs.btn_generate") }}</h5>
             <form id="program-form" class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label fw-medium" for="prog-composer">{{ t("programs.form.composer") }}</label>
-                    <select class="form-select" id="prog-composer" name="composer">
+                    <label class="chos-label" for="prog-composer">{{ t("programs.form.composer") }}</label>
+                    <select class="chos-input" id="prog-composer" name="composer">
                         <option value="heuristic" selected>heuristic</option>
                         <option value="hybrid_openai">hybrid_openai</option>
                         <option value="hybrid_anthropic">hybrid_anthropic</option>
@@ -35,33 +33,33 @@
                     <small class="text-muted">{{ t("programs.form.composer_hint") }}</small>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-medium" for="prog-name">{{ t("programs.form.name") }}</label>
-                    <input type="text" class="form-control" id="prog-name" name="name" maxlength="200">
+                    <label class="chos-label" for="prog-name">{{ t("programs.form.name") }}</label>
+                    <input type="text" class="chos-input" id="prog-name" name="name" maxlength="200">
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label fw-medium" for="prog-weeks">{{ t("programs.form.weeks_pattern") }}</label>
-                    <input type="text" class="form-control" id="prog-weeks" name="weeks"
+                    <label class="chos-label" for="prog-weeks">{{ t("programs.form.weeks_pattern") }}</label>
+                    <input type="text" class="chos-input" id="prog-weeks" name="weeks"
                            value="base, base, build, deload, peak, peak, deload, test" required>
                     <small class="text-muted">{{ t("programs.form.weeks_pattern_hint") }}</small>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-medium" for="prog-deload">{{ t("programs.form.deload_weeks") }}</label>
-                    <input type="text" class="form-control" id="prog-deload" name="deload_weeks" value="4, 7">
+                    <label class="chos-label" for="prog-deload">{{ t("programs.form.deload_weeks") }}</label>
+                    <input type="text" class="chos-input" id="prog-deload" name="deload_weeks" value="4, 7">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label fw-medium" for="prog-spw">{{ t("programs.form.sessions_per_week") }}</label>
-                    <input type="number" class="form-control" id="prog-spw" name="sessions_per_week"
+                    <label class="chos-label" for="prog-spw">{{ t("programs.form.sessions_per_week") }}</label>
+                    <input type="number" class="chos-input" id="prog-spw" name="sessions_per_week"
                            min="1" max="7" value="5" required>
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label fw-medium" for="prog-focus">{{ t("programs.form.primary_focus") }}</label>
-                    <input type="text" class="form-control" id="prog-focus" name="primary_focus"
+                    <label class="chos-label" for="prog-focus">{{ t("programs.form.primary_focus") }}</label>
+                    <input type="text" class="chos-input" id="prog-focus" name="primary_focus"
                            value="squat_volume, aerobic_threshold" required>
                     <small class="text-muted">{{ t("programs.form.primary_focus_hint") }}</small>
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-medium" for="prog-start">{{ t("programs.form.start_date") }}</label>
-                    <input type="date" class="form-control" id="prog-start" name="start_date">
+                    <label class="chos-label" for="prog-start">{{ t("programs.form.start_date") }}</label>
+                    <input type="date" class="chos-input" id="prog-start" name="start_date">
                 </div>
                 <div class="col-md-6 d-flex align-items-end">
                     <div class="form-check">
@@ -95,8 +93,8 @@
 
 <!-- JSON detail modal -->
 <div class="modal fade" id="programDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content chos-modal">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold" id="program-detail-title">—</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

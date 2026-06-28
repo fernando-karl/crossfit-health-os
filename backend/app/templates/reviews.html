@@ -7,13 +7,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 chos-page chos-reviews-page">
 
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="chos-page-header">
         <div>
-            <h1 class="h2 fw-bold mb-1">{{ t("reviews.page_title") }}</h1>
-            <p class="text-muted mb-0">{{ t("reviews.subtitle") }}</p>
+            <h1 class="h2">{{ t("reviews.page_title") }}</h1>
+            <p class="chos-page-header__sub">{{ t("reviews.subtitle") }}</p>
         </div>
         <button class="chos-btn chos-btn-primary chos-btn-lg" id="btn-generate-review" onclick="generateReview()">
             <i class="fas fa-magic"></i>
@@ -37,8 +36,8 @@
 
 <!-- Review Detail Modal -->
 <div class="modal fade" id="reviewDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content chos-modal">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold">{{ t("reviews.detail_title") }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -93,16 +92,35 @@ function loadReviews() {
         });
 }
 
+function renderMetricBar(label, value, max, colorClass) {
+    const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+    return `
+        <div class="mb-2">
+            <div class="d-flex justify-content-between small mb-1">
+                <span class="text-secondary">${label}</span>
+                <span class="num fw-medium">${value != null ? value : '--'}${max === 100 ? '%' : ''}</span>
+            </div>
+            <div class="chos-progress" style="height: 5px;">
+                <div class="chos-progress-fill ${colorClass || 'primary'}" style="width: ${pct}%"></div>
+            </div>
+        </div>`;
+}
+
 function renderReviews(reviews) {
     let html = '<div class="row g-3 chos-stagger">';
 
     reviews.forEach(review => {
-        const score = review.overall_score || review.readiness_score || '--';
+        const score = review.overall_score || review.avg_readiness || '--';
         const date = CHOS.format.date(review.created_at || review.week_start);
+        const adherence = review.adherence_rate != null ? Math.round(review.adherence_rate) : null;
+        const avgRpe = review.avg_rpe != null ? review.avg_rpe.toFixed(1) : null;
+        const volChange = review.next_week_adjustments && review.next_week_adjustments.volume_change_pct != null
+            ? review.next_week_adjustments.volume_change_pct
+            : (review.adjustments && review.adjustments.volume_change);
 
         html += `
         <div class="col-md-6 col-lg-4">
-            <div class="chos-card chos-card-interactive" onclick="showReviewDetail('${review.id}')" style="cursor: pointer;">
+            <div class="chos-card chos-card-interactive" onclick="showReviewDetail('${review.id}', ${review.week_number || 'null'})" style="cursor: pointer;">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
@@ -110,9 +128,13 @@ function renderReviews(reviews) {
                             <h5 class="fw-bold mb-1">${date}</h5>
                         </div>
                         <div class="chos-readiness ${CHOS.format.readinessClass(score)}">
-                            ${score}
+                            ${typeof score === 'number' ? Math.round(score) : score}
                         </div>
                     </div>
+
+                    ${adherence != null ? renderMetricBar(t('reviews.metric_adherence'), adherence, 100, 'primary') : ''}
+                    ${avgRpe != null ? renderMetricBar(t('reviews.metric_rpe'), parseFloat(avgRpe), 10, 'cardio') : ''}
+                    ${review.avg_readiness != null ? renderMetricBar(t('reviews.metric_readiness'), Math.round(review.avg_readiness), 100, 'recovery') : ''}
 
                     ${review.strengths ? `
                     <div class="mb-3">
@@ -146,9 +168,15 @@ function renderReviews(reviews) {
                                 ? `<i class="fas fa-check text-success me-1"></i>${t('reviews.applied')}`
                                 : `<i class="fas fa-clock text-warning me-1"></i>${t('reviews.pending')}`}
                         </span>
-                        <span class="chos-btn chos-btn-sm chos-btn-ghost">
-                            ${t('reviews.view_details')} <i class="fas fa-chevron-right ms-1"></i>
-                        </span>
+                        <div class="d-flex gap-2" onclick="event.stopPropagation();">
+                            ${!review.applied && volChange != null ? `
+                            <button class="chos-btn chos-btn-sm chos-btn-success" onclick="applyReviewInline('${review.id}')">
+                                <i class="fas fa-check me-1"></i>${t('reviews.btn_apply_inline')}
+                            </button>` : ''}
+                            <span class="chos-btn chos-btn-sm chos-btn-ghost">
+                                ${t('reviews.view_details')} <i class="fas fa-chevron-right ms-1"></i>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -172,12 +200,16 @@ function generateReview() {
         });
 }
 
-function showReviewDetail(reviewId) {
+function showReviewDetail(reviewId, weekNumber) {
     currentReviewId = reviewId;
     CHOS.loading.spinner('#review-detail-content');
     new bootstrap.Modal('#reviewDetailModal').show();
 
-    CHOS.api.get('/api/v1/review/weekly/' + reviewId)
+    const detailUrl = weekNumber
+        ? '/api/v1/review/weekly/' + weekNumber
+        : '/api/v1/review/weekly/by-id/' + reviewId;
+
+    CHOS.api.get(detailUrl)
         .done(function(review) {
             let html = `
             <div class="row g-4">
@@ -209,17 +241,27 @@ function showReviewDetail(reviewId) {
                         <div class="stat-label">${t('reviews.volume')}</div>
                         <div class="stat-value">${review.volume_assessment || '--'}</div>
                     </div>
-                    ${review.adjustments ? `
+                    ${review.next_week_adjustments ? `
+                    <div class="chos-stat-card">
+                        <div class="stat-label">${t('reviews.suggested_volume_change')}</div>
+                        <div class="stat-value">${review.next_week_adjustments.volume_change_pct || 0}%</div>
+                    </div>
+                    ` : (review.adjustments ? `
                     <div class="chos-stat-card">
                         <div class="stat-label">${t('reviews.suggested_volume_change')}</div>
                         <div class="stat-value">${review.adjustments.volume_change || 0}%</div>
                     </div>
-                    ` : ''}
+                    ` : '')}
                 </div>
             </div>`;
 
             $('#review-detail-content').html(html);
         });
+}
+
+function applyReviewInline(reviewId) {
+    currentReviewId = reviewId;
+    applyReview();
 }
 
 function applyReview() {

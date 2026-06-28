@@ -147,6 +147,10 @@ class TestAdjustMovements:
         adjusted = engine._adjust_movements(movements, 0.8, 50)
         assert adjusted[0].sets <= 5
 
+    def test_zero_multiplier_returns_empty(self, engine):
+        movements = [self._make_movement(sets=5)]
+        assert engine._adjust_movements(movements, 0.0, 70) == []
+
     def test_minimum_sets_is_1(self, engine):
         movements = [self._make_movement(sets=1)]
         adjusted = engine._adjust_movements(movements, 0.5, 30)

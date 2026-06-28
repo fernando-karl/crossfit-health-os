@@ -22,10 +22,9 @@
       return value.split(',').map(s => s.trim()).filter(Boolean);
    }
 
-   function parseCsvInts(value) {
-      return parseCsvList(value)
-         .map(s => parseInt(s, 10))
-         .filter(n => Number.isFinite(n));
+   function focusTagLabel(tag) {
+      if (CHOS.stimulus) return CHOS.stimulus.displayLabel(tag);
+      return CHOS.humanize(tag);
    }
 
    function setSubmitting(isSubmitting) {
@@ -82,7 +81,9 @@
       let html = '<div class="row g-3">';
       programs.forEach(function (p) {
          const date = CHOS.format.date(p.created_at);
-         const focus = (p.primary_focus || []).map(CHOS.escape).join(', ');
+         const focus = (p.primary_focus || []).map(function (f) {
+            return CHOS.escape(focusTagLabel(f));
+         }).join(', ');
          html += `
             <div class="col-md-6 col-lg-4">
                <div class="chos-card">
@@ -212,8 +213,9 @@
       const e = CHOS.escape;
       const dateStr = sess.date ? CHOS.format.date(sess.date) : '';
       const stimulus = sess.primary_stimulus
-         ? '<span class="chos-badge" style="background: var(--surface-sunken); color: var(--color-text-secondary);">'
-           + e(String(sess.primary_stimulus).replace(/_/g, ' ')) + '</span>'
+         ? '<span class="chos-chip ' + (CHOS.stimulus ? CHOS.stimulus.catClassForStimulus(sess.primary_stimulus) : '') + '">'
+           + '<span class="chip-dot"></span>'
+           + e(focusTagLabel(sess.primary_stimulus)) + '</span>'
          : '';
       const duration = sess.estimated_duration_minutes
          ? '<span class="text-secondary small num"><i class="fas fa-clock me-1"></i>' + sess.estimated_duration_minutes + 'min</span>'
@@ -255,8 +257,12 @@
       html += '</div>';
 
       if (meso.primary_focus && meso.primary_focus.length) {
-         html += '<div class="text-muted small mb-3">'
-               + meso.primary_focus.map(e).join(' · ') + '</div>';
+         html += '<div class="d-flex flex-wrap gap-2 mb-3">'
+               + meso.primary_focus.map(function (f) {
+                  return '<span class="chos-chip"><span class="chip-dot"></span>'
+                     + e(focusTagLabel(f)) + '</span>';
+               }).join('')
+               + '</div>';
       }
 
       // Weeks — first one open, rest collapsed

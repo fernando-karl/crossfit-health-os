@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}CrossFit Health OS{% endblock %}</title>
 
+    {% block extra_head %}{% endblock %}
+
     <!-- Theme init (must run before CSS paints to avoid light/dark flash) -->
     <script>
       (function () {
@@ -20,14 +22,25 @@
     </script>
 
     <!-- meta theme-color, dynamic by theme -->
-    <meta name="theme-color" content="#1d1d1f" media="(prefers-color-scheme: dark)">
-    <meta name="theme-color" content="#fafbfc" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#30d158" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Brand tokens (landing + app) -->
+    <link rel="stylesheet" href="/static/css/brand-tokens.css?v={{ asset_version() }}">
 
     <!-- Design System CSS -->
     <link rel="stylesheet" href="/static/css/design-system.css?v={{ asset_version() }}">
@@ -72,6 +85,23 @@
 
     <!-- CHOS Core Utilities -->
     <script src="/static/js/chos.js?v={{ asset_version() }}"></script>
+    <script src="/static/js/checkin.js?v={{ asset_version() }}"></script>
+
+    <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js').catch(function() {});
+    }
+    </script>
+
+    {% if active_page %}
+    <script>
+    $(document).ready(function() {
+        if (typeof CHOS !== 'undefined' && CHOS.initDashboard) {
+            CHOS.initDashboard();
+        }
+    });
+    </script>
+    {% endif %}
 
     <!-- Theme toggle handler -->
     <script src="/static/js/theme.js?v={{ asset_version() }}"></script>

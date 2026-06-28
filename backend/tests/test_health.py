@@ -48,6 +48,40 @@ class TestRecoveryMetrics:
         assert response.json()["sleep_quality_score"] == 7
 
     @pytest.mark.asyncio
+    async def test_recovery_partial_update_preserves_hrv(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        """Dashboard check-in sends only sleep/energy/soreness/stress — HRV must survive."""
+        from app.db.models import RecoveryMetric
+
+        today = date.today()
+        db_session.add(RecoveryMetric(
+            user_id=seeded_user.id,
+            date=today,
+            hrv_ms=72,
+            resting_heart_rate_bpm=54,
+            sleep_duration_hours=8.0,
+        ))
+        db_session.commit()
+
+        response = await authenticated_client.post(
+            "/api/v1/health/recovery",
+            json={
+                "date": today.isoformat(),
+                "sleep_duration_hours": 7.0,
+                "energy_level": 6,
+                "muscle_soreness": 4,
+                "stress_level": 5,
+            },
+        )
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["hrv_rmssd_ms"] == 72
+        assert data["resting_heart_rate_bpm"] == 54
+        assert data["sleep_duration_hours"] == 7.0
+        assert data["energy_level"] == 6
+
+    @pytest.mark.asyncio
     async def test_get_latest_recovery(
         self, authenticated_client: AsyncClient, db_session, seeded_user
     ):

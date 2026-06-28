@@ -7,73 +7,51 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4" id="main-content">
+<div class="container-fluid py-4 chos-page chos-dashboard-page" id="main-content">
 
     <!-- Trial banner mount (rendered by CHOS.trial.init from /users/me) -->
     <div id="chos-trial-banner"></div>
 
     <!-- Loading State -->
     <div id="loading-state" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
+        <div class="spinner-border chos-spinner-brand" role="status">
             <span class="visually-hidden">{{ t("common.loading") }}</span>
         </div>
         <p class="text-muted mt-3">{{ t("dashboard.loading") }}</p>
     </div>
 
     <!-- New User: Show Onboarding Prompt -->
-    <div id="new-user-state" class="d-none">
+    <div id="new-user-state" class="d-none chos-new-user-state">
         <div class="row justify-content-center">
             <div class="col-lg-8">
-                <div class="card border-primary shadow-lg">
-                    <div class="card-body p-5 text-center">
-                        <div class="mb-4">
-                            <span style="font-size: 80px;">🏋️</span>
-                        </div>
+                <div class="chos-card chos-card-hub chos-new-user-card mb-4">
+                    <div class="card-body text-center">
+                        <div class="chos-new-user-card__mark mb-4" aria-hidden="true"></div>
                         <h1 class="display-6 fw-bold mb-3">{{ t("dashboard.new_user.title") }}</h1>
-                        <p class="lead text-muted mb-4">
+                        <p class="lead text-secondary mb-4">
                             {{ t("dashboard.new_user.subtitle") }}
                         </p>
                         <div class="d-flex justify-content-center gap-3">
-                            <a href="/onboarding" class="btn btn-primary btn-lg px-5">
-                                <i class="fas fa-rocket me-2"></i> {{ t("dashboard.new_user.start_setup") }}
+                            <a href="/onboarding" class="chos-btn chos-btn-primary chos-btn-lg px-5">
+                                <i class="fas fa-rocket me-2"></i>{{ t("dashboard.new_user.start_setup") }}
                             </a>
                         </div>
                         <div class="mt-4">
-                            <small class="text-muted">
+                            <small class="text-secondary">
                                 {{ t("dashboard.new_user.footer") }}
                             </small>
                         </div>
                     </div>
                 </div>
 
-                <!-- Features Preview -->
-                <div class="row g-3 mt-4">
-                    <div class="col-md-4">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="fas fa-brain fa-2x text-primary mb-2"></i>
-                                <h6 class="fw-bold">{{ t("dashboard.features.ai_title") }}</h6>
-                                <small class="text-muted">{{ t("dashboard.features.ai_desc") }}</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
-                                <h6 class="fw-bold">{{ t("dashboard.features.track_title") }}</h6>
-                                <small class="text-muted">{{ t("dashboard.features.track_desc") }}</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-body text-center">
-                                <i class="fas fa-fire fa-2x text-warning mb-2"></i>
-                                <h6 class="fw-bold">{{ t("dashboard.features.motivation_title") }}</h6>
-                                <small class="text-muted">{{ t("dashboard.features.motivation_desc") }}</small>
-                            </div>
-                        </div>
+                <div class="chos-new-user-loop">
+                    <p class="chos-new-user-loop__label mb-0">{{ t("landing.loop.title") }}</p>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center mt-3">
+                        {% for key in ["checkin", "workout", "train", "review", "block"] %}
+                        <span class="chos-loop-strip__step{% if key == 'checkin' %} is-active{% endif %}">
+                            <span class="chos-loop-strip__dot"></span>{{ t("dashboard.loop." ~ key) }}
+                        </span>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -82,164 +60,170 @@
     
     <!-- Active User: Full Dashboard -->
     <div id="active-user-state" class="d-none">
-        <!-- Welcome / Level — flat card with category accent -->
-        <div class="chos-card chos-card-feature mb-4">
-            <div class="card-body">
-                <div class="row align-items-center g-4">
-                    <div class="col-md-7">
-                        <p class="text-secondary mb-1 small fw-medium" id="today-date" style="text-transform: uppercase; letter-spacing: 0.04em;"></p>
-                        <h1 class="h2 fw-bold mb-1">
-                            <span id="welcome-name">{{ t("dashboard.welcome_default_name") }}</span> <span id="streak-icon"></span>
-                        </h1>
-                        <p class="text-secondary mb-0" id="streak-text">{{ t("dashboard.streak.default") }}</p>
+        <!-- Compact morning bar — date, greeting, streak, week progress (always visible) -->
+        <div class="chos-morning-bar mb-3" id="morning-bar">
+            <div class="chos-morning-bar__primary">
+                <p class="chos-morning-bar__date num mb-0" id="today-date"></p>
+                <h1 class="chos-morning-bar__greeting mb-0">
+                    <span id="welcome-greeting">{{ t("dashboard.morning.greeting") }}</span>,
+                    <span id="welcome-name">{{ t("dashboard.welcome_default_name") }}</span>
+                    <span id="streak-icon" class="ms-1"></span>
+                </h1>
+            </div>
+            <div class="chos-morning-bar__chips" id="morning-chips">
+                <span class="chos-morning-chip chos-morning-chip--streak" id="morning-streak-chip">
+                    <i class="fas fa-fire"></i><span id="streak-text">{{ t("dashboard.streak.default") }}</span>
+                </span>
+                <span class="chos-morning-chip chos-morning-chip--week num" id="morning-week-chip">0/5</span>
+                <span class="chos-morning-chip chos-morning-chip--readiness num d-none" id="morning-readiness-chip" title="{{ t('shared.readiness') }}">
+                    <i class="fas fa-heart-pulse"></i><span id="morning-readiness-value">--</span>
+                </span>
+                <a href="/dashboard/badges" class="chos-morning-chip chos-morning-chip--level chos-morning-chip--link num" id="morning-level-chip" title="{{ t('dashboard.achievements.title') }}">
+                    <i class="fas fa-trophy"></i><span id="morning-level-text">Lv.1</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Smart primary CTA — one action per visit state -->
+        <div id="daily-primary-cta" class="chos-daily-cta mb-3 d-none" role="status"></div>
+
+        <!-- Setup nudge — no active program -->
+        <div id="setup-nudge" class="chos-setup-nudge mb-3 d-none" role="region">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <strong class="d-block mb-1">{{ t("dashboard.setup_nudge.title") }}</strong>
+                    <span class="small text-secondary">{{ t("dashboard.setup_nudge.desc") }}</span>
+                </div>
+                <a href="/dashboard/programs" class="chos-btn chos-btn-sm chos-btn-primary">
+                    <i class="fas fa-magic me-1"></i>{{ t("dashboard.setup_nudge.cta") }}
+                </a>
+            </div>
+        </div>
+
+        <!-- Daily hub — landing loop: check-in + today's workout -->
+        <div class="chos-dashboard-hub mb-4">
+            <div class="chos-card chos-card-hub">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <h6 class="mb-0 fw-semibold text-secondary" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">{{ t("dashboard.hub.title") }}</h6>
+                        <div class="chos-loop-strip" id="loop-strip" role="navigation" aria-label="{{ t('landing.loop.title') }}"></div>
                     </div>
-                    <div class="col-md-5">
-                        <div class="d-flex justify-content-between align-items-end mb-1">
-                            <span class="small text-secondary fw-medium">{{ t("dashboard.level_label") }} <span class="num fw-bold text-body" id="current-level">1</span></span>
-                            <span class="small text-secondary num" id="xp-text">0 / 1000 XP</span>
+                    <div class="row g-4 align-items-stretch">
+                        <div class="col-lg-5 order-lg-1 order-2">
+                            <div id="readiness-summary" class="chos-checkin-summary">
+                                <div class="text-center py-4 text-secondary">
+                                    <div class="spinner-border spinner-border-sm" role="status"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="chos-progress">
-                            <div class="chos-progress-fill primary" id="xp-bar" style="width: 0%"></div>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-end mt-2">
-                            <i class="fas fa-trophy me-2" style="color: var(--cat-fat);"></i>
-                            <small class="text-secondary" id="badge-count">{{ t("dashboard.achievements.badge_count", n=0) }}</small>
+                        <div class="col-lg-7 order-lg-2 order-1">
+                            <div id="today-workout-container" class="chos-workout-hero h-100">
+                                <div class="text-center py-5 text-secondary">
+                                    <div class="spinner-border spinner-border-sm chos-spinner-brand" role="status"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Activity rings — Apple Fitness-style daily progress -->
-        <div class="chos-card mb-4">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <h6 class="mb-0 fw-semibold text-secondary" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">{{ t("rings.title") }}</h6>
-                </div>
-                <div id="activity-rings-container" style="min-height: 130px;"></div>
-            </div>
-        </div>
-
-        <!-- Today's Workout - MAIN CTA -->
-        <div class="chos-card mb-4">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                        <h4 class="mb-0 fw-bold">{{ t("dashboard.today_workout") }}</h4>
-                        <span class="chos-badge chos-badge-success" id="workout-status-badge">{{ t("dashboard.status_ready") }}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body" id="today-workout-container">
-                <!-- Loaded dynamically -->
-            </div>
-        </div>
-
-        <!-- Quick Actions Row -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3 col-6">
-                <a href="#" class="text-decoration-none" onclick="openRecoveryModal(); return false;">
-                    <div class="chos-card chos-card-interactive h-100 text-center">
-                        <div class="card-body">
-                            <i class="fas fa-heartbeat mb-2" style="color: var(--cat-recovery); font-size: 1.5rem;"></i>
-                            <h6 class="fw-semibold mb-1">{{ t("dashboard.actions.log_recovery") }}</h6>
-                            <small class="text-secondary">{{ t("dashboard.actions.log_recovery_desc") }}</small>
+        <!-- Week context: block + review (landing steps 4–5) -->
+        <div class="row g-3 mb-4" id="week-context-row">
+            <div class="col-md-6 d-none" id="mesocycle-col">
+                <div class="chos-card chos-card-feature is-mind h-100" id="mesocycle-widget">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 fw-semibold text-secondary" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">{{ t("dashboard.mesocycle.title") }}</h6>
+                            <a href="/dashboard/schedule" class="chos-widget-link">{{ t("dashboard.mesocycle.view_schedule") }}</a>
                         </div>
+                        <div id="mesocycle-content"></div>
                     </div>
-                </a>
-            </div>
-            <div class="col-md-3 col-6">
-                <a href="#" class="text-decoration-none" onclick="startQuickWorkout(); return false;">
-                    <div class="chos-card chos-card-interactive h-100 text-center">
-                        <div class="card-body">
-                            <i class="fas fa-bolt mb-2" style="color: var(--cat-cardio); font-size: 1.5rem;"></i>
-                            <h6 class="fw-semibold mb-1">{{ t("dashboard.actions.quick_workout") }}</h6>
-                            <small class="text-secondary">{{ t("dashboard.actions.quick_workout_desc") }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-3 col-6">
-                <a href="/dashboard/schedule" class="text-decoration-none">
-                    <div class="chos-card chos-card-interactive h-100 text-center">
-                        <div class="card-body">
-                            <i class="fas fa-calendar-week mb-2" style="color: var(--cat-strength); font-size: 1.5rem;"></i>
-                            <h6 class="fw-semibold mb-1">{{ t("dashboard.actions.weekly_plan") }}</h6>
-                            <small class="text-secondary">{{ t("dashboard.actions.weekly_plan_desc") }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-3 col-6">
-                <a href="/dashboard/nutrition" class="text-decoration-none">
-                    <div class="chos-card chos-card-interactive h-100 text-center">
-                        <div class="card-body">
-                            <i class="fas fa-utensils mb-2" style="color: var(--cat-nutrition); font-size: 1.5rem;"></i>
-                            <h6 class="fw-semibold mb-1">{{ t("dashboard.actions.nutrition") }}</h6>
-                            <small class="text-secondary">{{ t("dashboard.actions.nutrition_desc") }}</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-        </div>
-        
-        <!-- Stats grid (Apple Health-like) -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0 fw-bold">{{ t("dashboard.stats.this_week") }}</h5>
-            <a href="/dashboard/workouts" class="chos-btn chos-btn-ghost chos-btn-sm">{{ t("dashboard.stats.view_history") }} <i class="fas fa-chevron-right ms-1" style="font-size: 0.75rem;"></i></a>
-        </div>
-        <div class="row g-3 mb-4">
-            <div class="col-md-3 col-6">
-                <div class="chos-stat-card h-100">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <span class="stat-label">{{ t("dashboard.stats.streak_label") }}</span>
-                    </div>
-                    <div class="stat-value num" id="stat-streak" style="color: var(--cat-cardio);">0</div>
-                    <div class="stat-spark" id="spark-streak"></div>
                 </div>
             </div>
-            <div class="col-md-3 col-6">
-                <div class="chos-stat-card h-100">
-                    <span class="stat-label">{{ t("dashboard.stats.sessions_label") }}</span>
-                    <div class="stat-value num" id="stat-week" style="color: var(--cat-nutrition);">0/5</div>
-                    <div class="chos-progress mt-3" style="height: 4px;">
-                        <div class="chos-progress-fill success" id="weekly-progress-bar" style="width: 0%"></div>
+            <div class="col-md-6 d-none" id="review-teaser-col">
+                <div class="chos-card chos-card-feature is-recovery h-100" id="review-teaser">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold text-secondary" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">{{ t("dashboard.review_teaser.title") }}</h6>
+                            <a href="/dashboard/reviews" class="chos-widget-link" id="review-teaser-link">{{ t("dashboard.review_teaser.view") }}</a>
+                        </div>
+                        <div id="review-teaser-content"></div>
                     </div>
-                    <small class="text-secondary mt-2 d-block num" id="weekly-progress-text">{{ t("dashboard.stats.weekly_progress_text", done=0, target=5) }}</small>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="chos-stat-card h-100">
-                    <span class="stat-label">{{ t("dashboard.stats.month_label") }}</span>
-                    <div class="stat-value num" id="stat-month" style="color: var(--cat-recovery);">0</div>
-                    <div class="stat-spark" id="spark-month"></div>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="chos-stat-card h-100">
-                    <span class="stat-label">{{ t("dashboard.stats.rpe_label") }}</span>
-                    <div class="stat-value num" id="stat-rpe" style="color: var(--cat-strength);">-</div>
-                    <div class="stat-spark" id="spark-rpe"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Achievements -->
-        <div class="chos-card mb-4">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">{{ t("dashboard.achievements.title") }}</h5>
-                    <a href="/dashboard/badges" class="chos-btn chos-btn-ghost chos-btn-sm">{{ t("dashboard.achievements.view_all") }} <i class="fas fa-chevron-right ms-1" style="font-size: 0.75rem;"></i></a>
+        <!-- Week pulse — rings + key stats (collapsed until user has activity) -->
+        <details class="chos-card mb-4 chos-details-card" id="week-pulse-details">
+            <summary class="card-body d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-semibold text-secondary" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">{{ t("dashboard.week_pulse.title") }}</h6>
+                <span class="small text-secondary num" id="week-pulse-summary">—</span>
+            </summary>
+            <div class="card-body pt-0 border-top" style="border-color: var(--color-border) !important;">
+                <div class="d-flex justify-content-end mb-3">
+                    <a href="/dashboard/workouts" class="chos-btn chos-btn-ghost chos-btn-sm">{{ t("dashboard.stats.view_history") }} <i class="fas fa-chevron-right ms-1" style="font-size: 0.75rem;"></i></a>
+                </div>
+                <div class="row g-4 align-items-center">
+                    <div class="col-md-5 col-lg-4">
+                        <div id="activity-rings-container" style="min-height: 120px;"></div>
+                    </div>
+                    <div class="col-md-7 col-lg-8">
+                        <div class="row g-2 g-md-3">
+                            <div class="col-6 col-lg-3">
+                                <div class="chos-pulse-stat">
+                                    <span class="chos-pulse-stat__label">{{ t("dashboard.stats.sessions_label") }}</span>
+                                    <span class="chos-pulse-stat__value num" id="stat-week" style="color: var(--cat-nutrition);">0/5</span>
+                                    <div class="chos-progress mt-2" style="height: 4px;">
+                                        <div class="chos-progress-fill success" id="weekly-progress-bar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <div class="chos-pulse-stat">
+                                    <span class="chos-pulse-stat__label">{{ t("dashboard.stats.rpe_label") }}</span>
+                                    <span class="chos-pulse-stat__value num" id="stat-rpe" style="color: var(--cat-strength);">—</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <div class="chos-pulse-stat">
+                                    <span class="chos-pulse-stat__label">{{ t("dashboard.stats.month_label") }}</span>
+                                    <span class="chos-pulse-stat__value num" id="stat-month" style="color: var(--cat-recovery);">0</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <div class="chos-pulse-stat">
+                                    <span class="chos-pulse-stat__label">{{ t("dashboard.level_label") }}</span>
+                                    <span class="chos-pulse-stat__value num" id="current-level" style="color: var(--cat-fat);">1</span>
+                                    <div class="chos-progress mt-2" style="height: 4px;">
+                                        <div class="chos-progress-fill primary" id="xp-bar" style="width: 0%"></div>
+                                    </div>
+                                    <small class="text-secondary num d-block mt-1" id="xp-text">0 / 1000 XP</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
+        </details>
+
+        <!-- Achievements — collapsed unless earned badges exist -->
+        <details class="chos-card mb-4 chos-details-card" id="achievements-details">
+            <summary class="card-body d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-semibold text-secondary" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">{{ t("dashboard.achievements.title") }}</h6>
+                <span class="small text-secondary" id="badge-count">{{ t("dashboard.achievements.badge_count", n=0) }}</span>
+            </summary>
+            <div class="card-body pt-0 border-top" style="border-color: var(--color-border) !important;">
                 <div class="row g-3" id="badges-container">
-                    <div class="col-12 text-center text-secondary py-3">
+                    <div class="col-12 text-center text-secondary py-2">
                         <small>{{ t("dashboard.achievements.empty") }}</small>
                     </div>
                 </div>
+                <div class="text-end mt-2">
+                    <a href="/dashboard/badges" class="chos-btn chos-btn-ghost chos-btn-sm">{{ t("dashboard.achievements.view_all") }}</a>
+                </div>
             </div>
-        </div>
+        </details>
         
         <!-- Notifications -->
         <div class="row">
@@ -250,77 +234,94 @@
     </div>
 </div>
 
-<!-- Recovery Modal — quick log from dashboard FAB / quick-action card. -->
+<!-- Recovery check-in — landing-style morning panel -->
 <div class="modal fade" id="recoveryModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="d-inline-flex align-items-center justify-content-center" style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-danger-light); color: var(--cat-strength);">
-                        <i class="fas fa-heart-pulse"></i>
-                    </span>
-                    <h5 class="modal-title fw-bold mb-0">{{ t("dashboard.recovery_modal.title") }}</h5>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content chos-modal">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold mb-1">{{ t("dashboard.recovery_modal.title") }}</h5>
+                    <p class="text-secondary small mb-0">{{ t("dashboard.recovery_modal.subtitle") }}</p>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ t('common.actions.close') }}"></button>
             </div>
-            <div class="modal-body">
-                <!-- Feel today (dropdown with emoji) -->
-                <div class="mb-4">
-                    <label class="chos-label">{{ t("dashboard.recovery_modal.feel") }}</label>
-                    <select class="form-select form-select-lg" id="recovery-readiness">
-                        <option value="90">{{ t("dashboard.recovery_modal.feel_options.great") }}</option>
-                        <option value="75">{{ t("dashboard.recovery_modal.feel_options.good") }}</option>
-                        <option value="60">{{ t("dashboard.recovery_modal.feel_options.okay") }}</option>
-                        <option value="40">{{ t("dashboard.recovery_modal.feel_options.tired") }}</option>
-                        <option value="20">{{ t("dashboard.recovery_modal.feel_options.exhausted") }}</option>
-                    </select>
+            <div class="modal-body pt-3">
+                <div class="chos-checkin__head">
+                    <span id="checkin-time" class="num"></span>
+                    <span class="chos-checkin__pill" id="checkin-source">{{ t("dashboard.readiness_card.source_manual") }}</span>
                 </div>
 
-                <!-- Sleep (number) — inline suffix "h" -->
-                <div class="mb-4">
-                    <label class="chos-label">
-                        <i class="fas fa-moon me-1" style="color: var(--cat-sleep);"></i>
-                        {{ t("dashboard.recovery_modal.sleep") }}
-                    </label>
-                    <div class="position-relative">
-                        <input type="number" class="form-control" id="recovery-sleep" min="0" max="12" step="0.5" value="7" style="padding-right: 2.5rem;">
-                        <span class="position-absolute text-secondary" style="right: 0.875rem; top: 50%; transform: translateY(-50%); pointer-events: none;">h</span>
+                <div class="chos-checkin__preview">
+                    <svg class="chos-checkin__ring" viewBox="0 0 100 100" aria-hidden="true">
+                        <circle class="bg" cx="50" cy="50" r="42" stroke-width="9" fill="none"/>
+                        <circle class="fg" id="checkin-ring-fill" cx="50" cy="50" r="42" stroke-width="9" fill="none"/>
+                    </svg>
+                    <div>
+                        <div class="chos-checkin__score medium num" id="checkin-score">--</div>
+                        <div class="chos-checkin__score-label">{{ t("shared.readiness") }}</div>
                     </div>
                 </div>
 
-                <!-- Muscle soreness (slider with cardio category color) -->
-                <div class="mb-4">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <label class="chos-label mb-0">
-                            <i class="fas fa-fire me-1" style="color: var(--cat-cardio);"></i>
-                            {{ t("dashboard.recovery_modal.soreness") }}
+                <div class="chos-checkin__metrics">
+                    <div class="chos-checkin__metric d-none" id="checkin-metric-hrv">
+                        <span>{{ t("shared.hrv") }}</span>
+                        <strong class="num"><span id="checkin-hrv-value">--</span> ms</strong>
+                    </div>
+                    <div class="chos-checkin__metric">
+                        <span>{{ t("shared.sleep_label") }}</span>
+                        <strong class="num" id="checkin-sleep-preview">7h</strong>
+                    </div>
+                </div>
+
+                <div class="chos-checkin__fields">
+                    <div class="chos-checkin__field--full">
+                        <label class="chos-label">
+                            <i class="fas fa-moon me-1" style="color: var(--cat-sleep);"></i>
+                            {{ t("dashboard.recovery_modal.sleep") }}
                         </label>
-                        <span class="chos-badge num" id="soreness-value-chip" style="background: var(--cat-cardio); color: #fff; min-width: 36px; justify-content: center;">3</span>
+                        <div class="position-relative">
+                            <input type="number" class="chos-input" id="recovery-sleep" min="0" max="12" step="0.5" value="7" style="padding-right: 2.5rem;">
+                            <span class="position-absolute text-secondary" style="right: 0.875rem; top: 50%; transform: translateY(-50%); pointer-events: none;">h</span>
+                        </div>
                     </div>
-                    <input type="range" class="form-range chos-range chos-range-cardio" id="recovery-soreness" min="1" max="10" value="3">
-                    <div class="d-flex justify-content-between mt-1">
-                        <small class="text-secondary">{{ t("dashboard.recovery_modal.soreness_low") }}</small>
-                        <small class="text-secondary">{{ t("dashboard.recovery_modal.soreness_high") }}</small>
+
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="chos-label mb-0">
+                                <i class="fas fa-bolt me-1" style="color: var(--cat-fat);"></i>
+                                {{ t("dashboard.recovery_modal.energy") }}
+                            </label>
+                            <span class="chos-badge num" id="energy-value-chip" style="background: var(--cat-fat); color: #fff; min-width: 36px; justify-content: center;">7</span>
+                        </div>
+                        <input type="range" class="form-range chos-range" id="recovery-energy" min="1" max="10" value="7">
+                    </div>
+
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="chos-label mb-0">
+                                <i class="fas fa-fire me-1" style="color: var(--cat-cardio);"></i>
+                                {{ t("dashboard.recovery_modal.soreness") }}
+                            </label>
+                            <span class="chos-badge num" id="soreness-value-chip" style="background: var(--cat-cardio); color: #fff; min-width: 36px; justify-content: center;">3</span>
+                        </div>
+                        <input type="range" class="form-range chos-range chos-range-cardio" id="recovery-soreness" min="1" max="10" value="3">
+                    </div>
+
+                    <div class="chos-checkin__field--full">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="chos-label mb-0">
+                                <i class="fas fa-brain me-1" style="color: var(--cat-mind);"></i>
+                                {{ t("dashboard.recovery_modal.stress") }}
+                            </label>
+                            <span class="chos-badge num" id="stress-value-chip" style="background: var(--cat-mind); color: #fff; min-width: 36px; justify-content: center;">5</span>
+                        </div>
+                        <input type="range" class="form-range chos-range chos-range-mind" id="recovery-stress" min="1" max="10" value="5">
                     </div>
                 </div>
 
-                <!-- Stress level (slider with mind category color) -->
-                <div class="mb-2">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <label class="chos-label mb-0">
-                            <i class="fas fa-brain me-1" style="color: var(--cat-mind);"></i>
-                            {{ t("dashboard.recovery_modal.stress") }}
-                        </label>
-                        <span class="chos-badge num" id="stress-value-chip" style="background: var(--cat-mind); color: #fff; min-width: 36px; justify-content: center;">5</span>
-                    </div>
-                    <input type="range" class="form-range chos-range chos-range-mind" id="recovery-stress" min="1" max="10" value="5">
-                    <div class="d-flex justify-content-between mt-1">
-                        <small class="text-secondary">{{ t("dashboard.recovery_modal.stress_low") }}</small>
-                        <small class="text-secondary">{{ t("dashboard.recovery_modal.stress_high") }}</small>
-                    </div>
-                </div>
+                <p class="small text-secondary mt-3 mb-0">{{ t("dashboard.recovery_modal.checkin_hint") }}</p>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer border-0 pt-0">
                 <button type="button" class="chos-btn chos-btn-ghost" data-bs-dismiss="modal">{{ t("common.actions.cancel") }}</button>
                 <button type="button" class="chos-btn chos-btn-primary" onclick="saveRecovery()">
                     <i class="fas fa-check me-1"></i>{{ t("common.actions.save") }}
@@ -334,6 +335,17 @@
 
 {% block extra_js %}
 <script>
+// Dashboard loop state for the landing-aligned strip
+const dashboardLoop = {
+    hasRecoveryToday: false,
+    hasWorkout: false,
+    hasPlannedSession: false,
+    trainedToday: false,
+    hasReview: false,
+    hasMesocycle: false,
+    lastReadinessScore: null,
+};
+
 let recoveryModal;
 
 $(document).ready(async function() {
@@ -346,10 +358,21 @@ $(document).ready(async function() {
     
     // Initialize modal
     recoveryModal = new bootstrap.Modal(document.getElementById('recoveryModal'));
+    if (window.CHOS && CHOS.checkin) {
+        CHOS.checkin.init();
+    }
     
     // Setup range sliders
     $('#recovery-soreness').on('input', function() {
         $('#soreness-value-chip').text($(this).val());
+    });
+
+    $('#recovery-energy').on('input', function() {
+        $('#energy-value-chip').text($(this).val());
+    });
+    
+    $('#recovery-sleep').on('input', function() {
+        $('#checkin-sleep-preview').text($(this).val() + 'h');
     });
     
     $('#recovery-stress').on('input', function() {
@@ -395,12 +418,28 @@ async function loadUserData() {
     const today = new Date();
     const options = { weekday: 'long', month: 'long', day: 'numeric' };
     $('#today-date').text(tDate(today, options));
+
+    const hour = today.getHours();
+    let greetKey = 'dashboard.morning.greeting';
+    if (hour >= 12 && hour < 18) greetKey = 'dashboard.morning.greeting_afternoon';
+    else if (hour >= 18) greetKey = 'dashboard.morning.greeting_evening';
+    $('#welcome-greeting').text(t(greetKey));
     
     // Load gamification stats
     await loadGamificationStats();
 
     // Load today's workout
     await loadTodayWorkout();
+    await refreshPlannedSessionState();
+    await renderReadinessSummary();
+    await checkTrainedToday();
+    if (dashboardLoop.trainedToday && dashboardLoop.hasWorkout) {
+        applyTrainedTodayWorkoutUi();
+    }
+    await loadMesocycleWidget();
+    await loadWeeklyReviewTeaser();
+    updateLoopStrip();
+    updateDailyPrimaryCta();
 
     // Load notifications
     await loadNotifications();
@@ -410,9 +449,13 @@ async function loadUserData() {
         CHOS.rings.init('#activity-rings-container');
     }
 
-    // FAB → "Log recovery" lands on /dashboard#log-recovery: auto-open the modal.
+    // FAB → quick actions via URL hash
     if (window.location.hash === '#log-recovery') {
         setTimeout(openRecoveryModal, 200);
+        history.replaceState(null, '', window.location.pathname);
+    }
+    if (window.location.hash === '#generate-workout') {
+        setTimeout(generateWorkout, 200);
         history.replaceState(null, '', window.location.pathname);
     }
 }
@@ -422,48 +465,49 @@ async function loadGamificationStats() {
         const stats = await CHOS.api.get('/api/v1/gamification/stats');
         
         // Update streak
-        $('#stat-streak').text(stats.current_streak || 0);
-        if (stats.current_streak >= 3) {
-            $('#streak-icon').text('🔥');
-            $('#streak-text').text(t('dashboard.streak.active', { n: stats.current_streak }));
-        } else if (stats.current_streak > 0) {
-            $('#streak-icon').text('💪');
+        const streak = stats.current_streak || 0;
+        const $streakChip = $('#morning-streak-chip');
+        $streakChip.removeClass('is-hot is-warm');
+        if (streak >= 3) {
+            $('#streak-icon').html('<i class="fas fa-fire"></i>');
+            $('#streak-text').text(t('dashboard.streak.active', { n: streak }));
+            $streakChip.addClass('is-hot');
+        } else if (streak > 0) {
+            $('#streak-icon').html('<i class="fas fa-dumbbell"></i>');
             $('#streak-text').text(t('dashboard.streak.starting'));
+            $streakChip.addClass('is-warm');
         } else {
+            $('#streak-icon').empty();
             $('#streak-text').text(t('dashboard.streak.default'));
         }
 
-        // Update XP bar
-        $('#current-level').text(stats.level || 1);
+        // Update XP bar + level
+        const level = stats.level || 1;
+        $('#current-level').text(level);
+        $('#morning-level-text').text('Lv.' + level);
+        $('#morning-level-chip').toggleClass('is-milestone', level >= 5);
+
         const xpPercent = stats.xp_percentage || 0;
         const currentXp = stats.xp || 0;
         const xpNeeded = stats.xp_to_next_level || 1000;
         $('#xp-bar').css('width', xpPercent + '%');
         $('#xp-text').text(t('dashboard.level_xp', { xp: currentXp, needed: xpNeeded }));
 
-        // Update stats
+        // Week sessions
         const weekWorkouts = stats.this_week_workouts || 0;
-        $('#stat-week').text(`${weekWorkouts}/7`);
-        $('#stat-month').text(stats.this_month_workouts || 0);
-        $('#stat-rpe').text(stats.average_rpe ? stats.average_rpe.toFixed(1) : '-');
-
-        // Weekly progress bar
         const targetWorkouts = 5;
+        $('#stat-week').text(`${weekWorkouts}/${targetWorkouts}`);
+        $('#morning-week-chip').text(t('dashboard.morning.week_sessions', { done: weekWorkouts, target: targetWorkouts }));
+        updateWeekChipState(weekWorkouts, targetWorkouts);
+        $('#stat-month').text(stats.this_month_workouts || 0);
+        $('#stat-rpe').text(stats.average_rpe ? stats.average_rpe.toFixed(1) : '—');
+
         const progressPct = Math.min((weekWorkouts / targetWorkouts) * 100, 100);
         $('#weekly-progress-bar').css('width', progressPct + '%');
-        $('#weekly-progress-text').text(t('dashboard.stats.weekly_progress_text', { done: weekWorkouts, target: targetWorkouts }));
 
-        // Update badge count
         const earnedBadges = (stats.badges || []).filter(b => b.earned).length;
         $('#badge-count').text(t('dashboard.achievements.badge_count', { n: earnedBadges }));
 
-        // Sparklines - small trend indicators below each KPI. Falls back to flat
-        // line if backend doesn't yet send trend arrays.
-        renderSpark('#spark-streak', stats.streak_trend || generateMockSpark(weekWorkouts > 0 ? 5 : 3), getCSSVar('--cat-cardio'));
-        renderSpark('#spark-month', stats.month_trend || generateMockSpark(stats.this_month_workouts || 0), getCSSVar('--cat-recovery'));
-        renderSpark('#spark-rpe', stats.rpe_trend || generateMockSpark(stats.average_rpe || 5, 5, 9), getCSSVar('--cat-strength'));
-
-        // Render badges
         renderBadges(stats.badges || []);
 
     } catch (error) {
@@ -515,23 +559,28 @@ function renderSpark(selector, data, color) {
 }
 
 function renderBadges(badges) {
-    if (badges.length === 0) return;
-
     const earned = badges.filter(b => b.earned);
+    const $details = $('#achievements-details');
+
+    if (earned.length === 0) {
+        $details.removeAttr('open');
+        return;
+    }
+
+    $details.attr('open', 'open');
     const upcoming = badges.filter(b => !b.earned).slice(0, 4);
     const items = [...earned.slice(0, 4), ...upcoming];
 
     let html = '';
     items.forEach(badge => {
-        const dim = badge.earned ? '' : 'opacity-50';
-        const ringStyle = badge.earned
-            ? 'background: var(--color-warning-light); border: 1px solid rgba(255,159,10,0.3);'
-            : 'background: var(--surface-sunken); border: 1px solid var(--color-border);';
-        const icon = badge.earned ? CHOS.escape(badge.icon || '🏆') : '🔒';
+        const icon = badge.earned
+            ? `<span class="chos-dash-badge-mini is-earned">${CHOS.escape(badge.icon || '🏆')}</span>`
+            : '<span class="chos-dash-badge-mini is-locked"><i class="fas fa-lock"></i></span>';
+        const dim = badge.earned ? '' : 'opacity-75';
         html += `
         <div class="col-md-3 col-6 ${dim}">
             <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; border-radius: 50%; ${ringStyle}; font-size: 22px; flex-shrink: 0;">${icon}</div>
+                ${icon}
                 <div class="flex-1" style="min-width: 0;">
                     <div class="fw-semibold text-body small text-truncate">${CHOS.escape(badge.name)}</div>
                 </div>
@@ -546,23 +595,411 @@ function renderBadges(badges) {
 // tracking modal on /dashboard/workouts. Populated by either
 // loadTodayWorkout() or generateWorkout(); read by startWorkout().
 let todayWorkoutForHandoff = null;
+let todayPlannedSessionId = null;
+
+function updateLoopStrip() {
+    const steps = [
+        { key: 'checkin', label: t('dashboard.loop.checkin'), done: dashboardLoop.hasRecoveryToday },
+        { key: 'workout', label: t('dashboard.loop.workout'), done: dashboardLoop.hasWorkout },
+        { key: 'train', label: t('dashboard.loop.train'), done: dashboardLoop.trainedToday },
+        { key: 'review', label: t('dashboard.loop.review'), done: dashboardLoop.hasReview },
+        { key: 'block', label: t('dashboard.loop.block'), done: dashboardLoop.hasMesocycle },
+    ];
+    let activeIdx = steps.findIndex(s => !s.done);
+    if (activeIdx < 0) activeIdx = steps.length - 1;
+
+    const html = steps.map(function (s, i) {
+        let cls = 'chos-loop-strip__step is-step-' + s.key;
+        if (s.done) cls += ' is-done';
+        else if (i === activeIdx) cls += ' is-active';
+        const ariaCurrent = (!s.done && i === activeIdx) ? ' aria-current="step"' : '';
+        return `<button type="button" class="${cls}" data-loop-step="${s.key}"${ariaCurrent}><span class="chos-loop-strip__dot"></span>${CHOS.escape(s.label)}</button>`;
+    }).join('');
+    $('#loop-strip').html(html);
+
+    $('#loop-strip').off('click', '[data-loop-step]').on('click', '[data-loop-step]', function () {
+        const step = $(this).data('loop-step');
+        if (step === 'checkin') openRecoveryModal();
+        else if (step === 'workout') {
+            if (dashboardLoop.hasWorkout) {
+                document.getElementById('today-workout-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else if (dashboardLoop.hasRecoveryToday) {
+                generateWorkout();
+            } else {
+                openRecoveryModal();
+            }
+        }
+        else if (step === 'train') {
+            if (todayWorkoutForHandoff) startWorkout();
+            else window.location.href = '/dashboard/workouts';
+        }
+        else if (step === 'review') window.location.href = '/dashboard/reviews';
+        else if (step === 'block') window.location.href = '/dashboard/schedule';
+    });
+}
+
+function updateDailyPrimaryCta() {
+    const $cta = $('#daily-primary-cta');
+    if (!dashboardLoop.hasRecoveryToday) {
+        $cta.removeClass('d-none is-train is-done is-generate').addClass('is-checkin');
+        $cta.html(`
+            <span>${t('dashboard.daily_cta.checkin_title')}</span>
+            <button type="button" class="chos-btn chos-btn-sm chos-btn-primary" onclick="openRecoveryModal()">
+                <i class="fas fa-sun me-1"></i>${t('dashboard.daily_cta.checkin_btn')}
+            </button>
+        `);
+        refreshDashboardChrome();
+        return;
+    }
+    if (!dashboardLoop.trainedToday && (dashboardLoop.hasWorkout || dashboardLoop.hasPlannedSession)) {
+        $cta.removeClass('d-none is-checkin is-done is-generate').addClass('is-train');
+        $cta.html(`
+            <span>${t('dashboard.daily_cta.train_title')}</span>
+            <button type="button" class="chos-btn chos-btn-sm chos-btn-primary" onclick="CHOS.trainNow.start()">
+                <i class="fas fa-play me-1"></i>${t('dashboard.daily_cta.train_btn')}
+            </button>
+        `);
+        refreshDashboardChrome();
+        return;
+    }
+    if (dashboardLoop.hasRecoveryToday && !dashboardLoop.trainedToday && !dashboardLoop.hasWorkout && !dashboardLoop.hasPlannedSession) {
+        $cta.removeClass('d-none is-train is-done is-checkin').addClass('is-generate');
+        $cta.html(`
+            <span>${t('dashboard.daily_cta.no_workout_title')}</span>
+            <button type="button" class="chos-btn chos-btn-sm chos-btn-primary" onclick="generateWorkout()">
+                <i class="fas fa-magic me-1"></i>${t('dashboard.daily_cta.no_workout_btn')}
+            </button>
+        `);
+        refreshDashboardChrome();
+        return;
+    }
+    if (dashboardLoop.trainedToday) {
+        $cta.removeClass('d-none is-checkin is-train is-generate').addClass('is-done');
+        $cta.html(`<span><i class="fas fa-check-circle me-2"></i>${t('dashboard.daily_cta.done_title')}</span>`);
+        refreshDashboardChrome();
+        return;
+    }
+    $cta.addClass('d-none').removeClass('is-checkin is-train is-done is-generate').empty();
+    refreshDashboardChrome();
+}
+
+function updateWeekChipState(done, target) {
+    const $week = $('#morning-week-chip');
+    $week.removeClass('is-complete is-on-track is-started');
+    if (done >= target) $week.addClass('is-complete');
+    else if (done >= Math.ceil(target * 0.6)) $week.addClass('is-on-track');
+    else if (done > 0) $week.addClass('is-started');
+}
+
+function refreshDashboardChrome() {
+    const needsCheckin = !dashboardLoop.hasRecoveryToday;
+    const canTrain = dashboardLoop.hasWorkout || dashboardLoop.hasPlannedSession;
+    const needsGenerate = dashboardLoop.hasRecoveryToday && !dashboardLoop.trainedToday && !canTrain;
+    const needsTrain = dashboardLoop.hasRecoveryToday && !dashboardLoop.trainedToday && canTrain;
+    document.body.classList.toggle('chos-cta-checkin', needsCheckin);
+    document.body.classList.toggle('chos-cta-generate', needsGenerate);
+    document.body.classList.toggle('chos-cta-train', needsTrain);
+
+    const $chip = $('#morning-readiness-chip');
+    if (dashboardLoop.hasRecoveryToday && dashboardLoop.lastReadinessScore != null) {
+        const score = dashboardLoop.lastReadinessScore;
+        $('#morning-readiness-value').text(score);
+        $chip.removeClass('d-none high medium low');
+        if (CHOS.checkin) $chip.addClass(CHOS.checkin.readinessClass(score));
+    } else {
+        $chip.addClass('d-none').removeClass('high medium low');
+    }
+
+    $('#setup-nudge').toggleClass('d-none', dashboardLoop.hasMesocycle);
+
+    const weekText = $('#stat-week').text() || '0/5';
+    const parts = String(weekText).split('/');
+    const done = parseInt(parts[0], 10) || 0;
+    const target = parseInt(parts[1], 10) || 5;
+    updateWeekChipState(done, target);
+    const rpe = $('#stat-rpe').text() || '—';
+    $('#week-pulse-summary').text(t('dashboard.week_pulse.summary', { sessions: done, rpe: rpe }));
+    const $pulse = $('#week-pulse-details');
+    if (done > 0 || dashboardLoop.trainedToday) {
+        $pulse.attr('open', 'open');
+    }
+
+    const fab = document.getElementById('chos-fab-btn');
+    if (!fab) return;
+    const fabIcon = fab.querySelector('i');
+    fab.classList.remove('chos-fab--checkin', 'chos-fab--train', 'chos-fab--generate', 'chos-fab--default');
+    if (dashboardLoop.trainedToday) {
+        fab.classList.add('d-none');
+        delete fab.dataset.directAction;
+        fab.classList.remove('chos-fab--pulse');
+        return;
+    }
+    fab.classList.remove('d-none');
+    if (!dashboardLoop.hasRecoveryToday) {
+        fab.dataset.directAction = 'checkin';
+        fab.classList.add('chos-fab--pulse', 'chos-fab--checkin');
+        if (fabIcon) fabIcon.className = 'fas fa-heart-pulse';
+        fab.title = t('dashboard.daily_cta.checkin_btn');
+    } else if (canTrain) {
+        fab.dataset.directAction = 'train';
+        fab.classList.add('chos-fab--train');
+        fab.classList.remove('chos-fab--pulse');
+        if (fabIcon) fabIcon.className = 'fas fa-play';
+        fab.title = t('dashboard.daily_cta.train_btn');
+    } else {
+        fab.dataset.directAction = 'generate';
+        fab.classList.add('chos-fab--pulse', 'chos-fab--generate');
+        if (fabIcon) fabIcon.className = 'fas fa-magic';
+        fab.title = t('dashboard.daily_cta.no_workout_btn');
+    }
+}
+
+async function renderReadinessSummary() {
+    const $el = $('#readiness-summary');
+    try {
+        const recovery = await CHOS.api.get('/api/v1/health/recovery/latest').catch(() => null);
+
+        const todayStr = CHOS.todayLocalIso();
+        const isToday = recovery && String(recovery.date).slice(0, 10) === todayStr;
+        dashboardLoop.hasRecoveryToday = !!isToday;
+        dashboardLoop.lastReadinessScore = (isToday && recovery.readiness_score != null)
+            ? Math.round(recovery.readiness_score) : null;
+
+        const sourceLabel = t('dashboard.readiness_card.source_manual');
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString(window.LOCALE || 'pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        if (!recovery || !isToday) {
+            $el.html(`
+                <div class="chos-checkin-summary__head">
+                    <span class="num">${timeStr}</span>
+                    <span class="chos-checkin__pill">${CHOS.escape(sourceLabel)}</span>
+                </div>
+                <div class="chos-checkin-summary__body">
+                    <svg class="chos-checkin-summary__ring" viewBox="0 0 100 100" aria-hidden="true">
+                        <circle class="bg" cx="50" cy="50" r="42" stroke-width="9" fill="none"/>
+                        <circle class="fg" cx="50" cy="50" r="42" stroke-width="9" fill="none" style="stroke-dashoffset: 263.89"/>
+                    </svg>
+                    <div>
+                        <div class="chos-checkin-summary__score medium num">--</div>
+                        <div class="chos-checkin__score-label">${t('shared.readiness')}</div>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-3 mb-3">${t('dashboard.readiness_card.no_data')}</p>
+                <button type="button" class="chos-btn chos-btn-primary w-100" onclick="openRecoveryModal()">
+                    <i class="fas fa-sun me-2"></i>${t('dashboard.hub.checkin_cta')}
+            </button>
+        `);
+            refreshDashboardChrome();
+            return;
+        }
+
+        const score = dashboardLoop.lastReadinessScore;
+        const cls = score != null && CHOS.checkin ? CHOS.checkin.readinessClass(score) : 'medium';
+        const offset = score != null && CHOS.checkin ? CHOS.checkin.ringDashoffset(score) : '263.89';
+        const hrv = recovery.hrv_rmssd_ms != null ? recovery.hrv_rmssd_ms + ' ms' : '—';
+        const sleep = recovery.sleep_duration_hours != null ? recovery.sleep_duration_hours + 'h' : '—';
+
+        $el.html(`
+            <div class="chos-checkin-summary__head">
+                <span class="num">${timeStr}</span>
+                <span class="chos-checkin__pill">${CHOS.escape(sourceLabel)}</span>
+            </div>
+            <div class="chos-checkin-summary__body">
+                <svg class="chos-checkin-summary__ring" viewBox="0 0 100 100" aria-hidden="true">
+                    <circle class="bg" cx="50" cy="50" r="42" stroke-width="9" fill="none"/>
+                    <circle class="fg" cx="50" cy="50" r="42" stroke-width="9" fill="none" style="stroke-dashoffset: ${offset}"/>
+                </svg>
+                <div>
+                    <div class="chos-checkin-summary__score ${cls} num">${score != null ? score : '--'}</div>
+                    <div class="chos-checkin__score-label">${t('shared.readiness')}</div>
+                    <div class="small chos-checkin-done mt-1"><i class="fas fa-check-circle me-1"></i>${t('dashboard.hub.checkin_done')}</div>
+                </div>
+            </div>
+            <div class="chos-checkin-summary__metrics">
+                <div class="chos-checkin-summary__metric">
+                    <span>${t('shared.hrv')}</span>
+                    <strong class="num">${CHOS.escape(String(hrv))}</strong>
+                </div>
+                <div class="chos-checkin-summary__metric">
+                    <span>${t('shared.sleep_label')}</span>
+                    <strong class="num">${CHOS.escape(String(sleep))}</strong>
+                </div>
+            </div>
+            <button type="button" class="chos-btn chos-btn-outline chos-btn-sm w-100 mt-3" onclick="openRecoveryModal()">
+                <i class="fas fa-pen me-1"></i>${t('dashboard.actions.log_recovery')}
+            </button>
+        `);
+        refreshDashboardChrome();
+    } catch (e) {
+        $el.html(`<p class="text-secondary small mb-0">${t('dashboard.readiness_card.no_data')}</p>`);
+        refreshDashboardChrome();
+    }
+}
+
+async function refreshPlannedSessionState() {
+    if (!CHOS.trainNow) {
+        dashboardLoop.hasPlannedSession = false;
+        return;
+    }
+    try {
+        const session = await CHOS.trainNow.fetchNextSession();
+        dashboardLoop.hasPlannedSession = !!session;
+    } catch (e) {
+        dashboardLoop.hasPlannedSession = false;
+    }
+}
 
 async function loadTodayWorkout() {
     try {
-        // Try to get today's workout from schedule
         const response = await CHOS.api.get('/api/v1/training/today');
 
         if (response && response.workout) {
+            todayPlannedSessionId = response.planned_session_id || null;
             todayWorkoutForHandoff = response.workout;
-            renderTodayWorkout(response.workout);
+            if (response.template_id && !todayWorkoutForHandoff.id) {
+                todayWorkoutForHandoff.id = response.template_id;
+            }
+            dashboardLoop.hasWorkout = true;
+            renderTodayWorkout(response.workout, response.adapted_meta);
+        } else if (response && response.completed) {
+            todayWorkoutForHandoff = null;
+            todayPlannedSessionId = response.planned_session_id || null;
+            dashboardLoop.hasWorkout = true;
+            dashboardLoop.trainedToday = true;
+            showTodayWorkoutCompletedState();
         } else {
             todayWorkoutForHandoff = null;
+            todayPlannedSessionId = null;
+            dashboardLoop.hasWorkout = false;
             showNoWorkoutState();
         }
     } catch (error) {
         todayWorkoutForHandoff = null;
+        todayPlannedSessionId = null;
+        dashboardLoop.hasWorkout = false;
         showNoWorkoutState();
     }
+    updateLoopStrip();
+    updateDailyPrimaryCta();
+}
+
+async function checkTrainedToday() {
+    try {
+        const today = CHOS.todayLocalIso();
+        const sessions = await CHOS.api.get('/api/v1/training/sessions?start_date=' + encodeURIComponent(today) + '&end_date=' + encodeURIComponent(today));
+        dashboardLoop.trainedToday = Array.isArray(sessions) && sessions.some(function (s) {
+            return s.completed_at != null;
+        });
+    } catch (e) {
+        dashboardLoop.trainedToday = false;
+    }
+}
+
+async function loadWeeklyReviewTeaser() {
+    const $card = $('#review-teaser');
+    try {
+        const reviews = await CHOS.api.get('/api/v1/review/weekly?limit=1');
+        if (!Array.isArray(reviews) || reviews.length === 0) {
+            $('#review-teaser-col').removeClass('d-none').addClass(dashboardLoop.hasMesocycle ? 'col-md-6' : 'col-12');
+            dashboardLoop.hasReview = false;
+            $('#review-teaser-content').html(`
+                <p class="text-secondary small mb-3">${t('dashboard.review_teaser.empty')}</p>
+                <a href="/dashboard/reviews" class="chos-btn chos-btn-outline chos-btn-sm">
+                    <i class="fas fa-magic me-1"></i>${t('dashboard.review_teaser.generate')}
+                </a>
+            `);
+            updateLoopStrip();
+            updateDailyPrimaryCta();
+            return;
+        }
+
+        const review = reviews[0];
+        dashboardLoop.hasReview = true;
+        const adherence = review.adherence_rate != null ? Math.round(review.adherence_rate) : null;
+        const rpe = review.avg_rpe != null ? review.avg_rpe.toFixed(1) : null;
+
+        let bars = '';
+        if (adherence != null) {
+            bars += `<div class="chos-review-teaser__row">
+                <span>${t('dashboard.review_teaser.adherence')}</span>
+                <div class="chos-review-teaser__bar"><div class="chos-review-teaser__fill" style="width:${adherence}%"></div></div>
+                <strong class="num">${adherence}%</strong>
+            </div>`;
+        }
+        if (rpe != null) {
+            const rpePct = Math.min(100, Math.round((parseFloat(rpe) / 10) * 100));
+            bars += `<div class="chos-review-teaser__row">
+                <span>${t('reviews.metric_rpe')}</span>
+                <div class="chos-review-teaser__bar"><div class="chos-review-teaser__fill" style="width:${rpePct}%"></div></div>
+                <strong class="num">${rpe}</strong>
+            </div>`;
+        }
+
+        $('#review-teaser-col').removeClass('d-none').addClass(dashboardLoop.hasMesocycle ? 'col-md-6' : 'col-12');
+        $('#review-teaser-content').html(`
+            <p class="small text-secondary mb-2">${CHOS.escape(review.summary || '')}</p>
+            ${bars || `<p class="small mb-0">${t('dashboard.review_teaser.empty')}</p>`}
+        `);
+    } catch (e) {
+        $('#review-teaser-col').addClass('d-none');
+        dashboardLoop.hasReview = false;
+    }
+    updateLoopStrip();
+    updateDailyPrimaryCta();
+    refreshDashboardChrome();
+}
+
+async function loadMesocycleWidget() {
+    const $widget = $('#mesocycle-widget');
+    try {
+        const macro = await CHOS.api.get('/api/v1/schedule/macrocycles/active');
+        if (!macro || !macro.microcycles || !macro.microcycles.length) {
+            dashboardLoop.hasMesocycle = false;
+            updateLoopStrip();
+            refreshDashboardChrome();
+            return;
+        }
+
+        dashboardLoop.hasMesocycle = true;
+        $('#mesocycle-col').removeClass('d-none').addClass('col-md-6');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let current = macro.microcycles.find(function(m) {
+            const start = new Date(m.start_date + 'T00:00:00');
+            const end = new Date(m.end_date + 'T23:59:59');
+            return today >= start && today <= end;
+        }) || macro.microcycles[macro.microcycles.length - 1];
+
+        const phaseRaw = current.block_type || macro.methodology || '';
+        const phaseKey = 'shared.block_type.' + String(phaseRaw).toLowerCase();
+        let phaseName = t(phaseKey);
+        if (!phaseName || phaseName.indexOf('shared.') === 0) {
+            const altKey = 'shared.phases.' + String(phaseRaw).toLowerCase();
+            phaseName = t(altKey);
+        }
+        if (!phaseName || phaseName.indexOf('shared.') === 0) {
+            phaseName = phaseRaw || '—';
+        }
+        const weekLabel = t('dashboard.mesocycle.week_of', {
+            current: current.week_index_in_macro,
+            total: macro.microcycles.length,
+        });
+        const phaseLabel = t('dashboard.mesocycle.phase', { phase: phaseName });
+
+        $widget.removeClass('d-none');
+        $('#mesocycle-content').html(`
+            <h5 class="fw-bold mb-1">${CHOS.escape(macro.name || t('dashboard.mesocycle.default_name'))}</h5>
+            <p class="text-secondary small mb-2">${weekLabel} · ${phaseLabel}</p>
+            <div class="chos-progress" style="height: 6px;">
+                <div class="chos-progress-fill primary" style="width: ${Math.min(100, (current.week_index_in_macro / macro.microcycles.length) * 100)}%"></div>
+            </div>
+        `);
+    } catch (e) {
+        dashboardLoop.hasMesocycle = false;
+    }
+    updateLoopStrip();
+    refreshDashboardChrome();
 }
 
 // Map a workout type to its category color modifier (for chips/badges/icons).
@@ -578,64 +1015,106 @@ function workoutCatClass(type) {
     return map[type] || '';
 }
 
-function showNoWorkoutState() {
+function showTodayWorkoutCompletedState() {
     $('#today-workout-container').html(`
-        <div class="text-center py-5">
-            <i class="fas fa-calendar-alt mb-3" style="font-size: 3rem; color: var(--color-text-muted);"></i>
-            <h5 class="fw-bold mb-2">${t('dashboard.today_empty.title')}</h5>
-            <p class="text-secondary mb-3">${t('dashboard.today_empty.desc')}</p>
-            <button class="chos-btn chos-btn-primary chos-btn-lg" onclick="generateWorkout()">
-                <i class="fas fa-magic me-2"></i> ${t('dashboard.today_empty.btn')}
-            </button>
+        <div class="chos-workout-hero__head">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <span class="fw-bold">${t('dashboard.today_workout')}</span>
+                </div>
+                <h2 class="h5 fw-bold mb-1">${t('dashboard.hub.session_done')}</h2>
+                <p class="text-secondary small mb-0">${t('dashboard.daily_cta.done_title')}</p>
+            </div>
+        </div>
+        <div class="chos-workout-hero__body pt-0">
+            <div class="chos-workout-hero__actions d-flex flex-wrap gap-2">
+                <span class="chos-badge chos-badge-success"><i class="fas fa-check-circle me-1"></i>${t('dashboard.hub.session_done')}</span>
+                <a href="/dashboard/schedule" class="chos-btn chos-btn-outline chos-btn-sm">
+                    <i class="fas fa-calendar-week me-1"></i>${t('dashboard.mesocycle.view_schedule')}
+                </a>
+            </div>
         </div>
     `);
-    $('#workout-status-badge').removeClass('chos-badge-success').addClass('chos-badge-warning').text(t('dashboard.status_generate'));
 }
 
-function renderTodayWorkout(workout) {
-    const catClass = workoutCatClass(workout.workout_type);
-
-    // Up to 5 movements as colored chips.
-    let chipsHtml = '';
-    if (workout.movements && workout.movements.length > 0) {
-        chipsHtml = workout.movements.slice(0, 5).map(m => {
-            const reps = m.reps ? ` · ${CHOS.escape(m.reps)} ${CHOS.escape(m.reps_unit || 'reps')}` : '';
-            const weight = m.weight_kg ? ` · ${CHOS.escape(m.weight_kg)}kg` : '';
-            return `<span class="chos-chip ${catClass}"><span class="chip-dot"></span>${CHOS.escape(m.movement || '?')}${reps}${weight}</span>`;
-        }).join(' ');
-    }
-
-    const typeLabel = t('schedule.workout_type.' + (workout.workout_type || 'mixed'));
-
+function showNoWorkoutState() {
     $('#today-workout-container').html(`
-        <div class="row align-items-center g-4">
-            <div class="col-md-8">
-                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                    <span class="chos-cat ${catClass}">${typeLabel}</span>
-                    <span class="text-secondary small">·</span>
-                    <span class="text-secondary small num"><i class="fas fa-clock me-1"></i>${workout.duration_minutes || 60} ${t('schedule.session.duration_min')}</span>
+        <div class="chos-workout-hero__head">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <span class="fw-bold">${t('dashboard.today_workout')}</span>
                 </div>
-                <h4 class="mb-3 fw-bold">${CHOS.escape(workout.name || t('training.adaptive_workout_default'))}</h4>
-                <div class="d-flex flex-wrap gap-2">
-                    ${chipsHtml || `<span class="text-secondary">${t('dashboard.today_card.estimated', { minutes: workout.duration_minutes || 60 })}</span>`}
-                </div>
+                <h2 class="h5 fw-bold mb-1">${t('dashboard.today_empty.title')}</h2>
+                <p class="text-secondary small mb-0">${t('dashboard.hub.no_workout_yet')}</p>
             </div>
-            <div class="col-md-4">
-                <button class="chos-btn chos-btn-primary chos-btn-lg w-100" onclick="startWorkout()">
-                    <i class="fas fa-play me-2"></i> ${t('dashboard.today_card.start')}
+        </div>
+        <div class="chos-workout-hero__body pt-0">
+            <div class="chos-workout-hero__actions">
+                <button class="chos-btn chos-btn-primary chos-btn-lg" onclick="generateWorkout()">
+                    <i class="fas fa-magic me-2"></i>${t('dashboard.today_empty.btn')}
                 </button>
-                <small class="text-secondary d-block mt-2 text-center">${t('dashboard.today_card.estimated', { minutes: workout.duration_minutes || 60 })}</small>
             </div>
         </div>
     `);
-    $('#workout-status-badge').removeClass('chos-badge-warning').addClass('chos-badge-success').text(t('dashboard.status_ready'));
+}
+
+function renderTodayWorkout(workout, adaptedMeta) {
+    const meta = adaptedMeta || {};
+    const chips = [];
+    if (meta.volume_multiplier != null) {
+        chips.push(`<span class="chos-chip is-recovery"><span class="chip-dot"></span>${t('dashboard.adapted.volume', { mult: meta.volume_multiplier })}</span>`);
+    }
+    if (meta.readiness_score != null) {
+        chips.push(`<span class="chos-chip is-mind"><span class="chip-dot"></span>${t('dashboard.adapted.readiness_score', { score: Math.round(meta.readiness_score) })}</span>`);
+    }
+
+    const movHtml = (workout.movements || []).slice(0, 6).map(function (m) {
+        const name = CHOS.humanize(m.movement || m.name || '?');
+        const sets = m.sets ? `${m.sets} × ` : '';
+        const weight = m.weight_kg ? ` @ ${m.weight_kg}kg` : '';
+        return `<div class="chos-workout-hero__movement"><span>${CHOS.escape(name)}</span><span class="text-secondary num">${sets}${CHOS.escape(m.reps || '')}${weight}</span></div>`;
+    }).join('');
+
+    const stimulus = meta.recommendation || workout.description || '';
+    const duration = workout.duration_minutes || 60;
+    const trained = dashboardLoop.trainedToday;
+    const startBtn = trained
+        ? `<span class="chos-badge chos-badge-success"><i class="fas fa-check-circle me-1"></i>${t('dashboard.hub.session_done')}</span>`
+        : `<button class="chos-btn chos-btn-primary chos-btn-lg" onclick="startWorkout()">
+                <i class="fas fa-play me-2"></i>${t('training.btn_start_session')}
+           </button>`;
+
+    $('#today-workout-container').html(`
+        <div class="chos-workout-hero__head">
+            <div>
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <span class="fw-bold">${t('dashboard.today_workout')}</span>
+                    <span class="chos-badge chos-badge-primary">${t('shared.adapted_to_recovery')}</span>
+                    <span class="text-secondary small num"><i class="fas fa-clock me-1"></i>${duration} ${t('training.min')}</span>
+                </div>
+                <h2 class="h4 fw-bold mb-0">${CHOS.escape(workout.name || t('training.adaptive_workout_default'))}</h2>
+                ${stimulus ? `<p class="text-secondary small mb-0 mt-1">${CHOS.escape(stimulus)}</p>` : ''}
+            </div>
+            <div class="d-flex flex-wrap gap-2">${chips.join(' ')}</div>
+        </div>
+        <div class="chos-workout-hero__body">
+            <div class="chos-workout-hero__movements">${movHtml || `<p class="text-secondary small mb-0">${t('training.no_movements')}</p>`}</div>
+            <div class="d-flex gap-2 mt-3 flex-wrap chos-workout-hero__actions">
+                ${startBtn}
+                ${trained ? '' : `<button class="chos-btn chos-btn-outline" onclick="generateWorkout()">
+                    <i class="fas fa-magic me-2"></i>${t('training.btn_generate')}
+                </button>`}
+            </div>
+        </div>
+    `);
 }
 
 async function generateWorkout() {
     CHOS.loading.button('button[onclick="generateWorkout()"]', true);
 
     try {
-        const response = await CHOS.api.post('/api/v1/training/generate', {});
+        const recoveryMetrics = await CHOS.buildRecoveryGeneratePayload();
+        const response = await CHOS.api.post('/api/v1/training/generate', recoveryMetrics);
 
         // /generate returns AdaptiveWorkoutResponse {template, adjusted_movements,
         // recommendation, ...}. Map to the {name, workout_type, ...} shape
@@ -649,7 +1128,15 @@ async function generateWorkout() {
                 movements: response.adjusted_movements || response.template.movements || []
             };
             todayWorkoutForHandoff = workout;
-            renderTodayWorkout(workout);
+            dashboardLoop.hasWorkout = true;
+            const adaptedMeta = {
+                volume_multiplier: response.volume_multiplier,
+                readiness_score: response.readiness_score,
+                recommendation: response.recommendation,
+            };
+            renderTodayWorkout(workout, adaptedMeta);
+            updateLoopStrip();
+            updateDailyPrimaryCta();
             CHOS.toast.success(t('dashboard.workout_generated'));
         } else {
             CHOS.toast.error(t('dashboard.workout_generate_error'));
@@ -662,42 +1149,25 @@ async function generateWorkout() {
     }
 }
 
+function applyTrainedTodayWorkoutUi() {
+    const $actions = $('#today-workout-container .chos-workout-hero__actions');
+    if (!$actions.length) return;
+    $actions.html(`<span class="chos-badge chos-badge-success"><i class="fas fa-check-circle me-1"></i>${t('dashboard.hub.session_done')}</span>`);
+}
+
 function startWorkout() {
     // Hand off the cached workout so the workouts page can open the
     // tracking modal directly. Without this, the workouts page would
     // call /training/today and find nothing (the adaptive /generate
     // endpoint doesn't persist a PlannedSession).
     if (todayWorkoutForHandoff && CHOS.startWorkoutFromTemplate) {
-        CHOS.startWorkoutFromTemplate(todayWorkoutForHandoff);
+        CHOS.startWorkoutFromTemplate(todayWorkoutForHandoff, {
+            planned_session_id: todayPlannedSessionId,
+            template_id: todayWorkoutForHandoff.id || null,
+        });
         return;
     }
     window.location.href = '/dashboard/workouts';
-}
-
-function startQuickWorkout() {
-    // Trigger today's adaptive workout generation. The /generate endpoint
-    // ignores hint fields and adapts to today's macrocycle/readiness, so we
-    // just send an empty body. Response is AdaptiveWorkoutResponse with
-    // {template, adjusted_movements, recommendation, ...} — not {workout}.
-    CHOS.loading.button('a[onclick*="startQuickWorkout"]', true);
-    CHOS.api.post('/api/v1/training/generate', {})
-        .then(response => {
-            if (response && response.template) {
-                // Cache for the workouts page so it can open the tracking
-                // modal directly without a second generate round-trip.
-                sessionStorage.setItem('chos-quick-workout', JSON.stringify(response));
-                window.location.href = '/dashboard/workouts?quick=1';
-            } else {
-                CHOS.toast.error(t('dashboard.quick_workout_error'));
-            }
-        })
-        .catch(xhr => {
-            const detail = xhr && xhr.responseJSON && xhr.responseJSON.detail;
-            CHOS.toast.error(typeof detail === 'string' ? detail : t('dashboard.quick_workout_error'));
-        })
-        .always(() => {
-            CHOS.loading.button('a[onclick*="startQuickWorkout"]', false);
-        });
 }
 
 async function loadNotifications() {
@@ -706,27 +1176,44 @@ async function loadNotifications() {
         const notifications = response.notifications || [];
         
         if (notifications.length === 0) return;
-        
-        let html = `<div class="chos-card mt-4"><div class="card-header"><h6 class="fw-bold mb-0">${t('dashboard.notifications_title')}</h6></div><div class="card-body" style="padding-top: 0; padding-bottom: 0;">`;
-        
-        notifications.forEach((notif, idx) => {
-            const icon = notif.type === 'badge' ? '🏆' :
-                        notif.type === 'streak' ? '🔥' :
-                        notif.type === 'level_up' ? '⬆️' : '📬';
-            const isLast = idx === notifications.length - 1;
-            const borderClass = isLast ? '' : 'border-bottom';
-            html += `
-            <div class="d-flex align-items-start gap-3 py-3 ${borderClass} ${notif.read ? 'opacity-50' : ''}" style="border-color: var(--color-border) !important;">
-                <span style="font-size: 20px; flex-shrink: 0;">${icon}</span>
+
+        let items = '';
+        notifications.forEach((notif) => {
+            const iconCls = notif.type === 'badge' ? 'is-badge' :
+                        notif.type === 'streak' ? 'is-streak' :
+                        notif.type === 'level_up' ? 'is-level' : 'is-default';
+            const iconFa = notif.type === 'badge' ? 'fa-trophy' :
+                        notif.type === 'streak' ? 'fa-fire' :
+                        notif.type === 'level_up' ? 'fa-arrow-up' : 'fa-bell';
+            items += `
+            <div class="chos-notification-item ${notif.read ? 'is-read' : ''}">
+                <span class="chos-notification-item__icon ${iconCls}" aria-hidden="true"><i class="fas ${iconFa}"></i></span>
                 <div class="flex-1" style="min-width: 0;">
                     <div class="fw-semibold text-body">${CHOS.escape(notif.title)}</div>
                     <div class="small text-secondary">${CHOS.escape(notif.body)}</div>
                 </div>
             </div>`;
         });
-        
-        html += '</div></div>';
+
+        const html = `<details class="chos-card chos-details-card mb-4" open>
+            <summary class="card-body d-flex justify-content-between align-items-center">
+                <h6 class="fw-semibold mb-0 text-secondary" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">${t('dashboard.notifications_title')}</h6>
+                <button type="button" class="chos-btn chos-btn-ghost chos-btn-sm" id="btn-mark-notifications-read">${t('dashboard.mark_all_read')}</button>
+            </summary>
+            <div class="card-body pt-0 border-top" style="border-color: var(--color-border); padding-bottom: 0;">${items}</div>
+        </details>`;
         $('#notifications-container').html(html);
+
+        $('#btn-mark-notifications-read').on('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+                await CHOS.api.post('/api/v1/notifications/read-all');
+                loadNotifications();
+            } catch (e) {
+                console.error('Mark read failed', e);
+            }
+        });
         
     } catch (error) {
         console.log('Error loading notifications');
@@ -738,15 +1225,11 @@ function openRecoveryModal() {
 }
 
 function saveRecovery() {
-    // Map the dashboard quick-modal fields to the RecoveryMetricCreate schema.
-    // The schema requires `date` and uses `sleep_duration_hours`; the
-    // readiness select doubles as a self-rated quality score 1-100.
-    const today = new Date().toISOString().split('T')[0];
-    const readiness = parseInt($('#recovery-readiness').val(), 10);
+    const today = CHOS.todayLocalIso();
     const data = {
         date: today,
         sleep_duration_hours: parseFloat($('#recovery-sleep').val()) || null,
-        sleep_quality_score: isNaN(readiness) ? null : readiness,
+        energy_level: parseInt($('#recovery-energy').val(), 10) || null,
         muscle_soreness: parseInt($('#recovery-soreness').val(), 10) || null,
         stress_level: parseInt($('#recovery-stress').val(), 10) || null,
     };
@@ -755,6 +1238,10 @@ function saveRecovery() {
         .then(() => {
             CHOS.toast.success(t('dashboard.recovery_saved'));
             recoveryModal.hide();
+            renderReadinessSummary();
+            loadTodayWorkout();
+            updateLoopStrip();
+            updateDailyPrimaryCta();
         })
         .catch(() => {
             CHOS.toast.error(t('dashboard.recovery_save_error'));

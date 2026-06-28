@@ -31,8 +31,9 @@ def _payload(**overrides):
 
 class TestCompleteOnboarding:
     @pytest.mark.asyncio
+    @patch("app.services.starter_program.create_starter_program", return_value=None)
     async def test_complete_onboarding_success(
-        self, authenticated_client: AsyncClient, db_session, seeded_user
+        self, mock_program, authenticated_client: AsyncClient, db_session, seeded_user
     ):
         response = await authenticated_client.post(
             "/api/v1/onboarding/complete", json=_payload()
@@ -41,13 +42,30 @@ class TestCompleteOnboarding:
         data = response.json()
         assert data["success"] is True
         assert data["xp_earned"] == 300
-        assert data["schedule_created"] is False  # New flow: user creates macro separately
+        assert data["schedule_created"] is False
 
         db_session.refresh(seeded_user)
         prefs = seeded_user.preferences or {}
         assert prefs["onboarding_completed"] is True
         assert prefs["primary_goal"] == "strength"
         assert prefs["methodologies"] == ["hwpo"]
+        mock_program.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch(
+        "app.services.starter_program.create_starter_program",
+        return_value={"program_id": "p1", "macrocycle_id": "m1", "planned_sessions": 12},
+    )
+    async def test_complete_onboarding_creates_program_when_available(
+        self, mock_program, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        response = await authenticated_client.post(
+            "/api/v1/onboarding/complete", json=_payload()
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["schedule_created"] is True
+        assert data["program"]["planned_sessions"] == 12
 
     @pytest.mark.asyncio
     async def test_complete_onboarding_with_birth_date_young(

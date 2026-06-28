@@ -56,12 +56,11 @@
       let recoveryPct = 0;
       if (latestRecovery && isToday(latestRecovery.date)) recoveryPct = 1;
 
-      // Nutrition: today's calories vs a 2000kcal default (the per-user
-      // target lives in the nutrition page context; fold it in once we have
-      // a /me/targets endpoint).
+      // Nutrition: today's calories vs the user's configured target.
       let nutritionPct = 0;
       if (macros && macros.calories) {
-         nutritionPct = Math.min(1, macros.calories / 2000);
+         const targetCals = (macros.targets && macros.targets.calories) || 2000;
+         nutritionPct = Math.min(1, macros.calories / targetCals);
       }
 
       return { trainPct, recoveryPct, nutritionPct };

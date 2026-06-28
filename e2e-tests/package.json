@@ -9,8 +9,13 @@
     "test:ui": "playwright test --ui",
     "test:smoke": "playwright test --grep @smoke",
     "test:auth": "playwright test tests/auth.spec.js",
+    "test:public": "playwright test tests/public-pages.spec.js",
     "test:onboarding": "playwright test tests/onboarding.spec.js",
     "test:dashboard": "playwright test tests/dashboard.spec.js",
+    "test:features": "playwright test tests/feature-pages.spec.js",
+    "test:internal": "playwright test tests/internal-area.spec.js",
+    "test:training-flow": "playwright test tests/training-flow.spec.js",
+    "test:navigation": "playwright test tests/navigation.spec.js",
     "test:edge": "playwright test tests/edge-cases.spec.js",
     "report": "playwright show-report",
     "install:browsers": "playwright install chromium --with-deps"

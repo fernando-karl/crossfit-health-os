@@ -1,6 +1,8 @@
 """
-Database helper functions
-Error handling and common query patterns
+DEPRECATED — Supabase helper functions (legacy).
+
+Production code uses SQLAlchemy via ``app.db.session``. These helpers remain
+only for backward compatibility with old tests; do not use in new code.
 """
 from fastapi import HTTPException
 import logging
@@ -22,7 +24,6 @@ def handle_supabase_response(response, error_message: str = "Database error"):
     Raises:
         HTTPException if error occurred
     """
-    # Check if response has error attribute (PostgrestResponse)
     if hasattr(response, 'error') and response.error:
         logger.error(f"Supabase error: {response.error}")
         raise HTTPException(
@@ -30,26 +31,25 @@ def handle_supabase_response(response, error_message: str = "Database error"):
             detail=f"{error_message}: {response.error.message if hasattr(response.error, 'message') else str(response.error)}"
         )
 
-    return response.data
+    if hasattr(response, 'data'):
+        return response.data
+
+    return response
 
 
 def handle_supabase_single(response, not_found_message: str = "Resource not found"):
     """
-    Handle Supabase single() queries with error checking
-
-    Args:
-        response: Supabase query response
-        not_found_message: Message when resource not found
+    Handle Supabase single-row response
 
     Returns:
-        Single record data
+        Single row dict
 
     Raises:
-        HTTPException for errors or not found
+        HTTPException if not found or error
     """
     data = handle_supabase_response(response, "Failed to fetch resource")
 
     if not data:
         raise HTTPException(status_code=404, detail=not_found_message)
 
-    return data
+    return data[0] if isinstance(data, list) else data

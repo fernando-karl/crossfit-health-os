@@ -30,7 +30,12 @@ class TestHealthKitSync:
         with patch(
             "app.api.v1.integrations.sync_healthkit_data",
             new_callable=AsyncMock,
-            return_value={"count": 5},
+            return_value={
+                "count": 5,
+                "recovery_metric_updated": True,
+                "metric_date": "2026-03-30",
+                "readiness_score": 72,
+            },
         ):
             response = await authenticated_client.post(
                 "/api/v1/integrations/healthkit/sync", json=data
@@ -40,6 +45,8 @@ class TestHealthKitSync:
         result = response.json()
         assert result["status"] == "success"
         assert result["records_synced"] == 5
+        assert result["recovery_metric_updated"] is True
+        assert result["readiness_score"] == 72
 
     @pytest.mark.asyncio
     async def test_sync_healthkit_empty_data(
@@ -123,6 +130,22 @@ class TestHealthKitSync:
             json={"device": "X" * 1000},
         )
         assert response.status_code == 422
+
+
+class TestHealthkitStatus:
+  @pytest.mark.asyncio
+  async def test_healthkit_status_no_sync(
+      self, authenticated_client: AsyncClient
+  ):
+      response = await authenticated_client.get("/api/v1/integrations/healthkit/status")
+      assert response.status_code == 200
+      data = response.json()
+      assert data["last_sync_at"] is None
+      assert data["recovery_source"] == "none"
+      assert data["connected"] is False
+      assert data["stale"] is False
+      assert "sync_url" in data
+      assert data["sync_url"].endswith("/api/v1/integrations/healthkit/sync")
 
 
 class TestCalendarOAuthUrl:

@@ -31,24 +31,23 @@ def _reset_limiter():
 class TestLoginRateLimit:
     async def test_blocks_after_5_attempts_per_minute(self, async_client: AsyncClient):
         """6th login attempt within a minute → 429."""
-        # Use unique IP per test by setting X-Forwarded-For (slowapi honors it).
         headers = {"X-Forwarded-For": "203.0.113.10"}
         payload = {"email": "nobody@example.com", "password": "WrongPass1"}
 
-        # First 5 attempts: 401 (invalid creds), but accepted by limiter.
-        for i in range(5):
-            r = await async_client.post(
-                "/api/v1/auth/login", json=payload, headers=headers
-            )
-            assert r.status_code in (401, 400), (
-                f"attempt {i+1} unexpected: {r.status_code}"
-            )
+        with patch("app.api.v1.auth.get_user_by_email", return_value=(1, "nobody@example.com", "hash", "U", None, None, None, "beginner", [])):
+            with patch("app.api.v1.auth.verify_password", return_value=False):
+                for i in range(5):
+                    r = await async_client.post(
+                        "/api/v1/auth/login", json=payload, headers=headers
+                    )
+                    assert r.status_code in (401, 400), (
+                        f"attempt {i+1} unexpected: {r.status_code}"
+                    )
 
-        # 6th attempt: 429 from slowapi.
-        r = await async_client.post(
-            "/api/v1/auth/login", json=payload, headers=headers
-        )
-        assert r.status_code == 429
+                r = await async_client.post(
+                    "/api/v1/auth/login", json=payload, headers=headers
+                )
+                assert r.status_code == 429
 
 
 @pytest.mark.asyncio
@@ -85,20 +84,19 @@ class TestRateLimitIsolatedByKey:
     """Limit buckets are per-key, so a different IP starts at zero."""
 
     async def test_different_ip_independent_quota(self, async_client: AsyncClient):
-        # Burn through one IP's quota for /login.
-        h1 = {"X-Forwarded-For": "203.0.113.30"}
-        h2 = {"X-Forwarded-For": "203.0.113.31"}
+        h1 = {"X-Forwarded-For": "203.0.113.91"}
+        h2 = {"X-Forwarded-For": "203.0.113.92"}
         payload = {"email": "n@example.com", "password": "Pw12345A"}
-        for _ in range(5):
-            await async_client.post("/api/v1/auth/login", json=payload, headers=h1)
+        with patch("app.api.v1.auth.get_user_by_email", return_value=(1, "n@example.com", "hash", "U", None, None, None, "beginner", [])):
+            with patch("app.api.v1.auth.verify_password", return_value=False):
+                for _ in range(5):
+                    await async_client.post("/api/v1/auth/login", json=payload, headers=h1)
 
-        # IP1 is exhausted.
-        r1 = await async_client.post("/api/v1/auth/login", json=payload, headers=h1)
-        assert r1.status_code == 429
+                r1 = await async_client.post("/api/v1/auth/login", json=payload, headers=h1)
+                assert r1.status_code == 429
 
-        # IP2 still has its full quota.
-        r2 = await async_client.post("/api/v1/auth/login", json=payload, headers=h2)
-        assert r2.status_code in (401, 400), r2.text
+                r2 = await async_client.post("/api/v1/auth/login", json=payload, headers=h2)
+                assert r2.status_code in (401, 400), r2.text
 
 
 class TestLimiterBackendSelection:

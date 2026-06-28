@@ -1,0 +1,18 @@
+/**
+ * CrossFit Health OS — shared brand tokens (landing + app shell).
+ * Keep visual identity aligned: green accent, warm orange, Apple-like neutrals.
+ */
+:root {
+   --brand-accent: #30d158;
+   --brand-accent-press: #28b94c;
+   --brand-accent-soft: rgba(48, 209, 88, 0.12);
+   --brand-hot: #ff9f0a;
+   --brand-ink: #1d1d1f;
+   --brand-paper: #f5f5f7;
+   --brand-white: #ffffff;
+   --brand-hairline: rgba(0, 0, 0, 0.08);
+
+   /* Frosted nav — same in light and dark (Apple Fitness+ style) */
+   --brand-nav-bg: rgba(255, 255, 255, 0.72);
+   --brand-nav-blur: saturate(180%) blur(20px);
+}

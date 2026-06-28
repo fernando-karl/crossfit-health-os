@@ -5,15 +5,15 @@
       <i class="fas fa-house"></i>
       <span>{{ t("nav.tabs.today") }}</span>
    </a>
-   <a href="/dashboard/schedule" class="{{ 'active' if active_page in ('schedule', 'workouts', 'reviews') }}">
+   <a href="/dashboard/workouts" class="{{ 'active' if active_page in ('schedule', 'workouts', 'reviews', 'programs') }}">
       <i class="fas fa-dumbbell"></i>
       <span>{{ t("nav.tabs.train") }}</span>
    </a>
-   <a href="/dashboard/nutrition" class="{{ 'active' if active_page == 'nutrition' }}">
+   <a href="/dashboard/nutrition" class="nav-nutrition {{ 'active' if active_page == 'nutrition' }}">
       <i class="fas fa-utensils"></i>
       <span>{{ t("nav.tabs.nutrition") }}</span>
    </a>
-   <a href="/dashboard/health" class="{{ 'active' if active_page in ('health', 'reviews') }}">
+   <a href="/dashboard/health" class="{{ 'active' if active_page == 'health' }}">
       <i class="fas fa-heart-pulse"></i>
       <span>{{ t("nav.tabs.progress") }}</span>
    </a>

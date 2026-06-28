@@ -286,10 +286,63 @@ class GroqProvider(OpenAICompatibleProvider):
 
 
 class MinimaxProvider(OpenAICompatibleProvider):
+    """MiniMax — OpenAI-compatible at api.minimax.io/v1.
+
+    Model is env-selectable via MINIMAX_MODEL (mirrors OLLAMA_MODEL /
+    UNSLOTH_MODEL), so the harnesses — which all instantiate providers via
+    bare ``cls()`` — can target a specific MiniMax model (e.g. MiniMax-M3)
+    without editing each script. Resolution: arg > MINIMAX_MODEL > default.
+
+    Reasoning handling: MiniMax-M3+ are reasoning models that emit
+    ``<think>...</think>`` and burn output tokens reasoning before the JSON.
+    Two mitigations, applied only when the model looks like a reasoner
+    (name contains "m3"; override with MINIMAX_REASONING=1/0):
+      1. Skip strict ``response_format=json_object`` — unreliable for
+         reasoners — and lean on the prompt's "output ONLY JSON" instruction
+         plus the tolerant parser (which strips ``<think>``). Same approach
+         as OllamaProvider for qwen3-thinking.
+      2. Enforce a higher max_tokens floor so a long reasoning trace doesn't
+         truncate the JSON mid-object (the cause of schema-parse failures).
+    M2.7 and other non-reasoning models are unaffected.
+    """
     family = "minimax"
     default_model = "MiniMax-M2.7"
     default_base_url = "https://api.minimax.io/v1"
     env_var = "MINIMAX_API_KEY"
+    # Token floor for reasoning models: room for <think> + the full JSON block.
+    reasoning_min_max_tokens = 8192
+
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+    ):
+        super().__init__(
+            model=model or os.getenv("MINIMAX_MODEL"),
+            api_key=api_key,
+            base_url=base_url,
+        )
+        flag = os.getenv("MINIMAX_REASONING")
+        if flag is not None:
+            self.is_reasoning = flag.strip().lower() in ("1", "true", "yes", "on")
+        else:
+            self.is_reasoning = "m3" in self.model.lower()
+        if self.is_reasoning:
+            # Trust prompt-based JSON + tolerant parser instead of json_object.
+            self.supports_response_format = False
+
+    def complete(
+        self, system: str, user: str,
+        json_mode: bool = True, temperature: float = 0.0,
+        max_tokens: int = 1024, label: Optional[str] = None,
+    ) -> LLMResponse:
+        if self.is_reasoning:
+            max_tokens = max(max_tokens, self.reasoning_min_max_tokens)
+        return super().complete(
+            system=system, user=user, json_mode=json_mode,
+            temperature=temperature, max_tokens=max_tokens, label=label,
+        )
 
 
 class GrokProvider(OpenAICompatibleProvider):

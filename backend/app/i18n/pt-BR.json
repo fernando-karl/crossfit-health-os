@@ -19,6 +19,7 @@
   "nav": {
     "menu": {
       "dashboard": "Painel",
+      "train": "Treino",
       "workouts": "Treinos",
       "schedule": "Calendário",
       "programs": "Programas",
@@ -46,15 +47,21 @@
     "fab": {
       "label": "Ações rápidas",
       "log_recovery": "Registrar recovery",
+      "generate_workout": "Gerar treino de hoje",
       "meal_photo": "Foto da refeição",
       "add_pr": "Novo PR",
       "go_schedule": "Calendário"
+    },
+    "train_now": {
+      "label": "Treinar agora",
+      "none": "Nenhum treino planejado. Abra o calendário para gerar sua semana."
     },
     "workout_bar": {
       "label": "Sessão em andamento — toque para retomar",
       "stop": "Encerrar"
     },
-    "integrations": "Integrações"
+    "integrations": "Integrações",
+    "nutrition_disabled_redirect": "Nutrição desativada no seu plano."
   },
   "schedule": {
     "page_title": "Calendário de Treinos",
@@ -90,32 +97,62 @@
       "field_duration_unit": "(min)",
       "field_days": "Dias de treino",
       "field_days_unit": "(por semana)",
+      "days_chip": "dias",
       "block_plan_title": "Plano de Blocos",
       "block_plan_pick_date": "Informe a data de início.",
       "block_plan_custom_hint": "Custom: você pode adicionar blocos manualmente após criar.",
       "weeks_short": "{n} sem",
-      "method_hwpo": "HWPO ({n} sem)",
-      "method_mayhem": "Mayhem ({n} sem)",
-      "method_comptrain": "CompTrain ({n} sem)",
+      "method_hwpo": "Competição ({n} sem)",
+      "method_mayhem": "Alto volume ({n} sem)",
+      "method_comptrain": "Equilibrado ({n} sem)",
       "method_custom": "Custom",
       "block_plan_total": "Total: {n} semanas",
       "name_placeholder": "Ex: Preparação Open 2026",
       "goal_placeholder": "Ex: Competir no Open"
     },
     "block_badge": "Bloco: {block}",
+    "phase_timeline_title": "Periodização do macrociclo",
+    "week_strip_label": "Semanas do bloco atual",
+    "review_link": "Ver review semanal",
+    "review_link_short": "Review",
+    "week_stats": {
+      "training": "{n} treinos",
+      "generated": "{n} gerados",
+      "completed": "{n} feitos",
+      "rest": "{n} dias descanso",
+      "progress": "{done} de {total} treinos feitos"
+    },
+    "next_workout": {
+      "label": "Próximo treino",
+      "today": "Hoje",
+      "start": "Começar agora",
+      "hint": "Atalho: Enter com o card em foco"
+    },
+    "tooltip": {
+      "equipment": "Equipamento: {list}",
+      "no_equipment": "Sem equipamento especial"
+    },
     "week_label": "Semana {wk_in_block}/{total_in_block} · Semana {wk_in_macro} do macro",
+    "macro_session_duration": "{n} min por sessão",
     "today_suffix": "hoje",
     "session": {
       "rest": "Descanso",
       "generated_tooltip": "Treino gerado",
       "rest_tooltip": "Dia de descanso",
-      "duration_min": "min"
+      "duration_min": "min",
+      "status_planned": "Planejado",
+      "status_generated": "Gerado",
+      "status_completed": "Feito",
+      "status_rest": "Descanso",
+      "quick_start": "Iniciar",
+      "quick_start_short": "Treinar",
+      "double_tap_title": "Toque duas vezes para treinar"
     },
     "shift": {
       "morning": "Manhã",
       "afternoon": "Tarde",
       "evening": "Noite",
-      "custom": "Custom"
+      "custom": "Horário livre"
     },
     "workout_type": {
       "strength": "Força",
@@ -124,6 +161,27 @@
       "conditioning": "Cardio",
       "mixed": "Misto",
       "rest": "Descanso"
+    },
+    "stimulus": {
+      "group_strength": "Força",
+      "group_conditioning": "Cardio / Zona",
+      "group_metcon": "Metcon / Alta intensidade",
+      "group_skill": "Skill / Ginástica",
+      "custom": "Personalizado…",
+      "strength_max": "Força máxima",
+      "strength_volume": "Volume de força",
+      "hypertrophy": "Hipertrofia",
+      "power": "Potência",
+      "aerobic_z2": "Aeróbico Z2",
+      "aerobic_threshold": "Limiar aeróbico",
+      "vo2_max": "VO₂ máx",
+      "lactic_tolerance": "Tolerância láctica",
+      "alactic_power": "Potência alática",
+      "mixed_modal": "Mixed modal",
+      "gymnastic_capacity": "Capacidade ginástica",
+      "skill_acquisition": "Aquisição de skill",
+      "midline_endurance": "Resistência de core",
+      "recovery": "Recuperação ativa"
     },
     "toast": {
       "macro_created": "Macrociclo criado!",
@@ -154,10 +212,17 @@
       "field_shift": "Turno",
       "field_start_time": "Hora",
       "field_duration": "Duração",
+      "duration_custom": "Outro",
+      "duration_macro_hint": "Padrão do macrociclo",
+      "shift_time_hint": "Escolha o turno ou defina um horário livre.",
       "field_type": "Tipo",
-      "field_focus": "Foco",
+      "field_focus": "Estímulo",
+      "focus_hint": "O que o corpo deve desenvolver nesta sessão — alinha com a periodização do programa.",
+      "focus_filtered": "Mostrando estímulos compatíveis com o tipo selecionado.",
+      "focus_unset": "Sem estímulo definido",
       "focus_placeholder": "Ex: agachamento pesado + metcon curto",
       "session_n": "Sessão {n}",
+      "workout_content": "Conteúdo do treino",
       "session_settings": "Ajustes da sessão",
       "delete_session": "Excluir sessão",
       "start_session": "Iniciar treino",
@@ -255,7 +320,7 @@
     "status_generate": "Gerar",
     "actions": {
       "log_recovery": "Registrar Recovery",
-      "log_recovery_desc": "HRV, sono, dor muscular",
+      "log_recovery_desc": "Sono, energia, dor, estresse",
       "quick_workout": "Treino rápido",
       "quick_workout_desc": "Condicionamento de 15 min",
       "weekly_plan": "Plano semanal",
@@ -290,6 +355,7 @@
     },
     "recovery_modal": {
       "title": "Registrar métricas de recovery",
+      "subtitle": "Check-in matinal — sua prontidão atualiza em tempo real.",
       "feel": "Como você se sente hoje?",
       "feel_options": {
         "great": "😀 Ótimo - 90%",
@@ -299,19 +365,89 @@
         "exhausted": "😫 Exausto - 20%"
       },
       "sleep": "Sono (horas)",
+      "energy": "Nível de energia (1-10)",
+      "energy_low": "Baixa",
+      "energy_high": "Alta",
       "soreness": "Dor muscular (1-10)",
       "soreness_low": "Nenhuma",
       "soreness_high": "Muita dor",
       "stress": "Estresse (1-10)",
       "stress_low": "Baixo",
-      "stress_high": "Alto"
+      "stress_high": "Alto",
+      "healthkit_hint": "Opcional: informe HRV e FC de repouso se você tiver esses dados.",
+      "checkin_hint": "Quatro campos rápidos — sono, energia, dor e estresse. Leva menos de um minuto."
     },
     "recovery_saved": "Métricas de recovery salvas!",
     "recovery_save_error": "Erro ao salvar métricas.",
     "workout_generated": "Treino gerado!",
     "workout_generate_error": "Não foi possível gerar treino.",
     "quick_workout_error": "Não foi possível iniciar treino rápido.",
-    "notifications_title": "Notificações recentes"
+    "notifications_title": "Notificações recentes",
+    "mark_all_read": "Marcar todas como lidas",
+    "readiness_banner": "Prontidão: {score}/100 ({status})",
+    "readiness_card": {
+      "title": "Prontidão de hoje",
+      "sleep": "sono",
+      "no_data": "Faça o check-in matinal para ver sua pontuação de prontidão.",
+      "source_healthkit": "Apple Health",
+      "source_manual": "Check-in manual"
+    },
+    "adapted": {
+      "volume": "Volume {mult}x",
+      "readiness_score": "Prontidão {score}"
+    },
+    "mesocycle": {
+      "title": "Bloco atual",
+      "default_name": "Programa de treino",
+      "week_of": "Semana {current} de {total}",
+      "phase": "Fase: {phase}",
+      "view_schedule": "Ver calendário"
+    },
+    "hub": {
+      "title": "Seu dia",
+      "checkin_cta": "Fazer check-in matinal",
+      "checkin_done": "Check-in feito",
+      "session_done": "Sessão feita",
+      "no_workout_yet": "Gere ou ative um programa para ver o treino de hoje."
+    },
+    "morning": {
+      "greeting": "Bom dia",
+      "greeting_afternoon": "Boa tarde",
+      "greeting_evening": "Boa noite",
+      "week_sessions": "{done}/{target} esta semana"
+    },
+    "daily_cta": {
+      "checkin_title": "Seu treino se adapta à recuperação — check-in de 20 segundos",
+      "checkin_btn": "Fazer check-in",
+      "train_title": "Check-in feito — pronto para treinar",
+      "train_btn": "Iniciar sessão",
+      "done_title": "Sessão de hoje registrada — a recuperação guia o plano de amanhã",
+      "no_workout_title": "Check-in feito — gere o treino de hoje",
+      "no_workout_btn": "Gerar treino"
+    },
+    "week_pulse": {
+      "title": "Esta semana em resumo",
+      "summary": "{sessions} sessões · RPE {rpe}"
+    },
+    "setup_nudge": {
+      "title": "Ative um programa de treino",
+      "desc": "O ciclo adaptativo funciona melhor com um plano semanal — gere ou ative um em Programas.",
+      "cta": "Configurar programa"
+    },
+    "loop": {
+      "checkin": "Check-in",
+      "workout": "Treino",
+      "train": "Sessão",
+      "review": "Review",
+      "block": "Bloco"
+    },
+    "review_teaser": {
+      "title": "Review semanal",
+      "empty": "Complete uma semana de treinos e gere seu resumo estilo coach.",
+      "generate": "Gerar review",
+      "view": "Ver detalhes",
+      "adherence": "Aderência"
+    }
   },
   "profile": {
     "title": "Configurações do Perfil",
@@ -363,12 +499,16 @@
     "btn_manual": "Iniciar treino manual",
     "next_workout": "Próximo treino",
     "btn_start": "Iniciar",
+    "btn_start_session": "Iniciar sessão",
+    "log_set": "Registrar série",
     "personal_records": "Recordes Pessoais",
     "btn_add_pr": "Adicionar PR",
     "no_prs": "Nenhum recorde pessoal ainda",
     "type_distribution": "Distribuição por tipo",
     "avg_rpe_7d": "RPE médio (7 dias)",
     "session_complete": "Treino concluído!",
+    "from_schedule_done": "Sessão do calendário registrada — o dia aparece como feito no plano.",
+    "view_schedule": "Ver calendário",
     "session_save_error": "Erro ao salvar treino.",
     "no_workouts": "Sem treinos ainda — gere um para começar.",
     "active_session": "Sessão Ativa",
@@ -428,7 +568,12 @@
     "shift_afternoon": "Tarde",
     "shift_evening": "Noite",
     "start_rest_for": "Iniciar descanso de {rest}",
-    "rest_started": "Descanso iniciado"
+    "rest_started": "Descanso iniciado",
+    "pr_modal": {
+      "movement": "Movimento",
+      "value_kg": "Valor (kg)",
+      "save": "Salvar PR"
+    }
   },
   "health": {
     "page_title": "Saúde & Recovery",
@@ -456,6 +601,12 @@
     "save_metrics": "Salvar métricas",
     "metrics_saved": "Métricas de recovery salvas!",
     "metrics_save_error": "Erro ao salvar métricas",
+    "advanced_details": "Detalhes avançados (data, HRV, notas)",
+    "no_data_today": "Sem dados hoje. Registre seu check-in!",
+    "history_empty": "Nenhum registro ainda. Faça seu primeiro check-in acima.",
+    "history_load_error": "Não foi possível carregar o histórico.",
+    "table_date": "Data",
+    "table_status": "Status",
     "low": "Baixo",
     "high": "Alto",
     "none": "Nenhuma",
@@ -522,6 +673,18 @@
     "photo_confidence_high": "Confiança alta.",
     "diet_plan_title": "Plano alimentar",
     "diet_plan_subtitle": "Envie o PDF do seu plano para definir as metas de macros",
+    "diet_plan_or_manual": "Ou defina calorias e macros manualmente no bloco acima.",
+    "targets_title": "Metas diárias",
+    "targets_subtitle": "Calorias e macros usados nos anéis, no dashboard e no progresso do dia.",
+    "targets_save": "Salvar metas",
+    "targets_reset": "Usar plano ou padrão",
+    "targets_saved": "Metas salvas",
+    "targets_reset_done": "Metas restauradas",
+    "targets_save_error": "Não foi possível salvar as metas",
+    "targets_default_hint": "Sem plano alimentar nem metas manuais — usando 2000 kcal como referência.",
+    "target_source_manual": "Definido por você",
+    "target_source_diet_plan": "Do plano alimentar",
+    "target_source_default": "Padrão do sistema",
     "diet_plan_none": "Nenhum plano alimentar enviado ainda",
     "diet_plan_upload": "Enviar PDF",
     "diet_plan_replace": "Substituir",
@@ -572,7 +735,15 @@
     "btn_activate": "Ativar",
     "btn_view": "Ver programa",
     "activated_toast": "Programa ativado — calendário atualizado.",
-    "generated_toast": "Programa gerado com sucesso."
+    "generated_toast": "Programa gerado com sucesso.",
+    "phases": {
+      "base": "Base",
+      "build": "Construir",
+      "deload": "Deload",
+      "peak": "Pico",
+      "intensity": "Intensidade",
+      "test": "Testar PRs"
+    }
   },
   "reviews": {
     "page_title": "Reviews semanais",
@@ -583,6 +754,10 @@
     "empty_desc": "Complete uma semana de treinos e gere seu primeiro review com IA para receber recomendações personalizadas.",
     "detail_title": "Detalhes do review semanal",
     "btn_apply": "Aplicar ajustes",
+    "btn_apply_inline": "Aplicar",
+    "metric_adherence": "Aderência",
+    "metric_rpe": "RPE médio",
+    "metric_readiness": "Prontidão média",
     "week_n": "Semana {n}",
     "strengths": "Pontos fortes",
     "weaknesses": "A melhorar",
@@ -631,37 +806,54 @@
     "hero": {
       "title_1": "Performance Humana de Elite",
       "title_2": "Com IA",
-      "lead": "Integrando biometria, treino adaptativo e inteligência nutricional para criar um sistema fechado de otimização de performance.",
+      "lead": "Treino de CrossFit adaptativo com base na sua recuperação — check-in rápido na web e o plano se ajusta ao seu dia.",
       "cta_trial": "Trial grátis",
-      "cta_learn": "Saber mais"
+      "cta_learn": "Saber mais",
+      "eyebrow": "Treino adaptativo · check-in matinal na web",
+      "eyebrow_plain": "Treino adaptativo · check-in de recuperação na web"
     },
     "features": {
       "title": "Tudo que você precisa para performar",
       "ai_title": "Programação inteligente",
-      "ai_desc": "Planos de treino personalizados em torno dos seus objetivos e pontos fracos. Escolha um estilo — HWPO, Mayhem ou CompTrain — ou deixe o app montar um plano customizado para você.",
+      "ai_desc": "Planos de treino personalizados em torno dos seus objetivos e pontos fracos. Escolha um foco — preparação para competição, condicionamento de alto volume ou desenvolvimento equilibrado — ou deixe o app montar um plano customizado para você.",
       "adaptive_title": "Treino adaptativo",
       "adaptive_desc": "Seus treinos mudam de acordo com como você está. Fresco e descansado? Busca um PR. Acabado? Dia mais leve, mais técnica. Mesmo plano, ajustado pra você.",
       "weekly_title": "Reviews semanais",
-      "weekly_desc": "Todo domingo você recebe um resumo estilo coach: o que foi bem, o que não foi e um plano claro para a semana seguinte.",
-      "meal_title": "Plano de refeições automático",
-      "meal_desc": "Refeições programadas em torno do seu treino. Mais carbo em dias pesados, mais gordura em dias de descanso. Janelas pré e pós-treino cuidadas automaticamente.",
+      "weekly_desc": "Gere um resumo estilo coach quando quiser: o que foi bem, o que não foi e sugestão de foco para a semana.",
+      "meal_title": "Acompanhamento nutricional",
+      "meal_desc": "Registre refeições, acompanhe macros em relação às metas e envie o PDF da dieta do nutricionista. Planos automáticos por dia de treino estão no roadmap.",
       "recovery_title": "Recovery tracking",
-      "recovery_desc": "Registre como dormiu e como se sente em 20 segundos — ou conecte o Apple Health e seus números entram sozinhos.",
+      "recovery_desc": "Registre sono e sensação em menos de um minuto na web — quatro perguntas e o readiness do dia fica pronto.",
       "analytics_title": "Analytics de performance",
-      "analytics_desc": "PRs, tempos de benchmark, tendências de volume, relatório mensal de progresso. Veja onde você está ficando mais forte e onde está travando."
+      "analytics_desc": "Registre PRs, RPE das sessões e tendências de volume conforme treina. Relatórios mensais mais profundos estão a caminho; hoje você vê o essencial no dashboard."
     },
     "loop": {
       "title": "Como funciona",
       "step1_title": "Check-in rápido de manhã",
-      "step1_desc": "Algumas perguntas rápidas sobre sono, energia, dor e estresse — ou sincronize seu Apple Watch e nem precisa digitar.",
+      "step1_desc": "Responda quatro perguntas rápidas (sono, energia, dor, estresse) em menos de 30 segundos.",
       "step2_title": "Treino do dia, pronto",
       "step2_desc": "Com base em como você está, o app escolhe o treino certo. Fresco? Manda ver. Acabado? Sessão mais leve e inteligente.",
       "step3_title": "Treine e registre",
-      "step3_desc": "Faça o treino. Registre cargas, reps e o quanto cada movimento pegou pesado. Quanto mais honesto, melhor o próximo treino se ajusta.",
+      "step3_desc": "Faça o treino. Em levantamentos, registre série a série (carga, reps, ✓). Em metcons, avalie o RPE da sessão ao final. Quanto mais honesto, melhor o ajuste.",
       "step4_title": "Check-in semanal do coach",
-      "step4_desc": "Todo domingo você recebe um resumo claro da semana — pontos fortes, fracos e o plano da próxima.",
+      "step4_desc": "Ao gerar o review semanal, você recebe um resumo claro — pontos fortes, fracos e plano sugerido (aplique quando quiser).",
       "step5_title": "Construir, picar, testar",
-      "step5_desc": "Algumas semanas construindo volume, depois deload, depois intensidade alta, depois testa seus PRs. Repete."
+      "step5_desc": "Algumas semanas construindo volume, depois deload, depois intensidade alta, depois testa seus PRs. Repete.",
+      "demo": {
+        "play": "Reproduzir demo",
+        "pause": "Pausar demo",
+        "step_of": "Passo {current} de {total}",
+        "s1_time": "7:42",
+        "s2_workout": "Back Squat + Chipper",
+        "s2_stimulus": "Força pesada · cap 24 min",
+        "s3_movement": "Back Squat",
+        "s3_sets": "5 × 5",
+        "s3_weight": "140 kg",
+        "s3_rpe": "RPE 8",
+        "s4_week": "Semana 12",
+        "s4_insight": "Volume de squat em alta",
+        "s4_next": "Próxima semana: foco em puxada"
+      }
     },
     "pricing": {
       "title": "Preço simples e transparente",
@@ -670,9 +862,9 @@
       "feat1": "Programação semanal inteligente",
       "feat2": "Treinos que se adaptam ao seu dia",
       "feat3": "Reviews semanais estilo coach",
-      "feat4": "Plano de refeições automático",
-      "feat5": "Recovery e exames de sangue",
-      "feat6": "Integração com Apple Health",
+      "feat4": "Registro de refeições e macros",
+      "feat5": "Recovery e OCR de exames",
+      "feat6": "Check-in matinal de recovery",
       "feat7": "Treinos ilimitados",
       "cta": "Começar trial grátis de 14 dias",
       "no_card": "Sem cartão de crédito"
@@ -687,24 +879,56 @@
       "subtitle": "Respostas rápidas. Quer mais detalhes? Veja a <a href=\"/help\">central de ajuda</a>.",
       "q1": "O que é o CrossFit Health OS, em palavras simples?",
       "a1": "Um parceiro de treino inteligente que escolhe seu treino de cada dia com base em quão recuperado você está. Treina forte quando você está fresco, alivia quando não está, e te dá um review semanal que ajusta a semana seguinte.",
-      "q2": "Preciso de Apple Watch ou alguma coisa especial?",
-      "a2": "Não. Wearable ajuda mas não é obrigatório. Você responde quatro perguntas rápidas toda manhã (sono, energia, dor muscular, estresse) em menos de 30 segundos e o app cuida do resto.",
+      "q2": "Preciso de wearable ou dispositivo especial?",
+      "a2": "Não. Você responde quatro perguntas rápidas toda manhã (sono, energia, dor muscular, estresse) em menos de 30 segundos — direto no navegador — e o app cuida do resto.",
       "q3": "Como o treino se adapta a mim de verdade?",
       "a3": "Dormiu mal ou está acabado? Você recebe menos volume e mais trabalho técnico ou de recuperação. Está se sentindo bem? Recebe a chance de buscar um PR. Mesmo plano, ajustado pra você naquele dia.",
       "q4": "De quem é a programação que o app segue?",
-      "a4": "Você escolhe o estilo no cadastro: HWPO (Mat Fraser), Mayhem (Rich Froning), CompTrain (Ben Bergeron) ou deixa o app montar um programa customizado em torno dos seus objetivos e pontos fracos.",
+      "a4": "Você escolhe um foco no cadastro: preparação para competição (alta intensidade), condicionamento de alto volume ou desenvolvimento equilibrado — ou deixa o app montar um programa customizado em torno dos seus objetivos e pontos fracos.",
       "q5": "Já tenho um plano alimentar. Posso pular a parte de comida?",
-      "a5": "Pode. Escolha 'Apenas Treino' no cadastro e a parte de nutrição some. Se mudar de ideia depois, é só ligar nas configurações.",
+      "a5": "Pode. Escolha <strong>Apenas Treino</strong> no cadastro — salvamos essa preferência hoje. Esconder nutrição no menu está chegando; por enquanto pode ignorar a aba Nutrição.",
       "q6": "Quem vê meus dados de recuperação e exames?",
       "a6": "Só você. Seus dados não são vendidos nem compartilhados. Nunca revelamos quem você é para serviços externos.",
       "q7": "Posso cancelar a qualquer momento?",
-      "a7": "Pode. Trial grátis de 14 dias, sem cartão. Cancele em Perfil → Assinatura. Seus dados ficam disponíveis para exportar por 30 dias depois.",
+      "a7": "Pode. Trial grátis de 14 dias, sem cartão. Cancele no menu do usuário → <strong>Assinatura</strong>. Exportação self-service após cancelar está no roadmap.",
       "q8": "O app está em português?",
       "a8": "Sim. Português completo, incluindo os treinos e a leitura dos exames. Troque o idioma no seu perfil."
     },
     "footer": {
       "tagline": "© 2026 CrossFit Health OS. Construído por atletas, para atletas.",
       "stack": "Treine com inteligência. Recupere bem. Evolua."
+    },
+    "trust": {
+      "checkin": "Check-in matinal",
+      "adaptive": "Treino que se adapta",
+      "calendar": "Google Agenda (treinos)",
+      "lab_ocr": "Leitura de exames (OCR)",
+      "security": "Privacidade em primeiro lugar"
+    },
+    "requirements": {
+      "title": "O que você precisa para começar",
+      "lead": "O app web funciona em qualquer navegador. Alguns minutos de configuração liberam o ciclo adaptativo.",
+      "item1": "Um programa de treino ativo (onboarding + Programas)",
+      "item2": "Check-in diário de recuperação no dashboard (menos de 1 minuto)",
+      "item3": "Registro honesto das sessões (cargas, reps, RPE) depois de treinar",
+      "item4": "Opcional: Google Agenda para lembretes; PDFs de exames para biomarcadores",
+      "checkin_note": "Só precisa de um navegador — o check-in matinal leva menos de um minuto. Nenhum wearable obrigatório."
+    },
+    "eyebrow": {
+      "features": "RECURSOS",
+      "loop": "O CICLO",
+      "pricing": "PREÇOS",
+      "requirements": "PRIMEIROS PASSOS"
+    },
+    "demo": {
+      "back_squat_pr": "PR de agachamento",
+      "plan_fit_score": "Aderência ao plano",
+      "protein": "Proteína",
+      "carbs": "Carboidratos",
+      "fat": "Gordura",
+      "volume_vs_last": "Volume vs. ciclo anterior",
+      "recovery_score_today": "Prontidão · hoje",
+      "prs_last_90": "Últimos 90 dias"
     }
   },
   "help": {
@@ -725,16 +949,16 @@
         "title": "Check-in diário",
         "p1": "Toda manhã, responda quatro perguntas rápidas: quanto tempo dormiu, quão descansado se sente, quão estressado está e o quanto seus músculos estão doendo. Vinte segundos, no máximo.",
         "p2": "Com base nas suas respostas, o app escolhe o treino certo para o dia. Se você dormiu como pedra e está afiado, espere a chance de buscar um PR. Se está esgotado, recebe algo mais leve — trabalho técnico, mobilidade ou recuperação ativa.",
-        "p3": "Se você usa Apple Watch ou similar, seus dados de sono e recuperação entram automaticamente e você pula o check-in manual."
+        "p3": "Opcional: informe HRV e FC de repouso no check-in se você tiver esses números — não são obrigatórios."
       },
       "today_workout": {
         "title": "Treino de hoje",
-        "p1": "Abra o app toda manhã e você vê um treino que combina com como está se sentindo. Toque em <strong>Iniciar Treino</strong> para começar a registrar — anote suas séries, reps, cargas e o quanto cada série pegou pesado em tempo real.",
+        "p1": "Abra o app e veja o treino do dia. Toque em <strong>Iniciar sessão</strong> para registrar — em força, série a série; em metcons, RPE geral ao concluir.",
         "p2": "Não gostou do que veio? Toque em <strong>Gerar</strong> para outra opção. O novo treino respeita sua recuperação igual — só te dá um tipo de estímulo diferente."
       },
       "programs": {
         "title": "Programas de treino",
-        "p1": "Um programa é um plano de várias semanas com uma curva clara — construindo volume, depois pico, depois testando PRs. Para criar um, vá em Programas → Novo Programa, escolha um estilo (HWPO, Mayhem, CompTrain ou customizado), quantas semanas e quantas sessões por semana. O app monta o resto.",
+        "p1": "Um programa é um plano de várias semanas com uma curva clara — construindo volume, depois pico, depois testando PRs. Para criar um, vá em Programas → Novo Programa, escolha um estilo (competição, alto volume, equilibrado ou customizado), quantas semanas e quantas sessões por semana. O app monta o resto.",
         "p2": "Toque em <strong>Ativar</strong> quando estiver satisfeito com o plano e ele preenche seu calendário automaticamente. Só um programa roda por vez; ativar um novo substitui o anterior.",
         "p3": "Você pode visualizar o plano inteiro — semana por semana, sessão por sessão — antes de ativar. Se algo não estiver legal, é só gerar de novo."
       },
@@ -745,8 +969,8 @@
       },
       "tracking": {
         "title": "Registrar sessões e PRs",
-        "p1": "Durante o treino, registre a carga, reps e o quão pesado cada série pegou (escala 1–10). Ao terminar, avalie a sessão e adicione observações se quiser. Quanto mais honesto você for, melhor o próximo treino vai se ajustar a você.",
-        "p2": "PRs (levantamentos e WODs benchmark como Fran, Murph, Helen) são detectados automaticamente. Encontre em Perfil → PRs."
+        "p1": "Durante o treino, registre carga e reps série a série em levantamentos. Em WODs, avalie o RPE da sessão ao final. Quanto mais honesto, melhor o ajuste.",
+        "p2": "Registre PRs em Treinos → Adicionar PR. Levantamentos e benchmarks ficam no seu histórico."
       },
       "nutrition": {
         "title": "Nutrição e refeições",
@@ -760,12 +984,12 @@
       },
       "weekly_review": {
         "title": "Review semanal",
-        "p1": "Todo domingo você recebe um resumo estilo coach da sua semana: o que foi bem, o que não foi, como sua recuperação está, onde você está ficando mais forte. E também já traz o plano da próxima semana — mais volume, menos, subir intensidade, focar num levantamento específico.",
-        "p2": "Reviews antigos ficam em Reviews para você ver sua progressão ao longo do tempo. A próxima semana do programa pega os ajustes recomendados automaticamente."
+        "p1": "Gere um review quando quiser em Reviews — resumo estilo coach da semana: o que foi bem, o que não foi, recuperação e sugestões de volume/intensidade para aplicar na próxima semana.",
+        "p2": "Reviews antigos ficam em Reviews para ver sua progressão. Aplique os ajustes quando quiser."
       },
       "healthkit": {
-        "title": "Integração com Apple Health",
-        "p1": "Tem Apple Watch ou iPhone monitorando seu sono e batimentos? Conecte o Apple Health e seus números entram automaticamente. Sem registro manual — só checar o treino da manhã e ir.",
+        "title": "Wearables (em breve)",
+        "p1": "Hoje o recovery entra pelo check-in matinal na web. Integrações com Apple Health e outros wearables estão no roadmap.",
         "p2": "Não tem Apple? Sem problema. As quatro perguntas do check-in funcionam igual; o app não precisa de wearable para saber como você está."
       },
       "language": {
@@ -1165,6 +1389,36 @@
     "auth_handler_email_verified": "E-mail verificado! Redirecionando para o painel…",
     "auth_handler_failed": "Falha na autenticação"
   },
+  "shared": {
+    "readiness": "Prontidão",
+    "today_readiness": "Prontidão de hoje",
+    "hrv": "VFC",
+    "hrv_ms": "ms VFC",
+    "hrv_7d": "VFC (7d)",
+    "sleep": "sono",
+    "sleep_label": "Sono",
+    "recovery_source_pill": "Check-in matinal",
+    "adapted_to_recovery": "Adaptado à sua recuperação",
+    "session_log": "Registro da sessão",
+    "set_logged": "Série registrada",
+    "week_n_short": "Semana {n}",
+    "phases": {
+      "base": "Base",
+      "build": "Construir",
+      "deload": "Deload",
+      "peak": "Pico",
+      "intensity": "Intensidade",
+      "test": "Testar PRs"
+    },
+    "block_type": {
+      "accumulation": "Construir",
+      "intensification": "Intensidade",
+      "realization": "Pico",
+      "deload": "Deload",
+      "test": "Testar PRs",
+      "transition": "Transição"
+    }
+  },
   "rings": {
     "title": "Sua atividade hoje",
     "train": "Treino",
@@ -1201,18 +1455,16 @@
     "birthdate_invalid": "Digite uma data de nascimento válida"
   },
   "integrations": {
+    "page_subtitle": "Conecte seu calendário. Recovery entra pelo check-in matinal no dashboard.",
+    "gcal_desc": "Sincronize sessões planejadas para os próximos 7 dias.",
     "btn_connect": "Conectar",
     "btn_sync_week": "Sincronizar semana",
-    "endpoint_label": "Endpoint:",
-    "events_created": "{count} evento(s) criado(s) — {status}",
-    "fields_note": "Campos: hrv_rmssd_ms, sleep_duration_hours, sleep_quality_score, resting_heart_rate_bpm. A resposta inclui readiness_score após o sync.",
-    "gcal_desc": "Sincronize sessões planejadas para os próximos 7 dias.",
-    "healthkit_desc": "Sincronize HRV, sono e FC de repouso do Apple Watch para ajustar treinos automaticamente.",
-    "healthkit_guide": "Guia Apple Health",
-    "page_subtitle": "Conecte calendário e dispositivos para sincronizar treinos e métricas.",
-    "source_note": "Código-fonte do app SwiftUI: repositório ios/ — veja ios/README.md para build no Xcode.",
+    "recovery_title": "Recovery (check-in matinal)",
+    "recovery_desc": "Sono, energia, estresse e dor muscular — menos de um minuto. É assim que calculamos seu readiness e ajustamos o treino.",
+    "recovery_cta": "Ir para o check-in",
     "toast_gcal_not_configured": "Google Calendar não configurado neste servidor.",
+    "toast_synced": "Calendário sincronizado",
     "toast_sync_failed": "Falha ao sincronizar calendário",
-    "toast_synced": "Calendário sincronizado"
+    "events_created": "{count} evento(s) criado(s) — {status}"
   }
 }

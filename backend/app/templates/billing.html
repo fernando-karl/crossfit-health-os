@@ -7,61 +7,64 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 760px;">
+<div class="container py-4 chos-page" style="max-width: 760px;">
 
-    <h1 class="h2 fw-bold mb-1">
-        <i class="fas fa-credit-card me-2"></i>{{ t("billing.page_title") }}
-    </h1>
-    <p class="text-muted mb-4">{{ t("billing.subtitle") }}</p>
+    <div class="chos-page-header mb-4">
+        <div>
+            <h1 class="h2">{{ t("billing.page_title") }}</h1>
+            <p class="chos-page-header__sub">{{ t("billing.subtitle") }}</p>
+        </div>
+    </div>
 
     <!-- Current state -->
-    <div class="chos-card mb-4">
-        <div class="card-body">
-            <h5 class="fw-bold mb-3">{{ t("billing.current_status") }}</h5>
+    <div class="chos-card-section is-recovery">
+        <div class="chos-card-section__head">
+            <i class="fas fa-receipt"></i>{{ t("billing.current_status") }}
+        </div>
+        <div class="chos-card-section__body">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-muted">{{ t("billing.status_label") }}</span>
-                <span id="billing-status" class="badge bg-secondary">—</span>
+                <span id="billing-status" class="chos-badge">—</span>
             </div>
             <div class="d-flex justify-content-between align-items-center">
                 <span class="text-muted" id="billing-expires-label">{{ t("billing.expires_label") }}</span>
-                <span id="billing-expires">—</span>
+                <span id="billing-expires" class="num">—</span>
             </div>
 
-            <!-- Trial countdown bar (visible only when trialing) -->
             <div id="trial-countdown" class="mt-3 d-none">
                 <div class="d-flex justify-content-between small text-muted mb-1">
-                    <span><span id="trial-days-left">—</span> {{ t("billing.days_left") }}</span>
+                    <span><span id="trial-days-left" class="num">—</span> {{ t("billing.days_left") }}</span>
                     <span>{{ t("billing.of_trial", days=14) }}</span>
                 </div>
-                <div class="progress" style="height: 6px;">
-                    <div id="trial-progress-bar" class="progress-bar bg-info" style="width: 0%"></div>
+                <div class="chos-progress mb-0" style="height: 6px;">
+                    <div id="trial-progress-bar" class="chos-progress-fill primary" style="width: 0%"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Plan card -->
-    <div class="chos-card mb-4 border border-primary">
+    <div class="chos-card mb-4 chos-card-feature is-nutrition">
         <div class="card-body p-4">
             <div class="text-center mb-3">
-                <h3 class="display-5 fw-bold text-primary mb-1">
-                    $29<span class="fs-5 text-muted">{{ t("landing.pricing.per_month") }}</span>
+                <h3 class="display-5 fw-bold mb-1" style="font-family: var(--font-display); color: var(--brand-accent-press);">
+                    $29<span class="fs-5 text-secondary">{{ t("landing.pricing.per_month") }}</span>
                 </h3>
-                <p class="text-muted mb-0">{{ t("billing.plan_description") }}</p>
+                <p class="text-secondary mb-0">{{ t("billing.plan_description") }}</p>
             </div>
 
             <ul class="list-unstyled mb-4">
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat1") }}</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat2") }}</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat3") }}</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat4") }}</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat5") }}</li>
-                <li class="mb-2"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat6") }}</li>
-                <li class="mb-0"><i class="fas fa-check text-success me-2"></i> {{ t("landing.pricing.feat7") }}</li>
+                <li class="mb-2"><i class="fas fa-check me-2" style="color: var(--brand-accent);"></i> {{ t("landing.pricing.feat1") }}</li>
+                <li class="mb-2"><i class="fas fa-check me-2" style="color: var(--brand-accent);"></i> {{ t("landing.pricing.feat2") }}</li>
+                <li class="mb-2"><i class="fas fa-check me-2" style="color: var(--brand-accent);"></i> {{ t("landing.pricing.feat3") }}</li>
+                <li class="mb-2"><i class="fas fa-check me-2" style="color: var(--brand-accent);"></i> {{ t("landing.pricing.feat4") }}</li>
+                <li class="mb-2"><i class="fas fa-check me-2" style="color: var(--brand-accent);"></i> {{ t("landing.pricing.feat5") }}</li>
+                <li class="mb-2"><i class="fas fa-check me-2" style="color: var(--brand-accent);"></i> {{ t("landing.pricing.feat6") }}</li>
+                <li class="mb-0"><i class="fas fa-check me-2" style="color: var(--brand-accent);"></i> {{ t("landing.pricing.feat7") }}</li>
             </ul>
 
             <!-- Subscribe (visible if trialing or canceled) -->
-            <button class="btn btn-primary btn-lg w-100" id="btn-subscribe">
+            <button class="chos-btn chos-btn-primary chos-btn-lg w-100" id="btn-subscribe">
                 <span class="btn-text">{{ t("billing.subscribe_btn") }}</span>
                 <span class="btn-spinner d-none">
                     <span class="spinner-border spinner-border-sm me-2"></span>
@@ -69,7 +72,7 @@
             </button>
 
             <!-- Manage (visible if active) -->
-            <button class="btn btn-outline-primary btn-lg w-100 d-none" id="btn-manage">
+            <button class="chos-btn chos-btn-outline chos-btn-lg w-100 d-none" id="btn-manage">
                 <i class="fas fa-cog me-2"></i>{{ t("billing.manage_btn") }}
             </button>
         </div>
@@ -78,34 +81,33 @@
     <!-- Cancel (visible if active) -->
     <div class="chos-card mb-4 d-none" id="cancel-section">
         <div class="card-body text-center">
-            <p class="text-muted small mb-2">{{ t("billing.cancel_help") }}</p>
-            <button class="btn btn-link text-danger" id="btn-cancel">
+            <p class="text-secondary small mb-2">{{ t("billing.cancel_help") }}</p>
+            <button type="button" class="chos-btn chos-btn-ghost chos-btn-sm" id="btn-cancel" style="color: var(--color-danger);">
                 {{ t("billing.cancel_btn") }}
             </button>
         </div>
     </div>
 
-    <!-- Action result message -->
-    <div id="billing-msg" class="alert d-none" role="alert"></div>
+    <div id="billing-msg" class="chos-notice d-none" role="status"></div>
 
 </div>
 
 <!-- Cancel confirmation modal -->
 <div class="modal fade" id="cancelConfirmModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content chos-modal">
+            <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-bold">{{ t("billing.cancel_confirm_title") }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ t('common.actions.close') }}"></button>
             </div>
-            <div class="modal-body">
-                <p>{{ t("billing.cancel_confirm_body") }}</p>
+            <div class="modal-body pt-2">
+                <p class="text-secondary mb-0">{{ t("billing.cancel_confirm_body") }}</p>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-light" data-bs-dismiss="modal">
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="chos-btn chos-btn-outline" data-bs-dismiss="modal">
                     {{ t("billing.cancel_keep_btn") }}
                 </button>
-                <button class="btn btn-danger" id="btn-cancel-confirm">
+                <button type="button" class="chos-btn chos-btn-danger" id="btn-cancel-confirm">
                     {{ t("billing.cancel_confirm_btn") }}
                 </button>
             </div>

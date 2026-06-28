@@ -7,20 +7,22 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 chos-schedule-page">
 
-    <!-- Page Header — tighter than before; subtitle removed (intent is clear from
-         the empty-state desc when no macrocycle exists). -->
-    <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-        <h1 class="h3 fw-bold mb-0">{{ t("schedule.page_title") }}</h1>
+    <!-- Page Header -->
+    <div class="chos-schedule-header chos-page-header mb-3">
+        <div>
+            <h1 class="h3">{{ t("schedule.page_title") }}</h1>
+            <p class="chos-page-header__sub">{{ t("schedule.page_subtitle") }}</p>
+        </div>
         <button class="chos-btn chos-btn-primary" onclick="showCreateMacrocycle()" aria-label="{{ t('schedule.btn.new_macro') }}">
             <i class="fas fa-plus"></i>
             <span class="d-none d-sm-inline ms-1">{{ t("schedule.btn.new_macro") }}</span>
         </button>
     </div>
 
-    <!-- Active macrocycle banner — compact card with progress bar. -->
-    <div id="macro-banner" class="chos-card chos-card-feature is-recovery mb-4 d-none">
+    <!-- Active macrocycle banner — compact card with progress + phase timeline (landing loop step 5). -->
+    <div id="macro-banner" class="chos-card chos-card-feature is-cardio chos-card-hub mb-3 d-none">
         <div class="card-body">
             <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
                 <div style="min-width: 0;">
@@ -30,8 +32,15 @@
                     </div>
                     <h5 class="fw-bold mb-1 text-truncate" id="macro-name">—</h5>
                     <div class="text-secondary small num" id="macro-dates">—</div>
+                    <div class="text-secondary small num" id="macro-session-duration">—</div>
                 </div>
+                <a href="/dashboard/reviews" class="chos-btn chos-btn-ghost chos-btn-sm d-none d-md-inline-flex" id="macro-review-link" title="{{ t('schedule.review_link') }}">
+                    <i class="fas fa-chart-line me-1"></i>{{ t("schedule.review_link_short") }}
+                </a>
             </div>
+
+            <!-- Phase timeline — mirrors landing mesocycle demo -->
+            <div class="chos-phase-timeline mt-3" id="phase-timeline" aria-label="{{ t('schedule.phase_timeline_title') }}"></div>
 
             <!-- Macro progress bar -->
             <div class="mt-3">
@@ -55,18 +64,31 @@
             <button class="chos-btn chos-btn-primary" onclick="showCreateMacrocycle()">
                 <i class="fas fa-plus me-2"></i>{{ t("schedule.btn.create_macro") }}
             </button>
+            <div class="chos-loop-preview mt-4">
+                <p class="small text-secondary text-uppercase fw-semibold mb-3" style="letter-spacing: 0.05em;">{{ t("landing.loop.title") }}</p>
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                    {% for key in ["checkin", "workout", "train", "review", "block"] %}
+                    <span class="chos-loop-strip__step"><span class="chos-loop-strip__dot"></span>{{ t("dashboard.loop." ~ key) }}</span>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Calendar -->
-    <div id="calendar-container" class="d-none">
-        <!-- Week selector: chevrons + week range + Today as a pill group -->
-        <div class="d-flex align-items-center justify-content-between mb-3 gap-2 flex-wrap">
+    <div id="calendar-container" class="chos-card chos-schedule-panel d-none">
+        <div class="card-body">
+        <!-- Week stats chips -->
+        <div id="schedule-next-workout" class="chos-next-workout-banner mb-3 d-none" aria-live="polite"></div>
+        <div class="chos-schedule-week-stats mb-3" id="week-stats" aria-live="polite"></div>
+
+        <!-- Week selector: chevrons + week range + Today -->
+        <div class="d-flex align-items-center justify-content-between mb-2 gap-2 flex-wrap">
             <div class="d-flex align-items-center gap-1">
                 <button class="chos-btn chos-btn-ghost chos-btn-sm" onclick="navigateWeek(-1)" aria-label="{{ t('schedule.btn.prev_week') }}">
                     <i class="fas fa-chevron-left"></i>
                 </button>
-                <h5 class="mb-0 fw-semibold mx-2 text-center num" id="week-label" style="min-width: 180px;">—</h5>
+                <h5 class="mb-0 fw-semibold mx-2 text-center num" id="week-label" style="min-width: 160px;">—</h5>
                 <button class="chos-btn chos-btn-ghost chos-btn-sm" onclick="navigateWeek(1)" aria-label="{{ t('schedule.btn.next_week') }}">
                     <i class="fas fa-chevron-right"></i>
                 </button>
@@ -74,7 +96,7 @@
                     {{ t("schedule.btn.today") }}
                 </button>
             </div>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
                 <button class="chos-btn chos-btn-ghost chos-btn-sm" id="btn-copy-prev" onclick="copyFromPreviousWeek()" disabled aria-label="{{ t('schedule.btn.copy_prev_week') }}" title="{{ t('schedule.btn.copy_prev_week') }}">
                     <i class="fas fa-copy"></i>
                     <span class="d-none d-md-inline ms-1">{{ t("schedule.btn.copy_prev_week") }}</span>
@@ -87,13 +109,17 @@
             </div>
         </div>
 
-        <div class="row g-2" id="calendar-grid"></div>
+        <!-- Weeks in current block — quick jump -->
+        <div class="chos-week-strip mb-3" id="week-strip" role="navigation" aria-label="{{ t('schedule.week_strip_label') }}"></div>
+
+        <div class="chos-schedule-grid" id="calendar-grid"></div>
+        </div>
     </div>
 
     <!-- Confirm Replace / Extend Macrocycle Modal -->
     <div class="modal fade" id="macroConfirmModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
+            <div class="modal-content chos-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">{{ t("schedule.modal.macro_exists_title") }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -117,7 +143,7 @@
     <!-- Create Macrocycle Modal -->
     <div class="modal fade" id="createMacroModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
-            <div class="modal-content">
+            <div class="modal-content chos-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold">{{ t("schedule.modal.create_macro_title") }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -126,7 +152,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="chos-label">{{ t("schedule.modal.field_name") }}</label>
-                            <input type="text" id="macro-input-name" class="chos-input" placeholder="{{ t('schedule.modal.name_placeholder') }}" value="HWPO Cycle">
+                            <input type="text" id="macro-input-name" class="chos-input" placeholder="{{ t('schedule.modal.name_placeholder') }}" value="Training Cycle">
                         </div>
                         <div class="col-md-6">
                             <label class="chos-label">{{ t("schedule.modal.field_methodology") }}</label>
@@ -148,27 +174,16 @@
                         </div>
                         <div class="col-md-6">
                             <label class="chos-label">{{ t("schedule.modal.field_duration") }} <small class="text-muted">{{ t("schedule.modal.field_duration_unit") }}</small></label>
-                            <select id="macro-input-minutes" class="form-select chos-input">
-                                <option value="30">30 min</option>
-                                <option value="45">45 min</option>
-                                <option value="60" selected>60 min</option>
-                                <option value="90">90 min</option>
-                                <option value="120">120 min</option>
-                                <option value="180">180 min</option>
-                            </select>
+                            <input type="hidden" id="macro-input-minutes" value="60">
+                            <div id="macro-duration-picker"></div>
                         </div>
                         <div class="col-md-6">
                             <label class="chos-label">{{ t("schedule.modal.field_days") }} <small class="text-muted">{{ t("schedule.modal.field_days_unit") }}</small></label>
-                            <select id="macro-input-days" class="form-select chos-input">
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5" selected>5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                            </select>
+                            <input type="hidden" id="macro-input-days" value="5">
+                            <div id="macro-days-picker"></div>
                         </div>
                     </div>
-                    <div class="chos-card bg-light">
+                    <div class="chos-card" style="background: var(--surface-sunken); border-style: dashed;">
                         <div class="card-body">
                             <h6 class="fw-bold mb-2">{{ t("schedule.modal.block_plan_title") }}</h6>
                             <div id="block-plan-preview" class="small"></div>
@@ -189,8 +204,8 @@
 
     <!-- Day Drawer -->
     <div class="modal fade" id="dayDrawer" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+            <div class="modal-content chos-modal">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold" id="drawer-title">—</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -200,9 +215,6 @@
                     <button class="chos-btn chos-btn-outline w-100 mt-3" id="btn-add-session" onclick="addSessionRow()">
                         <i class="fas fa-plus me-1"></i>{{ t("schedule.btn.add_session") }}
                     </button>
-                </div>
-                <div class="modal-footer">
-                    <button class="chos-btn chos-btn-outline" data-bs-dismiss="modal">{{ t("common.actions.close") }}</button>
                 </div>
             </div>
         </div>

@@ -1,17 +1,10 @@
-# 🏋️ CrossFit Health OS
+# CrossFit Health OS
 
-> **Elite Human Performance Ecosystem** - Integrating Biometrics, Nutrition, and Training Intelligence
+> **Elite Human Performance Ecosystem** — biometrics, nutrition, and adaptive training intelligence.
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
-[![Supabase](https://img.shields.io/badge/Supabase-Ready-green.svg)](https://supabase.com)
-[![Deploy on Coolify](https://img.shields.io/badge/Deploy-Coolify-blue.svg)](https://coolify.io)
-
-## 🎯 Vision
-
-CrossFit Health OS is a comprehensive performance optimization platform that leverages biometric data, adaptive training algorithms, and nutritional intelligence to create a closed-loop system for human performance enhancement.
-
-**Built for Athletes. Powered by Data. Deployed on Coolify.**
+**Production deploy:** see [DEPLOYMENT.md](DEPLOYMENT.md) (systemd + PostgreSQL + Alembic).  
+**UI:** FastAPI serves JSON API + Jinja2 SSR (no separate Next.js frontend).  
+**Roadmap:** [ROADMAP.md](ROADMAP.md)
 
 ---
 

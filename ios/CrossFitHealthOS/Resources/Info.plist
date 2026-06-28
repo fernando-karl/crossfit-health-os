@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSHealthShareUsageDescription</key>
+    <string>O CrossFit Health OS lê HRV, sono e frequência cardíaca de repouso para ajustar seu treino.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>O CrossFit Health OS não escreve dados no Apple Health.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+    </array>
+</dict>
+</plist>

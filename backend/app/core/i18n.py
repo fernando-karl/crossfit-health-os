@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -92,6 +93,21 @@ def get_catalog(locale: str) -> Dict[str, Any]:
     return _CATALOGS.get(locale, {})
 
 
+_PLACEHOLDER_RE = re.compile(r"\{(\w+)\}")
+
+
+def _safe_format(template: str, **vars: Any) -> str:
+    """Substitute only the placeholders present in ``vars``; leave the rest."""
+    if not vars:
+        return template
+
+    def _replace(match: re.Match[str]) -> str:
+        key = match.group(1)
+        return str(vars[key]) if key in vars else match.group(0)
+
+    return _PLACEHOLDER_RE.sub(_replace, template)
+
+
 def t(locale: str, key: str, **vars: Any) -> str:
     """Translate ``key`` for ``locale``, interpolating ``{var}`` placeholders.
 
@@ -102,7 +118,7 @@ def t(locale: str, key: str, **vars: Any) -> str:
     for loc in candidates:
         value = _resolve_dotted(_CATALOGS.get(loc, {}), key)
         if value is not None:
-            return value.format(**vars) if vars else value
+            return _safe_format(value, **vars) if vars else value
     return key
 
 

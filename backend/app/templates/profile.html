@@ -7,18 +7,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 800px;">
-    
-    <!-- Page Header -->
-    <h1 class="h2 fw-bold mb-1">{{ t("profile.title") }}</h1>
-    <p class="text-muted mb-4">{{ t("profile.subtitle") }}</p>
+<div class="container py-4 chos-page" style="max-width: 800px;">
 
-    <!-- Profile Card -->
-    <div class="chos-card mb-4">
-        <div class="card-header">
-            <h4 class="mb-0"><i class="fas fa-user me-2"></i>{{ t("profile.personal_info") }}</h4>
+    <div class="chos-page-header mb-4">
+        <div>
+            <h1 class="h2">{{ t("profile.title") }}</h1>
+            <p class="chos-page-header__sub">{{ t("profile.subtitle") }}</p>
         </div>
-        <div class="card-body">
+    </div>
+
+    <div class="chos-card-section">
+        <div class="chos-card-section__head">
+            <i class="fas fa-user"></i>{{ t("profile.personal_info") }}
+        </div>
+        <div class="chos-card-section__body">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="chos-label">{{ t("profile.full_name") }}</label>
@@ -44,16 +46,15 @@
         </div>
     </div>
 
-    <!-- CrossFit Profile -->
-    <div class="chos-card mb-4">
-        <div class="card-header">
-            <h4 class="mb-0"><i class="fas fa-dumbbell me-2"></i>{{ t("profile.crossfit_profile") }}</h4>
+    <div class="chos-card-section is-training">
+        <div class="chos-card-section__head">
+            <i class="fas fa-dumbbell"></i>{{ t("profile.crossfit_profile") }}
         </div>
-        <div class="card-body">
+        <div class="chos-card-section__body">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="chos-label">{{ t("profile.experience_level") }}</label>
-                    <select id="profile-level" class="form-select chos-input">
+                    <select id="profile-level" class="chos-input">
                         <option value="beginner">{{ t("profile.experience.beginner") }}</option>
                         <option value="intermediate">{{ t("profile.experience.intermediate") }}</option>
                         <option value="advanced">{{ t("profile.experience.advanced") }}</option>
@@ -62,16 +63,16 @@
                 </div>
                 <div class="col-md-6">
                     <label class="chos-label">{{ t("profile.preferred_methodology") }}</label>
-                    <select id="profile-methodology" class="form-select chos-input">
-                        <option value="hwpo">HWPO (Mat Fraser)</option>
-                        <option value="mayhem">Mayhem (Rich Froning)</option>
-                        <option value="comptrain">CompTrain (Ben Bergeron)</option>
+                    <select id="profile-methodology" class="chos-input">
+                        <option value="hwpo">Competition (high intensity)</option>
+                        <option value="mayhem">High volume (work capacity)</option>
+                        <option value="comptrain">Balanced (sustainable)</option>
                         <option value="custom">Custom</option>
                     </select>
                 </div>
                 <div class="col-md-6">
                     <label class="chos-label">{{ t("profile.primary_goal") }}</label>
-                    <select id="profile-goal" class="form-select chos-input">
+                    <select id="profile-goal" class="chos-input">
                         <option value="general_fitness">{{ t("profile.goal_options.general_fitness") }}</option>
                         <option value="competition">{{ t("profile.goal_options.competition") }}</option>
                         <option value="strength">{{ t("profile.goal_options.strength") }}</option>
@@ -81,7 +82,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="chos-label">{{ t("profile.sessions_per_week") }}</label>
-                    <select id="profile-sessions" class="form-select chos-input">
+                    <select id="profile-sessions" class="chos-input">
                         <option value="3">{{ t("profile.sessions_count", n=3) }}</option>
                         <option value="4">{{ t("profile.sessions_count", n=4) }}</option>
                         <option value="5" selected>{{ t("profile.sessions_count", n=5) }}</option>
@@ -102,17 +103,16 @@
             </div>
         </div>
     </div>
-    
-    <!-- Preferences -->
-    <div class="chos-card mb-4">
-        <div class="card-header">
-            <h4 class="mb-0"><i class="fas fa-globe me-2"></i>{{ t("profile.language_label") }}</h4>
+
+    <div class="chos-card-section is-mind">
+        <div class="chos-card-section__head">
+            <i class="fas fa-globe"></i>{{ t("profile.language_label") }}
         </div>
-        <div class="card-body">
+        <div class="chos-card-section__body">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="chos-label">{{ t("profile.language_label") }}</label>
-                    <select id="profile-locale" class="form-select chos-input" onchange="saveLocale()">
+                    <select id="profile-locale" class="chos-input" onchange="saveLocale()">
                         <option value="pt-BR">{{ t("nav.language.pt-BR") }}</option>
                         <option value="en">{{ t("nav.language.en") }}</option>
                     </select>
@@ -122,7 +122,6 @@
         </div>
     </div>
 
-    <!-- Actions -->
     <div class="d-flex justify-content-between">
         <a href="/update-password" class="chos-btn chos-btn-outline">
             <i class="fas fa-lock me-1"></i>{{ t("profile.change_password") }}
@@ -148,35 +147,37 @@ function loadProfile() {
     if (user) {
         $('#profile-name').val(user.name || '');
         $('#profile-email').val(user.email || '');
-        $('#profile-age').val(user.age || '');
-        $('#profile-weight').val(user.weight || '');
-        $('#profile-height').val(user.height || '');
-        $('#profile-level').val(user.experience_level || 'intermediate');
-        $('#profile-methodology').val(user.methodology || 'hwpo');
-        $('#profile-goal').val(user.goal || 'general_fitness');
-        $('#profile-sessions').val(user.sessions_per_week || '5');
-        $('#profile-weaknesses').val(user.weaknesses || '');
-        $('#profile-injuries').val(user.injuries || '');
+        $('#profile-weight').val(user.weight_kg || '');
+        $('#profile-height').val(user.height_cm || '');
+        $('#profile-level').val(user.fitness_level || 'intermediate');
+        const prefs = user.preferences || {};
+        $('#profile-methodology').val(prefs.methodology || 'hwpo');
+        $('#profile-goal').val((user.goals && user.goals[0]) || 'general_fitness');
+        $('#profile-sessions').val(prefs.sessions_per_week || '5');
+        $('#profile-weaknesses').val(prefs.weaknesses || '');
+        $('#profile-injuries').val(prefs.injuries || '');
     }
-    
-    // Pre-select the active locale (server-resolved)
+
     $('#profile-locale').val(window.LOCALE || 'pt-BR');
 
-    // Also fetch from API for latest data
     CHOS.api.get('/api/v1/users/me')
         .done(function(data) {
             if (data) {
                 if (data.name) $('#profile-name').val(data.name);
                 if (data.email) $('#profile-email').val(data.email);
-                if (data.age) $('#profile-age').val(data.age);
-                if (data.weight) $('#profile-weight').val(data.weight);
-                if (data.height) $('#profile-height').val(data.height);
-                if (data.experience_level) $('#profile-level').val(data.experience_level);
-                if (data.methodology) $('#profile-methodology').val(data.methodology);
-                if (data.goal) $('#profile-goal').val(data.goal);
-                if (data.sessions_per_week) $('#profile-sessions').val(data.sessions_per_week);
-                if (data.weaknesses) $('#profile-weaknesses').val(data.weaknesses);
-                if (data.injuries) $('#profile-injuries').val(data.injuries);
+                if (data.weight_kg) $('#profile-weight').val(data.weight_kg);
+                if (data.height_cm) $('#profile-height').val(data.height_cm);
+                if (data.fitness_level) $('#profile-level').val(data.fitness_level);
+                if (data.birth_date) {
+                    const birth = new Date(data.birth_date);
+                    $('#profile-age').val(new Date().getFullYear() - birth.getFullYear());
+                }
+                const prefs = data.preferences || {};
+                if (prefs.methodology) $('#profile-methodology').val(prefs.methodology);
+                if (data.goals && data.goals.length) $('#profile-goal').val(data.goals[0]);
+                if (prefs.sessions_per_week) $('#profile-sessions').val(String(prefs.sessions_per_week));
+                if (prefs.weaknesses) $('#profile-weaknesses').val(prefs.weaknesses);
+                if (prefs.injuries) $('#profile-injuries').val(prefs.injuries);
                 if (data.locale) $('#profile-locale').val(data.locale);
             }
         });
@@ -186,8 +187,6 @@ function saveLocale() {
     const locale = $('#profile-locale').val();
     CHOS.api.patch('/api/v1/users/me', { locale: locale })
         .done(function() {
-            // Reload with the new ?lang so the server middleware also writes
-            // the lang cookie and the page is re-rendered in the new locale.
             const url = new URL(window.location.href);
             url.searchParams.set('lang', locale);
             window.location.href = url.toString();
@@ -196,27 +195,33 @@ function saveLocale() {
 
 function saveProfile() {
     CHOS.loading.button('#btn-save-profile', true);
-    
+
+    const age = parseInt($('#profile-age').val());
+    let birth_date = null;
+    if (age) {
+        birth_date = (new Date().getFullYear() - age) + '-01-01';
+    }
+
     const data = {
         name: $('#profile-name').val(),
-        age: parseInt($('#profile-age').val()) || null,
-        weight: parseFloat($('#profile-weight').val()) || null,
-        height: parseInt($('#profile-height').val()) || null,
-        experience_level: $('#profile-level').val(),
-        methodology: $('#profile-methodology').val(),
-        goal: $('#profile-goal').val(),
-        sessions_per_week: parseInt($('#profile-sessions').val()),
-        weaknesses: $('#profile-weaknesses').val(),
-        injuries: $('#profile-injuries').val()
+        birth_date: birth_date,
+        weight_kg: parseFloat($('#profile-weight').val()) || null,
+        height_cm: parseInt($('#profile-height').val()) || null,
+        fitness_level: $('#profile-level').val(),
+        goals: [$('#profile-goal').val()],
+        preferences: {
+            methodology: $('#profile-methodology').val(),
+            sessions_per_week: parseInt($('#profile-sessions').val()),
+            weaknesses: $('#profile-weaknesses').val(),
+            injuries: $('#profile-injuries').val(),
+        }
     };
-    
+
     CHOS.api.patch('/api/v1/users/me', data)
         .done(function(response) {
-            // Update localStorage
-            const user = CHOS.auth.getUser();
-            Object.assign(user, data);
+            const user = CHOS.auth.getUser() || {};
+            Object.assign(user, response);
             localStorage.setItem('user', JSON.stringify(user));
-            
             CHOS.toast.success(t('profile.profile_saved'));
         })
         .always(function() {

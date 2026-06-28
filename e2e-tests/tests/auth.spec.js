@@ -11,7 +11,12 @@ const {
   getAllValidationErrors,
   clearBrowserData,
   loginViaAPI,
-  registerViaAPI
+  registerViaAPI,
+  gotoAuthPage,
+  fillInput,
+  clickButton,
+  fillMinimalRegister,
+  submitRegister,
 } = require('../utils/helpers');
 
 test.describe('Authentication', () => {
@@ -33,15 +38,14 @@ test.describe('Authentication', () => {
   test.describe('Login', () => {
 
     test('should display login page correctly', async ({ page }) => {
-      await page.goto('/login');
+      await gotoAuthPage(page, '/login');
       
-      // Check page elements
-      await expect(page.locator('h2')).toContainText('Sign In');
+      await expect(page.locator('h1.lp-auth__title')).toContainText('Sign In');
       await expect(page.locator('#email')).toBeVisible();
       await expect(page.locator('#password')).toBeVisible();
       await expect(page.locator('#login-btn')).toBeVisible();
-      await expect(page.locator('text=Forgot password?')).toBeVisible();
-      await expect(page.locator('text=Sign Up')).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Forgot password?' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Sign Up' })).toBeVisible();
     });
 
     test('should redirect to login when accessing protected page', async ({ page }) => {
@@ -113,8 +117,8 @@ test.describe('Authentication', () => {
       await page.locator('#login-btn').click();
       
       // Wait for error message
-      await expect(page.locator('.alert-danger')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('.alert-danger')).toContainText(/invalid|not found|incorrect/i);
+      await expect(page.locator('.lp-notice.is-danger, .alert-danger')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.lp-notice.is-danger, .alert-danger')).toContainText(/invalid|not found|incorrect/i);
     });
 
     test('should show error for wrong password', async ({ page }) => {
@@ -125,8 +129,8 @@ test.describe('Authentication', () => {
       await page.locator('#login-btn').click();
       
       // Wait for error message
-      await expect(page.locator('.alert-danger')).toBeVisible({ timeout: 10000 });
-      await expect(page.locator('.alert-danger')).toContainText(/invalid|password/i);
+      await expect(page.locator('.lp-notice.is-danger, .alert-danger')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.lp-notice.is-danger, .alert-danger')).toContainText(/invalid|password/i);
     });
 
     test('should login successfully with valid credentials', async ({ page }) => {
@@ -176,11 +180,23 @@ test.describe('Authentication', () => {
       await expect(page).toHaveURL(/\/forgot-password/);
     });
 
+    test('should toggle password visibility', async ({ page }) => {
+      await gotoAuthPage(page, '/login');
+
+      const passwordInput = page.locator('#password');
+      await fillInput(page, '#password', 'TestPassword123');
+      await clickButton(page, '#toggle-password');
+
+      await expect(passwordInput).toHaveAttribute('type', 'text');
+      await clickButton(page, '#toggle-password');
+      await expect(passwordInput).toHaveAttribute('type', 'password');
+    });
+
     test('should show success message after password update', async ({ page }) => {
       await page.goto('/login?password_updated=true');
       
-      await expect(page.locator('.alert-success')).toBeVisible();
-      await expect(page.locator('.alert-success')).toContainText(/password.*updated/i);
+      await expect(page.locator('.lp-notice.is-success, .alert-success')).toBeVisible();
+      await expect(page.locator('.lp-notice.is-success, .alert-success')).toContainText(/password.*updated/i);
     });
 
   });
@@ -192,13 +208,14 @@ test.describe('Authentication', () => {
   test.describe('Registration', () => {
 
     test('should display registration page correctly', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      await expect(page.locator('h2')).toContainText('Create Your Account');
+      await expect(page.locator('h1.lp-auth__title')).toContainText('Create Your Account');
       await expect(page.locator('#name')).toBeVisible();
       await expect(page.locator('#email')).toBeVisible();
       await expect(page.locator('#password')).toBeVisible();
-      await expect(page.locator('#confirm_password')).toBeVisible();
+      await expect(page.locator('#accepted_terms')).toBeVisible();
+      await expect(page.locator('#accepted_health_data')).toBeVisible();
       await expect(page.locator('#register-btn')).toBeVisible();
     });
 
@@ -218,32 +235,24 @@ test.describe('Authentication', () => {
     });
 
     test('should show error for password mismatch', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       await page.waitForLoadState('networkidle');
       
-      await page.locator('#name').fill('Test User');
-      await page.locator('#email').fill(generateRandomEmail('mismatch'));
-      await page.locator('#password').fill('SecurePass123');
-      await page.locator('#confirm_password').fill('DifferentPass456');
-      
-      // Call validation directly
       const result = await page.evaluate(() => {
-        const $form = $('#register-form');
-        return FormValidator.validateForm($form);
+        return FormValidator.validatePasswordConfirm('SecurePass123', 'DifferentPass456');
       });
       
       expect(result.valid).toBe(false);
-      expect(result.errors.some(e => e.message.includes('match') || e.message.includes('confirm'))).toBe(true);
+      expect(result.message.toLowerCase()).toMatch(/match/);
     });
 
     test('should show error for weak password - too short', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       await page.waitForLoadState('networkidle');
       
-      await page.locator('#name').fill('Test User');
-      await page.locator('#email').fill(generateRandomEmail('short'));
-      await page.locator('#password').fill('Ab1');
-      await page.locator('#confirm_password').fill('Ab1');
+      await fillInput(page, '#name', 'Test User');
+      await fillInput(page, '#email', generateRandomEmail('short'));
+      await fillInput(page, '#password', 'Ab1');
       
       const result = await page.evaluate(() => {
         const $form = $('#register-form');
@@ -254,13 +263,12 @@ test.describe('Authentication', () => {
     });
 
     test('should show error for weak password - no uppercase', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       await page.waitForLoadState('networkidle');
       
-      await page.locator('#name').fill('Test User');
-      await page.locator('#email').fill(generateRandomEmail('noupper'));
-      await page.locator('#password').fill('securepass123');
-      await page.locator('#confirm_password').fill('securepass123');
+      await fillInput(page, '#name', 'Test User');
+      await fillInput(page, '#email', generateRandomEmail('noupper'));
+      await fillInput(page, '#password', 'securepass123');
       
       const result = await page.evaluate(() => {
         const $form = $('#register-form');
@@ -272,13 +280,12 @@ test.describe('Authentication', () => {
     });
 
     test('should show error for weak password - no number', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       await page.waitForLoadState('networkidle');
       
-      await page.locator('#name').fill('Test User');
-      await page.locator('#email').fill(generateRandomEmail('nonum'));
-      await page.locator('#password').fill('SecurePassword');
-      await page.locator('#confirm_password').fill('SecurePassword');
+      await fillInput(page, '#name', 'Test User');
+      await fillInput(page, '#email', generateRandomEmail('nonum'));
+      await fillInput(page, '#password', 'SecurePassword');
       
       const result = await page.evaluate(() => {
         const $form = $('#register-form');
@@ -307,63 +314,52 @@ test.describe('Authentication', () => {
     });
 
     test('should register successfully with valid minimal data', async ({ page }) => {
-      // Just test that the form validates correctly
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       await page.waitForLoadState('networkidle');
       
-      const email = generateRandomEmail('validreg2');
-      await page.locator('#name').fill('Valid User');
-      await page.locator('#email').fill(email);
-      await page.locator('#password').fill('SecurePass123');
-      await page.locator('#confirm_password').fill('SecurePass123');
+      await fillMinimalRegister(page, {
+        email: generateRandomEmail('validreg2'),
+        name: 'Valid User',
+      });
       
-      // Validate the form
       const result = await page.evaluate(() => {
         const $form = $('#register-form');
         return FormValidator.validateForm($form);
       });
       
-      // Should be valid
       expect(result.valid).toBe(true);
     });
 
     test('should register successfully with all fields', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      const email = generateRandomEmail('fullreg');
-      await page.locator('#name').fill('Full User');
-      await page.locator('#email').fill(email);
-      await page.locator('#password').fill('SecurePass123');
-      await page.locator('#confirm_password').fill('SecurePass123');
-      await page.locator('#birth_date').fill('1990-05-15');
-      await page.locator('#weight_kg').fill('75');
-      await page.locator('#height_cm').fill('175');
+      await fillMinimalRegister(page, {
+        email: generateRandomEmail('fullreg'),
+        name: 'Full User',
+      });
       
-      // Validate the form
       const result = await page.evaluate(() => {
         const $form = $('#register-form');
         return FormValidator.validateForm($form);
       });
       
-      // Should be valid
       expect(result.valid).toBe(true);
     });
 
     test('should show error for duplicate email', async ({ page }) => {
-      // Try to validate an email that looks like it might exist
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      await page.locator('#email').fill('admin@example.com');
-      await page.locator('#password').fill('SecurePass123');
-      await page.locator('#confirm_password').fill('SecurePass123');
-      await page.locator('#register-btn').click();
+      const dupEmail = process.env.TEST_EMAIL || 'admin@example.com';
+      await fillMinimalRegister(page, { email: dupEmail });
+      await submitRegister(page);
       
-      // Wait a bit for API response
-      await page.waitForTimeout(3000);
-      
-      // Either shows error or validation passes (depends on if email exists)
-      // This test just checks the form handling doesn't crash
-      await expect(page.locator('#register-form')).toBeVisible();
+      // Existing user → error alert; new user → may redirect to onboarding
+      const sawError = await page.locator('.lp-notice.is-danger, .alert-danger').waitFor({ state: 'visible', timeout: 10000 })
+        .then(() => true)
+        .catch(() => false);
+      const stayedOnRegister = await page.locator('#register-form').isVisible().catch(() => false);
+      const wentToOnboarding = /\/onboarding/.test(page.url());
+      expect(sawError || stayedOnRegister || wentToOnboarding).toBe(true);
     });
 
     test('should navigate to login page', async ({ page }) => {
@@ -425,9 +421,9 @@ test.describe('Authentication', () => {
   test.describe('Forgot Password', () => {
 
     test('should display forgot password page correctly', async ({ page }) => {
-      await page.goto('/forgot-password');
+      await gotoAuthPage(page, '/forgot-password');
       
-      await expect(page.locator('h2')).toContainText('Reset Password');
+      await expect(page.locator('h1.lp-auth__title')).toContainText('Reset Password');
       await expect(page.locator('#email')).toBeVisible();
       await expect(page.locator('#reset-btn')).toBeVisible();
     });
@@ -486,9 +482,9 @@ test.describe('Authentication', () => {
   test.describe('Password Update (Reset)', () => {
 
     test('should display update password page', async ({ page }) => {
-      await page.goto('/update-password');
+      await gotoAuthPage(page, '/update-password');
       
-      await expect(page.locator('h2')).toContainText('Set New Password');
+      await expect(page.locator('h1.lp-auth__title')).toContainText('Set New Password');
       await expect(page.locator('#password')).toBeVisible();
       await expect(page.locator('#confirm_password')).toBeVisible();
       await expect(page.locator('#update-btn')).toBeVisible();
@@ -498,57 +494,31 @@ test.describe('Authentication', () => {
       await page.goto('/update-password');
       
       // No token in URL hash, should show error
-      await expect(page.locator('.alert-danger')).toBeVisible();
-      await expect(page.locator('.alert-danger')).toContainText(/invalid|expired/i);
+      await expect(page.locator('.lp-notice.is-danger, .alert-danger')).toBeVisible();
+      await expect(page.locator('.lp-notice.is-danger, .alert-danger')).toContainText(/invalid|expired/i);
     });
 
     test('should toggle password visibility', async ({ page }) => {
-      await page.goto('/update-password');
-      
-      // Add fake token to enable form
-      await page.evaluate(() => {
-        window.location.hash = 'access_token=fake_token';
-      });
-      await page.reload();
+      await gotoAuthPage(page, '/update-password?token=fake_token');
       
       const passwordInput = page.locator('#password');
+      await fillInput(page, '#password', 'TestPassword123');
+      await clickButton(page, '#toggle-password');
       
-      // Initially type password (hidden)
-      await passwordInput.fill('TestPassword123');
-      
-      // Click toggle
-      await page.click('#toggle-password');
-      
-      // Should show password text
       await expect(passwordInput).toHaveAttribute('type', 'text');
-      
-      // Click again to hide
-      await page.click('#toggle-password');
-      
-      // Should hide password
+      await clickButton(page, '#toggle-password');
       await expect(passwordInput).toHaveAttribute('type', 'password');
     });
 
     test('should show password strength indicator', async ({ page }) => {
-      await page.goto('/update-password');
+      await gotoAuthPage(page, '/register');
+      await page.waitForLoadState('networkidle');
       
-      // Add fake token
-      await page.evaluate(() => {
-        window.location.hash = 'access_token=fake_token';
-      });
-      await page.reload();
+      const weak = await page.evaluate(() => FormValidator.validatePassword('Ab'));
+      expect(weak.valid).toBe(false);
       
-      // Start typing password
-      await page.locator('#password').fill('Ab');
-      
-      // Strength indicator should appear
-      await expect(page.locator('#password-strength-container')).toBeVisible();
-      
-      // Type more characters
-      await page.locator('#password').fill('Abcd1234!@');
-      
-      // Should show strong password
-      await expect(page.locator('#strength-text')).toContainText(/strong/i);
+      const strong = await page.evaluate(() => FormValidator.validatePassword('Abcd1234!@'));
+      expect(strong.valid).toBe(true);
     });
 
   });

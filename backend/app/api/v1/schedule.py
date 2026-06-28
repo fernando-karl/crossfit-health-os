@@ -24,6 +24,7 @@ from app.db.models import (
     Macrocycle as MacrocycleDB,
     Microcycle as MicrocycleDB,
     PlannedSession as PlannedSessionDB,
+    WorkoutSession as WorkoutSessionDB,
 )
 from app.db.session import get_session
 from app.models.training import (
@@ -44,6 +45,13 @@ from app.models.training import (
 )
 
 router = APIRouter()
+
+DEFAULT_SHIFT = "morning"
+VALID_SHIFTS = frozenset({"morning", "afternoon", "evening", "custom"})
+
+
+def _normalize_shift(shift: str | None) -> str:
+    return shift if shift in VALID_SHIFTS else DEFAULT_SHIFT
 logger = logging.getLogger(__name__)
 
 
@@ -81,11 +89,16 @@ def _to_micro_schema(
     micro: MicrocycleDB,
     block_plan: List[BlockPlanItem],
     sessions: Optional[list[PlannedSessionDB]] = None,
+    db: Optional[Session] = None,
 ) -> Microcycle:
     block_type, week_in_block, _ = resolve_block_and_week_in_block(
         block_plan, micro.week_index_in_macro
     )
-    session_schemas = [_to_session_schema(s) for s in (sessions or [])]
+    session_rows = sessions or []
+    completion = _completion_lookup(db, micro.user_id, session_rows) if db else {}
+    session_schemas = [
+        _to_session_schema(s, completion.get(s.id, False)) for s in session_rows
+    ]
     return Microcycle(
         id=micro.id,
         macrocycle_id=micro.macrocycle_id,
@@ -111,14 +124,75 @@ def _load_micro_sessions(db: Session, micro_id: UUID) -> list[PlannedSessionDB]:
     ).scalars().all()
 
 
-def _to_session_schema(session: PlannedSessionDB) -> PlannedSession:
+def _completion_lookup(
+    db: Session,
+    user_id: int,
+    sessions: list[PlannedSessionDB],
+) -> dict[UUID, bool]:
+    """Map planned session id → athlete logged a completed workout for it."""
+    if not sessions:
+        return {}
+    min_date = min(s.date for s in sessions)
+    max_date = max(s.date for s in sessions)
+
+    rows = db.execute(
+        select(
+            WorkoutSessionDB.planned_session_id,
+            WorkoutSessionDB.template_id,
+            WorkoutSessionDB.completed_at,
+            WorkoutSessionDB.started_at,
+        ).where(
+            WorkoutSessionDB.user_id == user_id,
+            WorkoutSessionDB.completed_at.isnot(None),
+        )
+    ).all()
+
+    completed_planned: set[UUID] = set()
+    by_date_template: set[tuple[str, str]] = set()
+    completions_per_date: dict[str, int] = {}
+
+    for planned_id, template_id, completed_at, started_at in rows:
+        if planned_id:
+            completed_planned.add(planned_id)
+        dt = (completed_at or started_at).date()
+        if dt < min_date or dt > max_date:
+            continue
+        iso = dt.isoformat()
+        completions_per_date[iso] = completions_per_date.get(iso, 0) + 1
+        if template_id:
+            by_date_template.add((iso, str(template_id)))
+
+    lookup: dict[UUID, bool] = {}
+    for s in sessions:
+        if s.id in completed_planned:
+            lookup[s.id] = True
+            continue
+        if s.status == PlannedSessionStatus.SKIPPED.value:
+            lookup[s.id] = False
+            continue
+        if s.generated_template_id:
+            key = (s.date.isoformat(), str(s.generated_template_id))
+            if key in by_date_template:
+                lookup[s.id] = True
+                continue
+        day_training = [
+            x for x in sessions if x.date == s.date and x.status != PlannedSessionStatus.SKIPPED.value
+        ]
+        if len(day_training) == 1 and completions_per_date.get(s.date.isoformat(), 0) >= 1:
+            lookup[s.id] = True
+        else:
+            lookup[s.id] = False
+    return lookup
+
+
+def _to_session_schema(session: PlannedSessionDB, completed: bool = False) -> PlannedSession:
     return PlannedSession(
         id=session.id,
         microcycle_id=session.microcycle_id,
         user_id=session.user_id,
         date=session.date,
         order_in_day=session.order_in_day,
-        shift=session.shift,
+        shift=_normalize_shift(session.shift),
         start_time=session.start_time,
         duration_minutes=session.duration_minutes,
         workout_type=session.workout_type,
@@ -126,6 +200,7 @@ def _to_session_schema(session: PlannedSessionDB) -> PlannedSession:
         notes=session.notes,
         status=session.status,
         generated_template_id=session.generated_template_id,
+        completed=completed,
         created_at=session.created_at,
         updated_at=session.updated_at,
     )
@@ -381,7 +456,7 @@ async def get_microcycle_by_date(
     macro = session.get(MacrocycleDB, micro.macrocycle_id)
     block_plan = _parse_block_plan(macro.block_plan if macro else [])
     sessions = _load_micro_sessions(session, micro.id)
-    return _to_micro_schema(micro, block_plan, sessions)
+    return _to_micro_schema(micro, block_plan, sessions, db=session)
 
 
 @router.get("/microcycles/{micro_id}", response_model=Microcycle)
@@ -396,7 +471,7 @@ async def get_microcycle(
     macro = session.get(MacrocycleDB, micro.macrocycle_id)
     block_plan = _parse_block_plan(macro.block_plan if macro else [])
     sessions = _load_micro_sessions(session, micro.id)
-    return _to_micro_schema(micro, block_plan, sessions)
+    return _to_micro_schema(micro, block_plan, sessions, db=session)
 
 
 @router.patch("/microcycles/{micro_id}", response_model=Microcycle)
@@ -418,7 +493,7 @@ async def update_microcycle(
     macro = session.get(MacrocycleDB, micro.macrocycle_id)
     block_plan = _parse_block_plan(macro.block_plan if macro else [])
     sessions = _load_micro_sessions(session, micro.id)
-    return _to_micro_schema(micro, block_plan, sessions)
+    return _to_micro_schema(micro, block_plan, sessions, db=session)
 
 
 @router.post("/microcycles/{micro_id}/copy-from/{source_id}", response_model=Microcycle)
@@ -450,7 +525,7 @@ async def copy_microcycle(
             user_id=user_id,
             date=s.date + timedelta(days=delta_days),
             order_in_day=s.order_in_day,
-            shift=s.shift,
+            shift=_normalize_shift(s.shift),
             start_time=s.start_time,
             duration_minutes=s.duration_minutes,
             workout_type=s.workout_type,
@@ -464,7 +539,7 @@ async def copy_microcycle(
     macro = session.get(MacrocycleDB, target.macrocycle_id)
     block_plan = _parse_block_plan(macro.block_plan if macro else [])
     sessions = _load_micro_sessions(session, target.id)
-    return _to_micro_schema(target, block_plan, sessions)
+    return _to_micro_schema(target, block_plan, sessions, db=session)
 
 
 # ==========================================================
@@ -496,7 +571,7 @@ async def create_planned_session(
         user_id=user_id,
         date=payload.date,
         order_in_day=payload.order_in_day,
-        shift=payload.shift.value if payload.shift else None,
+        shift=payload.shift.value if payload.shift else DEFAULT_SHIFT,
         start_time=payload.start_time,
         duration_minutes=payload.duration_minutes,
         workout_type=payload.workout_type.value if payload.workout_type else None,
@@ -530,6 +605,7 @@ async def update_planned_session(
         if hasattr(v, "value"):
             v = v.value
         setattr(row, k, v)
+    row.shift = _normalize_shift(row.shift)
     session.commit()
     session.refresh(row)
     return _to_session_schema(row)

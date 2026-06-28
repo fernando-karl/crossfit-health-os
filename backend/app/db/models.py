@@ -290,7 +290,7 @@ class HealthkitData(SQLModel, table=True):
 
     id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
     user_id: int = Field(foreign_key="users.id", index=True)
-    synced_at: _Datetime = Field(default_factory=_Datetime.utcnow)
+    created_at: _Datetime = Field(default_factory=_Datetime.utcnow)
     data_type: str = Field(max_length=40)
     start_date: _Datetime
     end_date: _Datetime

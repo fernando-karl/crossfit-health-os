@@ -378,14 +378,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ## ✅ Testing Status
 
 ### Backend
-- ❌ Unit tests: Not implemented
-- ❌ Integration tests: Not implemented
-- ⚠️ Manual testing: Endpoints tested via Swagger UI
+- ✅ Unit tests: ~580 tests, ~78% coverage (CI threshold 60%)
+- ✅ Integration tests: API endpoints via pytest + httpx
+- ⚠️ E2E: Playwright specs exist; authenticated flows partially skipped
 
 ### Frontend
-- ❌ Unit tests: Not implemented
-- ❌ E2E tests: Not implemented
-- ⚠️ Manual testing: Pages render correctly
+- ✅ SSR pages: dashboard, training, schedule, health, nutrition, reviews, profile
+- ⚠️ E2E autenticado: expandir cobertura Playwright
 
 **Priority:** Add tests before production (target 60%+ coverage)
 

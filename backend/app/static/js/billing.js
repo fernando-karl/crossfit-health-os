@@ -15,8 +15,14 @@
 
    function showMsg(type, text) {
       const $msg = $('#billing-msg');
-      $msg.removeClass('d-none alert-danger alert-success alert-info alert-warning')
-          .addClass('alert-' + type)
+      const clsMap = {
+         danger: 'is-danger',
+         success: 'is-success',
+         warning: 'is-warning',
+         info: 'is-info',
+      };
+      $msg.removeClass('d-none is-danger is-success is-warning is-info')
+          .addClass('chos-notice ' + (clsMap[type] || 'is-info'))
           .html(text);
    }
 
@@ -30,13 +36,13 @@
       const status = (user.subscription_status || 'trialing').toLowerCase();
       const $status = $('#billing-status');
       const labelMap = {
-         trialing: { text: tr('billing.status_trialing', null, 'Free trial'), cls: 'bg-info' },
-         active:   { text: tr('billing.status_active', null, 'Active'),       cls: 'bg-success' },
-         past_due: { text: tr('billing.status_past_due', null, 'Past due'),   cls: 'bg-warning text-dark' },
-         canceled: { text: tr('billing.status_canceled', null, 'Canceled'),   cls: 'bg-secondary' }
+         trialing: { text: tr('billing.status_trialing', null, 'Free trial'), cls: 'chos-badge-primary' },
+         active:   { text: tr('billing.status_active', null, 'Active'),       cls: 'chos-badge-success' },
+         past_due: { text: tr('billing.status_past_due', null, 'Past due'),   cls: 'chos-badge-warning' },
+         canceled: { text: tr('billing.status_canceled', null, 'Canceled'),   cls: '' }
       };
-      const info = labelMap[status] || { text: status, cls: 'bg-secondary' };
-      $status.removeClass().addClass('badge ' + info.cls).text(info.text);
+      const info = labelMap[status] || { text: status, cls: '' };
+      $status.removeClass().addClass('chos-badge ' + info.cls).text(info.text);
 
       // Expiry / next-billing date.
       if (user.trial_expires_at) {

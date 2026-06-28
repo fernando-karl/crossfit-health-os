@@ -352,7 +352,7 @@ class TestGetMeEndpoint:
 class TestCreateUser:
     """Unit tests for create_user helper"""
 
-    def test_create_user_calls_execute_and_fetchone(self):
+    def test_create_user_calls_sqlalchemy_session(self):
         from app.api.v1.auth import create_user, RegisterRequest
 
         req = RegisterRequest(
@@ -362,14 +362,23 @@ class TestCreateUser:
             name="New User",
         )
 
+        mock_user = MagicMock()
+        mock_user.id = 99
+        mock_db = MagicMock()
+        mock_db.__enter__ = MagicMock(return_value=mock_db)
+        mock_db.__exit__ = MagicMock(return_value=False)
+
         with patch("app.api.v1.auth.hash_password", return_value="hashed"):
-            with patch("app.api.v1.auth.execute", return_value=1):
-                with patch("app.api.v1.auth.fetchone", return_value=(99,)):
+            with patch("app.api.v1.auth.SessionLocal", return_value=mock_db):
+                with patch("app.api.v1.auth.UserDB") as MockUser:
+                    MockUser.return_value = mock_user
                     result = create_user(req)
 
         assert result == 99
+        mock_db.add.assert_called_once()
+        mock_db.commit.assert_called_once()
 
-    def test_create_user_returns_none_when_fetchone_empty(self):
+    def test_create_user_returns_none_when_commit_fails(self):
         from app.api.v1.auth import create_user, RegisterRequest
 
         req = RegisterRequest(
@@ -379,9 +388,15 @@ class TestCreateUser:
             name="New User",
         )
 
+        mock_user = MagicMock()
+        mock_user.id = None
+        mock_db = MagicMock()
+        mock_db.__enter__ = MagicMock(return_value=mock_db)
+        mock_db.__exit__ = MagicMock(return_value=False)
+
         with patch("app.api.v1.auth.hash_password", return_value="hashed"):
-            with patch("app.api.v1.auth.execute", return_value=1):
-                with patch("app.api.v1.auth.fetchone", return_value=None):
+            with patch("app.api.v1.auth.SessionLocal", return_value=mock_db):
+                with patch("app.api.v1.auth.UserDB", return_value=mock_user):
                     result = create_user(req)
 
         assert result is None
@@ -393,7 +408,12 @@ class TestGetUserByEmail:
     def test_returns_none_when_not_found(self):
         from app.api.v1.auth import get_user_by_email
 
-        with patch("app.api.v1.auth.fetchone", return_value=None):
+        mock_db = MagicMock()
+        mock_db.__enter__ = MagicMock(return_value=mock_db)
+        mock_db.__exit__ = MagicMock(return_value=False)
+        mock_db.execute.return_value.scalar_one_or_none.return_value = None
+
+        with patch("app.api.v1.auth.SessionLocal", return_value=mock_db):
             result = get_user_by_email("missing@example.com")
 
         assert result is None
@@ -401,8 +421,24 @@ class TestGetUserByEmail:
     def test_returns_row_when_found(self):
         from app.api.v1.auth import get_user_by_email
 
-        mock_row = (1, "found@example.com", "hashed", "Found User", None, None, None, "beginner", [])
-        with patch("app.api.v1.auth.fetchone", return_value=mock_row):
+        mock_user = MagicMock()
+        mock_user.id = 1
+        mock_user.email = "found@example.com"
+        mock_user.password_hash = "hashed"
+        mock_user.name = "Found User"
+        mock_user.birth_date = None
+        mock_user.weight_kg = None
+        mock_user.height_cm = None
+        mock_user.fitness_level = "beginner"
+        mock_user.goals = []
+
+        mock_db = MagicMock()
+        mock_db.__enter__ = MagicMock(return_value=mock_db)
+        mock_db.__exit__ = MagicMock(return_value=False)
+        mock_db.execute.return_value.scalar_one_or_none.return_value = mock_user
+
+        with patch("app.api.v1.auth.SessionLocal", return_value=mock_db):
             result = get_user_by_email("found@example.com")
 
-        assert result == mock_row
+        assert result[0] == 1
+        assert result[1] == "found@example.com"

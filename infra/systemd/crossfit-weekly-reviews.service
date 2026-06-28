@@ -1,0 +1,13 @@
+[Unit]
+Description=CrossFit Health OS weekly review cron trigger
+After=network-online.target crossfit.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=crossfit
+EnvironmentFile=/opt/crossfit-health-os/backend/.env
+ExecStart=/bin/bash -c 'curl -sf -X POST -H "X-Internal-Cron-Secret: $INTERNAL_CRON_SECRET" http://127.0.0.1:8003/api/v1/internal/cron/weekly-reviews'
+
+[Install]
+WantedBy=multi-user.target

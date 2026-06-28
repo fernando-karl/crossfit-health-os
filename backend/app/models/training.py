@@ -126,7 +126,7 @@ class WorkoutTemplate(WorkoutTemplateBase):
 class WorkoutSessionBase(BaseModel):
     """Base workout session"""
     workout_type: WorkoutType
-    movements: List[Movement]
+    movements: List[Movement] = Field(default_factory=list)
     prescribed_weight_kg: Optional[Dict[str, float]] = None
     prescribed_reps: Optional[Dict[str, int]] = None
     notes: Optional[str] = None
@@ -136,8 +136,11 @@ class WorkoutSessionBase(BaseModel):
 class WorkoutSessionCreate(WorkoutSessionBase):
     """Create workout session"""
     template_id: Optional[UUID] = None
+    planned_session_id: Optional[UUID] = None
     scheduled_at: Optional[datetime] = None
     allow_retroactive: bool = False  # Allow logging past workouts
+    duration_minutes: Optional[float] = None
+    rpe_score: Optional[int] = Field(None, ge=1, le=10)
 
     @field_validator('scheduled_at')
     @classmethod
@@ -196,6 +199,7 @@ class WorkoutSession(WorkoutSessionBase):
     id: UUID
     user_id: int
     template_id: Optional[UUID] = None
+    planned_session_id: Optional[UUID] = None
 
     scheduled_at: Optional[datetime] = None
     started_at: datetime
@@ -230,6 +234,42 @@ class WorkoutGenerationRequest(BaseModel):
     user_id: Optional[int] = None  # Filled from authenticated user if not provided
     date: Optional[dt_module.date] = None  # Defaults to today if not provided
     force_rest: bool = False  # Override and force rest day
+
+    # Optional client recovery snapshot (used when logging just before generate)
+    readiness_score: Optional[int] = Field(None, ge=0, le=100)
+    hrv_rmssd_ms: Optional[int] = Field(None, ge=5, le=400)
+    hrv: Optional[int] = Field(None, ge=5, le=400)  # legacy alias
+    sleep_duration_hours: Optional[float] = Field(None, ge=0.0, le=24.0)
+    sleep_hours: Optional[float] = Field(None, ge=0.0, le=24.0)  # legacy alias
+    sleep_quality_score: Optional[int] = Field(None, ge=1, le=100)
+    muscle_soreness: Optional[int] = Field(None, ge=1, le=10)
+    stress_level: Optional[int] = Field(None, ge=1, le=10)
+    energy_level: Optional[int] = Field(None, ge=1, le=10)
+
+    def recovery_override_dict(self) -> Optional[dict]:
+        """Normalized recovery hints from the request body."""
+        override: dict = {}
+        if self.readiness_score is not None:
+            override["readiness_score"] = self.readiness_score
+        hrv = self.hrv_rmssd_ms if self.hrv_rmssd_ms is not None else self.hrv
+        if hrv is not None:
+            override["hrv_rmssd_ms"] = hrv
+        sleep = (
+            self.sleep_duration_hours
+            if self.sleep_duration_hours is not None
+            else self.sleep_hours
+        )
+        if sleep is not None:
+            override["sleep_duration_hours"] = sleep
+        if self.sleep_quality_score is not None:
+            override["sleep_quality_score"] = self.sleep_quality_score
+        if self.muscle_soreness is not None:
+            override["muscle_soreness"] = self.muscle_soreness
+        if self.stress_level is not None:
+            override["stress_level"] = self.stress_level
+        if self.energy_level is not None:
+            override["energy_level"] = self.energy_level
+        return override or None
 
 
 class AdaptiveWorkoutResponse(BaseModel):
@@ -394,6 +434,7 @@ class PlannedSession(PlannedSessionCreate):
     user_id: int
     status: PlannedSessionStatus = PlannedSessionStatus.PLANNED
     generated_template_id: Optional[UUID] = None
+    completed: bool = False
     created_at: datetime
     updated_at: datetime
 

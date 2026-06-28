@@ -60,6 +60,10 @@ async def update_user_profile(
                     detail=f"locale must be one of {list(SUPPORTED_LOCALES)}",
                 )
             value = normalized
+        if key == "preferences" and isinstance(value, dict):
+            current = dict(user.preferences or {})
+            current.update(value)
+            value = current
         setattr(user, key, value)
         changed = True
 

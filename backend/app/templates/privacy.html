@@ -2,6 +2,13 @@
 
 {% block title %}{{ t("legal.privacy.page_title") }} - CrossFit Health OS{% endblock %}
 
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/landing.css?v={{ asset_version() }}">
+{% endblock %}
+
 {% set sections = [
     "controller",
     "data_collected",
@@ -19,59 +26,54 @@
 ] %}
 
 {% block navbar %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container">
-        <a class="navbar-brand" href="/">
-            <i class="fas fa-dumbbell"></i> CrossFit Health OS
+<nav class="lp-nav">
+    <div class="lp-container lp-nav__inner">
+        <a class="lp-nav__brand" href="/">
+            <span class="lp-mark" aria-hidden="true"></span>
+            CrossFit Health OS
         </a>
-        <ul class="navbar-nav ms-auto flex-row">
-            <li class="nav-item me-3"><a class="nav-link" href="/terms">{{ t("legal.nav.terms") }}</a></li>
-            <li class="nav-item"><a class="nav-link" href="/login">{{ t("landing.nav.login") }}</a></li>
+        <ul class="lp-nav__links">
+            <li><a href="/terms">{{ t("legal.nav.terms") }}</a></li>
+            <li><a class="lp-nav__cta" href="/login">{{ t("landing.nav.login") }}</a></li>
         </ul>
     </div>
 </nav>
 {% endblock %}
 
 {% block content %}
-<section class="bg-primary text-white py-4">
-    <div class="container">
-        <h1 class="display-5 fw-bold mb-1">{{ t("legal.privacy.title") }}</h1>
-        <p class="mb-0 small">
-            {{ t("legal.privacy.version_label") }} <strong>1.0</strong> ·
-            {{ t("legal.privacy.last_updated") }} <strong>2026-05-06</strong>
-        </p>
-    </div>
-</section>
+<main class="lp-legal">
+    <div class="lp-container lp-legal__container">
+        <header class="lp-legal__header">
+            <h1 class="lp-legal__title">{{ t("legal.privacy.title") }}</h1>
+            <p class="lp-legal__meta">
+                {{ t("legal.privacy.version_label") }} <strong>1.0</strong> ·
+                {{ t("legal.privacy.last_updated") }} <strong>2026-05-06</strong>
+            </p>
+        </header>
 
-<section class="py-4">
-    <div class="container">
-        <div class="alert alert-warning small mb-4">
+        <div class="lp-legal__notice">
             <strong>{{ t("legal.draft_notice_title") }}</strong>
             {{ t("legal.draft_notice_body") | safe }}
         </div>
 
-        <div class="row">
-            <aside class="col-lg-3 d-none d-lg-block">
-                <div class="position-sticky" style="top: 1.5rem;">
-                    <h6 class="text-uppercase text-muted small fw-bold mb-3">
-                        {{ t("legal.toc_title") }}
-                    </h6>
-                    <nav class="nav flex-column small">
+        <div class="lp-legal__grid">
+            <aside class="lp-legal__toc">
+                <div class="lp-legal__toc-inner">
+                    <h6 class="lp-legal__toc-title">{{ t("legal.toc_title") }}</h6>
+                    <nav>
                         {% for sec in sections %}
-                        <a class="nav-link px-0 py-1" href="#{{ sec }}">
-                            {{ t("legal.privacy.sec." ~ sec ~ ".title") }}
-                        </a>
+                        <a href="#{{ sec }}">{{ t("legal.privacy.sec." ~ sec ~ ".title") }}</a>
                         {% endfor %}
                     </nav>
                 </div>
             </aside>
 
-            <div class="col-lg-9">
-                <p class="lead">{{ t("legal.privacy.intro") | safe }}</p>
+            <div class="lp-legal__content">
+                <p class="lp-legal__lead">{{ t("legal.privacy.intro") | safe }}</p>
 
                 {% for sec in sections %}
-                <article id="{{ sec }}" class="mb-4 pb-3 border-bottom">
-                    <h2 class="h4 fw-bold mb-3">{{ t("legal.privacy.sec." ~ sec ~ ".title") }}</h2>
+                <article id="{{ sec }}" class="lp-legal__section">
+                    <h2 class="lp-legal__h2">{{ t("legal.privacy.sec." ~ sec ~ ".title") }}</h2>
                     {% for n in range(1, 10) %}
                         {% set key = "legal.privacy.sec." ~ sec ~ ".p" ~ n %}
                         {% set para = t(key) %}
@@ -84,13 +86,13 @@
             </div>
         </div>
     </div>
-</section>
+</main>
 
-<footer class="bg-dark text-white py-4">
-    <div class="container text-center small">
-        <a href="/terms" class="text-white me-3">{{ t("legal.nav.terms") }}</a>
-        <a href="/privacy" class="text-white">{{ t("legal.nav.privacy") }}</a>
-        <p class="text-muted mt-2 mb-0">{{ t("landing.footer.tagline") }}</p>
+<footer class="lp-footer">
+    <div class="lp-container" style="text-align: center;">
+        <a href="/terms">{{ t("legal.nav.terms") }}</a> ·
+        <a href="/privacy">{{ t("legal.nav.privacy") }}</a>
+        <p class="lp-footer__tagline">{{ t("landing.footer.tagline") }}</p>
     </div>
 </footer>
 {% endblock %}

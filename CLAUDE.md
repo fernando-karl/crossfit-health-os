@@ -1,5 +1,8 @@
 # CLAUDE.md
 
+> **Production deploy:** see [`DEPLOYMENT.md`](DEPLOYMENT.md) — systemd + host PostgreSQL + Alembic.  
+> **UI:** FastAPI serves Jinja2 SSR + `/static/js/chos.js` (no separate Next.js app).
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

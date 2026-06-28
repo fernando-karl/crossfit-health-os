@@ -14,6 +14,32 @@ class TestPublicPages:
         """Test landing page"""
         response = await async_client.get("/")
         assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_home_page_has_schema_markup(self, async_client: AsyncClient):
+        """Landing exposes JSON-LD and core SEO meta tags."""
+        response = await async_client.get("/")
+        html = response.text
+
+        assert 'type="application/ld+json"' in html
+        assert '"@type": "SoftwareApplication"' in html
+        assert '"@type": "FAQPage"' in html
+        assert 'name="description"' in html
+        assert 'property="og:title"' in html
+        assert 'rel="canonical"' in html
+        assert 'hreflang="en"' in html
+
+    @pytest.mark.asyncio
+    async def test_home_page_uses_shared_dashboard_labels(self, async_client: AsyncClient):
+        """Landing demo reuses the same i18n keys as the logged-in dashboard."""
+        response = await async_client.get("/")
+        html = response.text
+
+        assert "lp-loop-demo" in html
+        assert "Today's Workout" in html or "Treino de hoje" in html
+        assert "Manual check-in" in html or "Check-in manual" in html
+        assert "Weekly Reviews" in html or "Reviews semanais" in html
+        assert "Current block" in html or "Bloco atual" in html
     
     @pytest.mark.asyncio
     async def test_login_page(self, async_client: AsyncClient):
@@ -42,6 +68,11 @@ class TestDashboardPages:
         """Test main dashboard page"""
         response = await async_client.get("/dashboard")
         assert response.status_code == 200
+        html = response.text
+        assert "chos-dashboard-hub" in html
+        assert "daily-primary-cta" in html
+        assert "loop-strip" in html
+        assert "morning-bar" in html
     
     @pytest.mark.asyncio
     async def test_workouts_page(self, async_client: AsyncClient):
@@ -54,6 +85,10 @@ class TestDashboardPages:
         """Test schedule page"""
         response = await async_client.get("/dashboard/schedule")
         assert response.status_code == 200
+        html = response.text
+        assert "phase-timeline" in html
+        assert "week-strip" in html
+        assert "chos-schedule-grid" in html
     
     @pytest.mark.asyncio
     async def test_health_page(self, async_client: AsyncClient):
@@ -111,17 +146,23 @@ class TestAuthCallbackPages:
     
     @pytest.mark.asyncio
     async def test_auth_callback(self, async_client: AsyncClient):
-        """Test Supabase auth callback handler"""
+        """Legacy Supabase callback redirects to local login."""
         response = await async_client.get(
-            "/auth/callback?token=test_token&type=signup&redirect_to=/dashboard"
+            "/auth/callback?token=test_token&type=signup&redirect_to=/dashboard",
+            follow_redirects=False,
         )
-        assert response.status_code == 200
-    
+        assert response.status_code == 302
+        assert "/login" in response.headers.get("location", "")
+
     @pytest.mark.asyncio
     async def test_auth_verify(self, async_client: AsyncClient):
-        """Test auth verify route"""
-        response = await async_client.get("/auth/verify?token=test_token&type=email")
-        assert response.status_code == 200
+        """Legacy verify route redirects to local login."""
+        response = await async_client.get(
+            "/auth/verify?token=test_token&type=email",
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        assert "/login" in response.headers.get("location", "")
     
     @pytest.mark.asyncio
     async def test_auth_handler(self, async_client: AsyncClient):

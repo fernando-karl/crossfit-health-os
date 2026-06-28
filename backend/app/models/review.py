@@ -151,6 +151,7 @@ class WeeklyReview(BaseModel):
     # Metadata
     created_at: datetime
     ai_model_used: str = Field("claude-3-5-sonnet", description="AI model used for review")
+    applied: bool = False
 
     model_config = {"from_attributes": True}
 

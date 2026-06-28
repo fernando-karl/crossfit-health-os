@@ -59,6 +59,9 @@ parser.add_argument("--out", default="run_mesocycle_multi_results.json")
 parser.add_argument("--no-confirm", action="store_true")
 parser.add_argument("--exclude-providers", default="",
                     help="lista CSV pra excluir do pool, ex: 'minimax,groq'")
+parser.add_argument("--scenario", default="",
+                    help="CSV de scenario ids específicos (override de --max-scenarios), "
+                         "ex: 'scen_base_aerobic'")
 args = parser.parse_args()
 EXCLUDED_PROVIDERS = frozenset(
     p.strip() for p in args.exclude_providers.split(",") if p.strip()
@@ -76,7 +79,16 @@ print("=" * 80)
 with open(FIXTURE) as f:
     fixture = json.load(f)
 
-scenarios_raw = fixture["scenarios"][: args.max_scenarios]
+if args.scenario:
+    _wanted = {s.strip() for s in args.scenario.split(",") if s.strip()}
+    scenarios_raw = [s for s in fixture["scenarios"] if s["id"] in _wanted]
+    if not scenarios_raw:
+        raise SystemExit(
+            f"No scenarios matched {sorted(_wanted)}. "
+            f"Available: {[s['id'] for s in fixture['scenarios']]}"
+        )
+else:
+    scenarios_raw = fixture["scenarios"][: args.max_scenarios]
 print(f"\n📋 Scenarios: {len(scenarios_raw)} de {len(fixture['scenarios'])}")
 for s in scenarios_raw:
     print(f"   - {s['id']}: {s['name']}")

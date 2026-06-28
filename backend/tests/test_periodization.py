@@ -9,7 +9,7 @@ Covers:
 - API endpoints (macrocycle + planned_session CRUD)
 """
 from datetime import date, timedelta, time
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from httpx import AsyncClient
@@ -349,6 +349,41 @@ class TestMacrocycleEndpoints:
             },
         )
         assert bad.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_microcycle_marks_planned_session_completed(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        """Completed workout on a planned day surfaces completed=true on the session."""
+        from datetime import datetime
+
+        from app.db.models import WorkoutSession as WorkoutSessionDB
+
+        create = await authenticated_client.post(
+            "/api/v1/schedule/macrocycles",
+            json={"name": "Done week", "methodology": "hwpo", "start_date": "2026-04-20"},
+        )
+        assert create.status_code == 201, create.text
+        micro_id = create.json()["microcycles"][0]["id"]
+
+        listed = await authenticated_client.get(f"/api/v1/schedule/microcycles/{micro_id}")
+        mon = next(s for s in listed.json()["sessions"] if s["date"] == "2026-04-20")
+        assert mon["completed"] is False
+
+        db_session.add(
+            WorkoutSessionDB(
+                user_id=seeded_user.id,
+                planned_session_id=UUID(str(mon["id"])),
+                workout_type="strength",
+                started_at=datetime(2026, 4, 20, 8, 0, 0),
+                completed_at=datetime(2026, 4, 20, 9, 0, 0),
+            )
+        )
+        db_session.commit()
+
+        refreshed = await authenticated_client.get(f"/api/v1/schedule/microcycles/{micro_id}")
+        done = next(s for s in refreshed.json()["sessions"] if s["id"] == mon["id"])
+        assert done["completed"] is True
 
 
 # ==========================================================

@@ -99,6 +99,15 @@ class Settings(BaseSettings):
     # Default timezone for calendar events
     DEFAULT_TIMEZONE: str = "America/Sao_Paulo"
 
+    # SMTP (optional — password reset emails; logs link when unset)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    SMTP_USE_TLS: bool = True
+    SMTP_USE_SSL: bool = False
+
     class Config:
         env_file = ".env"
         case_sensitive = True

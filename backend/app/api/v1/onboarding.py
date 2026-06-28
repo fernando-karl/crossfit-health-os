@@ -40,6 +40,7 @@ class OnboardingData(BaseModel):
     has_pullup_bar: bool = False
     app_focus: str = Field("full")
     nutrition_enabled: bool = Field(True)
+    generate_first_program: bool = Field(True)
 
 
 def _calculate_readiness_from_age(birth_date: Optional[str]) -> int:
@@ -110,6 +111,20 @@ async def complete_onboarding(
     svc = GamificationService(user_id, db)
     new_level, _ = svc.add_xp(300)
 
+    schedule_created = False
+    program_info = None
+    if data.generate_first_program:
+        from app.services import starter_program
+
+        program_info = starter_program.create_starter_program(
+            db,
+            user,
+            sessions_per_week=len(data.available_days) or 3,
+            primary_goal=data.primary_goal,
+            name=f"{user.name or 'My'} first program",
+        )
+        schedule_created = program_info is not None
+
     return {
         "success": True,
         "profile": {
@@ -118,10 +133,15 @@ async def complete_onboarding(
             "goals": user.goals or [],
             "preferences": user.preferences or {},
         },
-        "schedule_created": False,
+        "schedule_created": schedule_created,
+        "program": program_info,
         "xp_earned": 300,
         "level": new_level,
-        "message": "Onboarding complete! Set up your training calendar to get started.",
+        "message": (
+            "Onboarding complete! Your first training week is ready."
+            if schedule_created
+            else "Onboarding complete! Set up your training calendar to get started."
+        ),
     }
 
 

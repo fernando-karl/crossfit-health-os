@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
+from app.core.nutrition_targets import resolve_macro_targets
 from app.db.models import (
     Injury as InjuryDB,
     MealLog as MealLogDB,
@@ -39,9 +40,13 @@ from app.services.training_volume import training_volume_for_date
 router = APIRouter(prefix="/api/v1/today", tags=["today"])
 
 
-def _readiness(recovery: Optional[RecoveryMetricDB]) -> Dict[str, Any]:
-    """Mirror of AdaptiveTrainingEngine._calculate_readiness_score, kept inline
-    to avoid pulling the full engine for a read-only composition."""
+from app.core.engine.readiness import (
+    calculate_readiness_score,
+    recovery_row_to_metric,
+)
+
+
+def _readiness(db: Session, user_id: int, recovery: Optional[RecoveryMetricDB]) -> Dict[str, Any]:
     if recovery is None:
         return {
             "score": None,
@@ -50,19 +55,8 @@ def _readiness(recovery: Optional[RecoveryMetricDB]) -> Dict[str, Any]:
             "inputs": None,
         }
 
-    hrv = recovery.hrv_ms or 50
-    sleep_q = recovery.sleep_quality or 7
-    stress = recovery.stress_level or 5
-    soreness = recovery.muscle_soreness or 5
-
-    hrv_norm = max(0.0, min(1.0, (hrv / 50.0 - 0.5) / 1.0))
-    sleep_norm = (sleep_q - 1) / 9
-    stress_norm = 1 - ((stress - 1) / 9)
-    soreness_norm = 1 - ((soreness - 1) / 9)
-
-    score = int(round(
-        (hrv_norm * 0.4 + sleep_norm * 0.3 + stress_norm * 0.2 + soreness_norm * 0.1) * 100
-    ))
+    metric = recovery_row_to_metric(db, user_id, recovery, as_of=recovery.date)
+    score = calculate_readiness_score(metric)
 
     if score >= 80:
         status = "optimal"
@@ -180,9 +174,12 @@ async def get_today_window(
     volume = training_volume_for_date(db, user_id, today)
     injuries = _active_injuries(db, user_id, today)
 
-    target_carbs = diet_plan.carbs_g if diet_plan else None
-    target_protein = diet_plan.protein_g if diet_plan else None
-    target_calories = diet_plan.daily_calories if diet_plan else None
+    resolved_targets = resolve_macro_targets(db, user_id)
+    macro_targets = resolved_targets["targets"]
+    target_calories = macro_targets["calories"]
+    target_protein = macro_targets["protein"]
+    target_carbs = macro_targets["carbs"]
+    target_fat = macro_targets["fat"]
 
     return {
         "date": today.isoformat(),
@@ -194,24 +191,27 @@ async def get_today_window(
             "session_count": len(planned),
         },
 
-        "readiness": _readiness(recovery_row),
+        "readiness": _readiness(db, user_id, recovery_row),
 
         "fueling": {
             "targets": {
                 "calories": target_calories,
                 "protein_g": target_protein,
                 "carbs_g": target_carbs,
+                "fat_g": target_fat,
+                "source": resolved_targets["source"],
                 "training_aware": False,
                 "note": (
-                    "Targets are static from the uploaded diet plan. "
-                    "Training-aware adjustment (P0 #3) not wired yet."
+                    "Targets come from manual settings, uploaded diet plan, "
+                    "or the 2000 kcal default."
                 ),
             },
             "consumed": consumed,
             "remaining": {
-                "calories": (target_calories - consumed["calories"]) if target_calories else None,
-                "protein_g": (target_protein - consumed["protein_g"]) if target_protein else None,
-                "carbs_g": (target_carbs - consumed["carbs_g"]) if target_carbs else None,
+                "calories": target_calories - consumed["calories"],
+                "protein_g": target_protein - consumed["protein_g"],
+                "carbs_g": target_carbs - consumed["carbs_g"],
+                "fat_g": target_fat - consumed["fat_g"],
             },
             "impact_prediction": {
                 "mock": True,

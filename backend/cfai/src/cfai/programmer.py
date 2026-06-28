@@ -166,6 +166,27 @@ def strength_secondary_prescription(phase: Phase) -> SecondaryRx:
 
 
 # ============================================================
+# LOAD HELPERS
+# ============================================================
+
+def recommended_absolute_load(movement: Movement, athlete) -> LoadSpec:
+    """Absolute load for a non-barbell loaded movement, scaled to bodyweight.
+
+    Non-barbell implements (KB/DB) have no 1RM, so percent_1rm is meaningless —
+    they take a prescribed absolute weight. Scale it to bodyweight and round to
+    a realistic increment: kettlebells come in 4kg steps (~0.30×BW), dumbbells
+    in 2.5kg steps per hand (~0.28×BW). Movements without a clear external load
+    (odd object / accessory) fall back to RPE.
+    """
+    bw = athlete.body_weight_kg
+    if movement.category == "kettlebell":
+        return LoadSpec(type="absolute_kg", value=max(4.0, round(bw * 0.30 / 4.0) * 4.0))
+    if movement.category == "dumbbell":
+        return LoadSpec(type="absolute_kg", value=round(max(2.5, round(bw * 0.28 / 2.5) * 2.5), 1))
+    return LoadSpec(type="rpe", value=7.0)
+
+
+# ============================================================
 # SCALING HELPERS (Sprint 5a)
 # ============================================================
 
@@ -629,11 +650,16 @@ class HeuristicComposer:
         rx = strength_primary_prescription(ctx.phase, ctx.week_number)
         sets = []
         for _ in range(rx.sets):
+            # percent_1rm only makes sense for barbell lifts (a real 1RM). If
+            # the primary fell back to a non-barbell movement, prescribe an
+            # absolute load scaled to bodyweight instead of "% of KB-swing 1RM".
+            load = (
+                LoadSpec(type="percent_1rm", value=rx.pct_1rm, reference_lift=chosen.id)
+                if chosen.category == "barbell"
+                else recommended_absolute_load(chosen, ctx.athlete)
+            )
             base = MovementPrescription(
-                movement_id=chosen.id, reps=rx.reps,
-                load=LoadSpec(
-                    type="percent_1rm", value=rx.pct_1rm, reference_lift=chosen.id,
-                ),
+                movement_id=chosen.id, reps=rx.reps, load=load,
             )
             base = base.model_copy(update={"scaling": expand_scaling(base, chosen)})
             sets.append(base)
@@ -710,7 +736,7 @@ class HeuristicComposer:
         if wl:
             mp = MovementPrescription(
                 movement_id=wl.id, reps=10,
-                load=LoadSpec(type="absolute_kg", value=22.5),
+                load=recommended_absolute_load(wl, ctx.athlete),
             )
             movements.append(mp.model_copy(update={"scaling": expand_scaling(mp, wl)}))
         if gym:

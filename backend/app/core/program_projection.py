@@ -454,6 +454,7 @@ def project_program_to_periodization(db: Session, program: ProgramDB) -> dict:
                 user_id=user_id,
                 date=sess_date,
                 order_in_day=order_in_day,
+                shift="morning",
                 duration_minutes=duration_min,
                 workout_type=wtype,
                 focus=stimulus,

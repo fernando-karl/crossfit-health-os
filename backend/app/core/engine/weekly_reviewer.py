@@ -23,6 +23,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.models import (
+    Macrocycle as MacrocycleDB,
+    PlannedSession as PlannedSessionDB,
     RecoveryMetric as RecoveryMetricDB,
     SessionFeedback as SessionFeedbackDB,
     User as UserDB,
@@ -152,8 +154,20 @@ class WeeklyReviewEngine:
             )
         ).scalars().all()
 
+        planned_count = db.execute(
+            select(PlannedSessionDB).where(
+                PlannedSessionDB.user_id == user_id,
+                PlannedSessionDB.date >= week_start,
+                PlannedSessionDB.date <= week_end,
+            )
+        ).scalars().all()
+
         completed = len([s for s in sessions if s.completed_at])
-        avg_rpe = sum(f.rpe_score for f in feedback) / len(feedback) if feedback else 7
+        planned_total = len(planned_count) or len(sessions)
+
+        rpe_scores = [f.rpe_score for f in feedback if f.rpe_score]
+        rpe_scores.extend([s.rpe_score for s in sessions if s.rpe_score])
+        avg_rpe = sum(rpe_scores) / len(rpe_scores) if rpe_scores else 7
         avg_readiness = (
             sum((r.readiness_score or 70) for r in recovery) / len(recovery)
             if recovery else 70
@@ -163,9 +177,9 @@ class WeeklyReviewEngine:
             "sessions": [_ws_to_dict(s) for s in sessions],
             "recovery_metrics": [_rm_to_dict(r) for r in recovery],
             "feedback": [_fb_to_dict(f) for f in feedback],
-            "planned_sessions": len(sessions),
+            "planned_sessions": planned_total,
             "completed_sessions": completed,
-            "adherence_rate": (completed / len(sessions) * 100) if sessions else 0,
+            "adherence_rate": (completed / planned_total * 100) if planned_total else 0,
             "avg_rpe": avg_rpe,
             "avg_readiness": avg_readiness,
         }
@@ -286,6 +300,41 @@ Communication style:
 
 Return structured JSON with your analysis."""
 
+    def _resolve_phase(self, db: Session, user_id: int, week_number: int) -> str:
+        macro = db.execute(
+            select(MacrocycleDB).where(
+                MacrocycleDB.user_id == user_id,
+                MacrocycleDB.active.is_(True),
+            ).limit(1)
+        ).scalar_one_or_none()
+        if macro and macro.block_plan:
+            cumulative = 0
+            for block in macro.block_plan:
+                weeks = int(block.get("weeks", 1))
+                cumulative += weeks
+                if week_number <= cumulative:
+                    return str(block.get("type", "accumulation")).replace("_", " ").title()
+        if week_number <= 3:
+            return "Accumulation"
+        if week_number == 4:
+            return "Deload"
+        if week_number <= 7:
+            return "Intensification"
+        return "Test Week"
+
+    def _resolve_phase_for_review(self, user_profile: Dict, week_number: int) -> str:
+        user_id = user_profile.get("id")
+        if user_id:
+            with SessionLocal() as db:
+                return self._resolve_phase(db, int(user_id), week_number)
+        if week_number <= 3:
+            return "Accumulation"
+        if week_number == 4:
+            return "Deload"
+        if week_number <= 7:
+            return "Intensification"
+        return "Test Week"
+
     def _build_review_prompt(
         self,
         user_profile: Dict,
@@ -295,15 +344,7 @@ Return structured JSON with your analysis."""
     ) -> str:
         """Build prompt for AI review"""
 
-        # Determine phase
-        if week_number <= 3:
-            phase = "Accumulation"
-        elif week_number == 4:
-            phase = "Deload"
-        elif week_number <= 7:
-            phase = "Intensification"
-        else:
-            phase = "Test Week"
+        phase = self._resolve_phase_for_review(user_profile, week_number)
 
         prompt = f"""Analyze this athlete's Week {week_number} ({phase} phase) performance:
 

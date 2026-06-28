@@ -12,11 +12,13 @@ from sqlalchemy.orm import Session
 from app.core.auth import get_current_user, require_active_subscription
 from app.core.rate_limit import limiter
 from app.core.integrations.ocr import parse_lab_report
+from app.core.engine.readiness import compute_and_persist_readiness, normalize_sleep_quality
 from app.db.models import (
     BiomarkerReading as BiomarkerReadingDB,
     RecoveryMetric as RecoveryMetricDB,
 )
 from app.db.session import get_session
+from app.db.user_id import user_id_equals, user_id_value
 from app.models.health import (
     BiomarkerReading,
     RecoveryMetric,
@@ -47,9 +49,12 @@ def _rm_to_schema(row: RecoveryMetricDB) -> RecoveryMetric:
 
 
 def _bm_to_schema(row: BiomarkerReadingDB) -> BiomarkerReading:
+    uid = row.user_id
+    if isinstance(uid, str) and uid.isdigit():
+        uid = int(uid)
     return BiomarkerReading(
         id=row.id,
-        user_id=row.user_id,
+        user_id=uid,
         biomarker_name=row.biomarker_name,
         test_date=row.test_date,
         value=row.value,
@@ -64,6 +69,31 @@ def _bm_to_schema(row: BiomarkerReadingDB) -> BiomarkerReading:
         pdf_url=row.pdf_url,
         created_at=row.created_at,
     )
+
+
+_RECOVERY_FIELD_MAP = {
+    "sleep_duration_hours": "sleep_duration_hours",
+    "sleep_quality_score": "sleep_quality",
+    "hrv_rmssd_ms": "hrv_ms",
+    "resting_heart_rate_bpm": "resting_heart_rate_bpm",
+    "stress_level": "stress_level",
+    "muscle_soreness": "muscle_soreness",
+    "energy_level": "energy_level",
+    "notes": "notes",
+}
+
+
+def _apply_recovery_updates(row: RecoveryMetricDB, metric: RecoveryMetricCreate) -> None:
+    """Patch only fields present in the request — never wipe omitted metrics."""
+    payload = metric.model_dump(exclude_unset=True)
+    for api_field, db_column in _RECOVERY_FIELD_MAP.items():
+        if api_field not in payload:
+            continue
+        value = payload[api_field]
+        if db_column == "sleep_quality":
+            row.sleep_quality = normalize_sleep_quality(value)
+        else:
+            setattr(row, db_column, value)
 
 
 @router.post("/recovery", response_model=RecoveryMetric)
@@ -88,14 +118,9 @@ async def create_recovery_metric(
         row = RecoveryMetricDB(user_id=user_id, date=metric.date)
         db.add(row)
 
-    row.sleep_duration_hours = metric.sleep_duration_hours
-    row.sleep_quality = metric.sleep_quality_score
-    row.hrv_ms = metric.hrv_rmssd_ms
-    row.resting_heart_rate_bpm = metric.resting_heart_rate_bpm
-    row.stress_level = metric.stress_level
-    row.muscle_soreness = metric.muscle_soreness
-    row.energy_level = metric.energy_level
-    row.notes = metric.notes
+    _apply_recovery_updates(row, metric)
+
+    compute_and_persist_readiness(db, user_id, row, as_of=metric.date)
 
     db.commit()
     db.refresh(row)
@@ -182,7 +207,7 @@ async def upload_lab_report(
     for bm in biomarkers:
         try:
             db.add(BiomarkerReadingDB(
-                user_id=user_id,
+                user_id=user_id_value(user_id),
                 biomarker_name=bm.get("name", "Unknown"),
                 value=bm.get("value"),
                 unit=bm.get("unit", ""),
@@ -194,8 +219,8 @@ async def upload_lab_report(
                 source="ocr_upload",
             ))
             saved += 1
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Failed to save biomarker %s: %s", bm.get("name"), exc)
     db.commit()
 
     return {
@@ -215,7 +240,7 @@ async def list_biomarkers(
     user_id = int(current_user["id"])
     rows = db.execute(
         select(BiomarkerReadingDB)
-        .where(BiomarkerReadingDB.user_id == user_id)
+        .where(user_id_equals(BiomarkerReadingDB.user_id, user_id))
         .order_by(BiomarkerReadingDB.test_date.desc())
         .limit(limit)
     ).scalars().all()

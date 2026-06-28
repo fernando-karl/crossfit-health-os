@@ -37,14 +37,293 @@ const ScheduleUI = (function () {
         mixed: "warning",
     };
 
-    function shiftLabel(shift) {
-        if (!shift) return "";
-        return t("schedule.shift." + shift) || shift;
+    const S = function () { return CHOS.stimulus; };
+    const Sh = function () { return CHOS.shift; };
+    const D = function () { return CHOS.duration; };
+
+    function focusDisplayLabel(focus) {
+        return S().displayLabel(focus);
     }
+
+    function getMacroDefaultDuration() {
+        const raw = state.macrocycle && state.macrocycle.available_minutes_per_session;
+        const d = parseInt(raw, 10);
+        return Number.isFinite(d) ? d : 60;
+    }
+
+    function durationPickerOptions() {
+        return {
+            macroDefault: getMacroDefaultDuration(),
+            placeholder: t("schedule.drawer.focus_placeholder"),
+        };
+    }
+
+    function isKnownStimulus(focus) {
+        return S().isKnown(focus);
+    }
+
+    function formatSessionScheduleMeta(session) {
+        const shift = formatSessionShift(session);
+        const time = session && session.start_time ? session.start_time.slice(0, 5) : "";
+        const dur = session && session.duration_minutes;
+        const parts = [];
+        if (time) parts.push(shift + " · " + time);
+        else if (shift) parts.push(shift);
+        if (dur) parts.push(String(dur) + t("schedule.session.duration_min"));
+        return parts.join(" · ");
+    }
+
+    function formatSessionTimeMeta(session) {
+        const time = session && session.start_time ? session.start_time.slice(0, 5) : "";
+        const dur = session && session.duration_minutes;
+        const parts = [];
+        if (time) parts.push(time);
+        if (dur) parts.push(String(dur) + t("schedule.session.duration_min"));
+        return parts.join(" · ");
+    }
+
+    function updateSessionSummaryChips(wrapper, session) {
+        if (!wrapper) return;
+        const catCls = S().catClassForWorkoutType(session.workout_type);
+        const headerCat = wrapper.querySelector(".chos-cat.fw-semibold");
+        if (headerCat) {
+            headerCat.className = "chos-cat " + catCls + " fw-semibold";
+        }
+        const summary = wrapper.querySelector("[data-session-summary]");
+        if (!summary) return;
+        const wtLabel = session.workout_type ? t("schedule.workout_type." + session.workout_type) : "?";
+        const focusText = focusDisplayLabel(session.focus) || t("schedule.drawer.focus_unset");
+        const scheduleChip = formatSessionScheduleMeta(session) || t("schedule.drawer.focus_unset");
+        summary.innerHTML = `
+            <span class="chos-chip"><span class="chip-dot"></span><i class="fas fa-clock me-1 text-secondary" style="font-size:0.7rem;"></i>${CHOS.escape(scheduleChip)}</span>
+            <span class="chos-chip ${catCls}"><span class="chip-dot"></span>${CHOS.escape(wtLabel)}</span>
+            <span class="chos-chip"><span class="chip-dot"></span><i class="fas fa-bullseye me-1 text-secondary" style="font-size:0.7rem;"></i>${CHOS.escape(focusText)}</span>`;
+    }
+
+    function refreshShiftPicker(wrapper, session) {
+        const picker = wrapper && wrapper.querySelector("[data-shift-picker]");
+        if (!picker) return;
+        const shift = Sh().isValid(session.shift) ? session.shift : "morning";
+        picker.innerHTML = Sh().buildPickerHtml(shift);
+    }
+
+    function refreshDurationPicker(wrapper, session) {
+        const picker = wrapper && wrapper.querySelector("[data-duration-picker]");
+        if (!picker) return;
+        const defaultDur = getMacroDefaultDuration();
+        picker.innerHTML = D().buildPickerHtml(session.duration_minutes || defaultDur, durationPickerOptions());
+    }
+
+    function applyDurationChange(wrapper, session, value) {
+        if (value === "custom") {
+            refreshDurationPicker(wrapper, session);
+            const customWrap = wrapper.querySelector(".chos-duration-custom");
+            const input = customWrap && customWrap.querySelector("[data-field='duration_minutes']");
+            if (input) {
+                if (!input.value) input.value = session.duration_minutes || 60;
+                input.focus();
+            }
+            return;
+        }
+        const mins = parseInt(value, 10);
+        if (!Number.isFinite(mins)) return;
+        session.duration_minutes = mins;
+        refreshDurationPicker(wrapper, session);
+        updateSessionSummaryChips(wrapper, session);
+        persistSession(session);
+    }
+
+    function applyShiftChange(wrapper, session, shift) {
+        session.shift = Sh().isValid(shift) ? shift : "morning";
+        if (session.shift !== "custom" && Sh().DEFAULT_TIMES[session.shift]) {
+            session.start_time = Sh().DEFAULT_TIMES[session.shift];
+            const timeInput = wrapper.querySelector("[data-field='start_time']");
+            if (timeInput) timeInput.value = session.start_time;
+        } else if (session.shift === "custom") {
+            const timeInput = wrapper.querySelector("[data-field='start_time']");
+            if (timeInput) timeInput.focus();
+        }
+        refreshShiftPicker(wrapper, session);
+        updateSessionSummaryChips(wrapper, session);
+        persistSession(session);
+    }
+
+    function refreshFocusPicker(wrapper, session) {
+        const picker = wrapper && wrapper.querySelector("[data-focus-picker]");
+        if (!picker) return;
+        picker.innerHTML = S().buildPickerHtml(session.focus, session.workout_type, {
+            placeholder: t("schedule.drawer.focus_placeholder"),
+        });
+    }
+
+    function refreshTypePicker(wrapper, session) {
+        const picker = wrapper && wrapper.querySelector("[data-type-picker]");
+        if (!picker) return;
+        picker.innerHTML = S().buildWorkoutTypePickerHtml(session.workout_type);
+    }
+
+    function applyWorkoutTypeChange(wrapper, session, workoutType) {
+        session.workout_type = workoutType || "mixed";
+        if (session.focus && isKnownStimulus(session.focus)
+            && !S().isCompatible(session.focus, session.workout_type)) {
+            session.focus = null;
+        }
+        refreshTypePicker(wrapper, session);
+        refreshFocusPicker(wrapper, session);
+        updateSessionSummaryChips(wrapper, session);
+        persistSession(session);
+    }
+
+    let drawerEventsBound = false;
+
+    function bindDrawerEvents() {
+        if (drawerEventsBound) return;
+        const container = document.getElementById("drawer-sessions");
+        if (!container) return;
+        drawerEventsBound = true;
+
+        container.addEventListener("click", function (e) {
+            const durChip = e.target.closest(".chos-duration-chip[data-duration]");
+            if (durChip) {
+                const wrapper = durChip.closest("[data-idx]");
+                if (!wrapper) return;
+                const idx = parseInt(wrapper.dataset.idx, 10);
+                const session = state.drawerSessions[idx];
+                if (!session) return;
+                applyDurationChange(wrapper, session, durChip.dataset.duration);
+                return;
+            }
+
+            const shiftChip = e.target.closest(".chos-shift-chip[data-shift]");
+            if (shiftChip) {
+                const wrapper = shiftChip.closest("[data-idx]");
+                if (!wrapper) return;
+                const idx = parseInt(wrapper.dataset.idx, 10);
+                const session = state.drawerSessions[idx];
+                if (!session) return;
+                applyShiftChange(wrapper, session, shiftChip.dataset.shift);
+                return;
+            }
+
+            const typeChip = e.target.closest(".chos-type-chip[data-workout-type]");
+            if (typeChip) {
+                const wrapper = typeChip.closest("[data-idx]");
+                if (!wrapper) return;
+                const idx = parseInt(wrapper.dataset.idx, 10);
+                const session = state.drawerSessions[idx];
+                if (!session) return;
+                applyWorkoutTypeChange(wrapper, session, typeChip.dataset.workoutType);
+                return;
+            }
+
+            const chip = e.target.closest(".chos-stimulus-chip[data-stimulus]");
+            if (!chip) return;
+            const wrapper = chip.closest("[data-idx]");
+            if (!wrapper) return;
+            const idx = parseInt(wrapper.dataset.idx, 10);
+            const session = state.drawerSessions[idx];
+            if (!session) return;
+
+            const stimulus = chip.dataset.stimulus;
+            const customInput = wrapper.querySelector("[data-field='focus_custom']");
+
+            wrapper.querySelectorAll(".chos-stimulus-chip[data-stimulus]").forEach(function (c) {
+                c.classList.remove("is-selected");
+                c.setAttribute("aria-pressed", "false");
+            });
+            chip.classList.add("is-selected");
+            chip.setAttribute("aria-pressed", "true");
+
+            if (stimulus === S().FOCUS_CUSTOM) {
+                if (customInput) {
+                    customInput.classList.remove("d-none");
+                    customInput.focus();
+                }
+                session.focus = customInput ? customInput.value.trim() || null : null;
+            } else {
+                if (customInput) customInput.classList.add("d-none");
+                session.focus = stimulus;
+                session.workout_type = S().workoutTypeFor(stimulus);
+                refreshTypePicker(wrapper, session);
+                refreshFocusPicker(wrapper, session);
+            }
+
+            updateSessionSummaryChips(wrapper, session);
+            persistSession(session);
+        });
+
+        container.addEventListener("change", function (e) {
+            const field = e.target.dataset && e.target.dataset.field;
+            if (!field) return;
+            const wrapper = e.target.closest("[data-idx]");
+            if (!wrapper) return;
+            const idx = parseInt(wrapper.dataset.idx, 10);
+            const session = state.drawerSessions[idx];
+            if (!session) return;
+
+            if (field === "focus_custom") {
+                session.focus = e.target.value.trim() || null;
+                updateSessionSummaryChips(wrapper, session);
+                persistSession(session);
+                return;
+            }
+
+            let value = e.target.value;
+            if (field === "duration_minutes") {
+                value = parseInt(value, 10);
+                if (!Number.isFinite(value)) return;
+                session.duration_minutes = value;
+                refreshDurationPicker(wrapper, session);
+            } else if (field === "start_time" && session.shift !== "custom" && value) {
+                session.shift = "custom";
+                refreshShiftPicker(wrapper, session);
+                session[field] = value || null;
+            } else {
+                session[field] = value || null;
+            }
+
+            updateSessionSummaryChips(wrapper, session);
+            persistSession(session);
+        });
+
+        container.addEventListener("input", function (e) {
+            if (!e.target.matches("[data-field='focus_custom']")) return;
+            const wrapper = e.target.closest("[data-idx]");
+            if (!wrapper) return;
+            const idx = parseInt(wrapper.dataset.idx, 10);
+            const session = state.drawerSessions[idx];
+            if (!session) return;
+            session.focus = e.target.value.trim() || null;
+            updateSessionSummaryChips(wrapper, session);
+        });
+    }
+
+    function isValidShift(shift) {
+        return CHOS.shift && CHOS.shift.isValid(shift);
+    }
+
+    function shiftLabel(shift) {
+        if (CHOS.shift) return CHOS.shift.label(shift);
+        if (!isValidShift(shift)) return "";
+        const key = "schedule.shift." + shift;
+        const hit = t(key);
+        return hit !== key ? hit : shift;
+    }
+
+    function formatSessionShift(session) {
+        const label = shiftLabel(session && session.shift);
+        if (label) return label;
+        if (session && session.start_time) return session.start_time.slice(0, 5);
+        return shiftLabel("morning");
+    }
+
     // Back-compat: existing code reads SHIFT_LABELS[s.shift]; resolve via t() so
-    // values stay in sync with the active locale.
+    // values stay in sync with the active locale. Guard against null → "null".
     const SHIFT_LABELS = new Proxy({}, {
-        get: function (_target, prop) { return shiftLabel(prop); },
+        get: function (_target, prop) {
+            if (prop === "null" || prop === "undefined") return "";
+            return shiftLabel(prop);
+        },
     });
 
     let state = {
@@ -54,6 +333,7 @@ const ScheduleUI = (function () {
         drawerSessions: [], // sessions in the open drawer
         drawerDate: null,
         templateCache: {},  // template_id -> workout template data
+        templateLoading: {},
     };
 
     // ----- Date helpers (local time — never UTC) -----------------------------
@@ -99,7 +379,63 @@ const ScheduleUI = (function () {
     function init() {
         refreshBlockPlanPreview();
         document.getElementById("macro-input-start").value = toISODate(mondayOf(new Date()));
+        bindDrawerEvents();
+        bindMacroFormEvents();
+        renderMacroFormPickers();
         loadActiveMacro();
+        window.addEventListener("pageshow", refreshScheduleIfNeeded);
+    }
+
+    let macroFormBound = false;
+
+    function renderMacroFormPickers() {
+        if (!CHOS.macroForm) return;
+        const minsInput = document.getElementById("macro-input-minutes");
+        const daysInput = document.getElementById("macro-input-days");
+        const durPicker = document.getElementById("macro-duration-picker");
+        const daysPicker = document.getElementById("macro-days-picker");
+        const mins = parseInt(minsInput && minsInput.value, 10) || 60;
+        const days = parseInt(daysInput && daysInput.value, 10) || 5;
+        if (durPicker) durPicker.innerHTML = CHOS.macroForm.buildDurationPickerHtml(mins);
+        if (daysPicker) daysPicker.innerHTML = CHOS.macroForm.buildDaysPickerHtml(days);
+    }
+
+    function bindMacroFormEvents() {
+        if (macroFormBound) return;
+        const modal = document.getElementById("createMacroModal");
+        if (!modal) return;
+        macroFormBound = true;
+        modal.addEventListener("click", function (e) {
+            const durChip = e.target.closest("[data-macro-duration]");
+            if (durChip) {
+                const input = document.getElementById("macro-input-minutes");
+                if (input) input.value = durChip.dataset.macroDuration;
+                renderMacroFormPickers();
+                return;
+            }
+            const daysChip = e.target.closest("[data-macro-days]");
+            if (daysChip) {
+                const input = document.getElementById("macro-input-days");
+                if (input) input.value = daysChip.dataset.macroDays;
+                renderMacroFormPickers();
+            }
+        });
+        modal.addEventListener("show.bs.modal", renderMacroFormPickers);
+    }
+
+    function refreshScheduleIfNeeded() {
+        if (!sessionStorage.getItem("chos-schedule-refresh")) return;
+        sessionStorage.removeItem("chos-schedule-refresh");
+        if (state.currentMicro && state.currentMicro.id) {
+            CHOS.api.get("/api/v1/schedule/microcycles/" + state.currentMicro.id)
+                .done(function (fresh) {
+                    state.currentMicro = fresh;
+                    renderBanner();
+                    paintGrid(fresh);
+                });
+            return;
+        }
+        if (state.macrocycle) loadActiveMacro();
     }
 
     function loadActiveMacro() {
@@ -145,6 +481,10 @@ const ScheduleUI = (function () {
         document.getElementById("macro-name").textContent = m.name;
         document.getElementById("macro-dates").textContent =
             `${formatLongPt(parseISODate(m.start_date))} – ${formatLongPt(parseISODate(m.end_date))}`;
+        const durEl = document.getElementById("macro-session-duration");
+        if (durEl) {
+            durEl.textContent = t("schedule.macro_session_duration", { n: m.available_minutes_per_session || 60 });
+        }
         document.getElementById("macro-methodology").textContent = m.methodology.toUpperCase();
 
         const micro = state.currentMicro;
@@ -166,6 +506,8 @@ const ScheduleUI = (function () {
             });
         document.getElementById("macro-progress-text").textContent = `${weekIdx}/${totalWeeks}`;
         document.getElementById("macro-progress-bar").style.width = pct + "%";
+        renderPhaseTimeline();
+        renderWeekStrip();
     }
 
     function totalWeeksInBlock(macro, micro) {
@@ -176,6 +518,321 @@ const ScheduleUI = (function () {
             if (idx <= cum) return b.weeks;
         }
         return "?";
+    }
+
+    function blockTypeLabel(blockType) {
+        if (!blockType) return "—";
+        const key = "shared.block_type." + String(blockType).toLowerCase();
+        const hit = t(key);
+        if (hit && hit.indexOf("shared.") !== 0) return hit;
+        const alt = "shared.phases." + String(blockType).toLowerCase();
+        const hit2 = t(alt);
+        return hit2 && hit2.indexOf("shared.") !== 0 ? hit2 : blockType;
+    }
+
+    function getCurrentBlockRange(macro, micro) {
+        const plan = macro.block_plan || [];
+        let cum = 0;
+        for (let i = 0; i < plan.length; i++) {
+            const b = plan[i];
+            const start = cum + 1;
+            cum += b.weeks || 0;
+            if (micro.week_index_in_macro <= cum) {
+                return { block: b, startWeek: start, endWeek: cum, index: i };
+            }
+        }
+        return null;
+    }
+
+    function renderPhaseTimeline() {
+        const el = document.getElementById("phase-timeline");
+        if (!el || !state.macrocycle) return;
+        const plan = state.macrocycle.block_plan || [];
+        const micro = state.currentMicro;
+        if (!plan.length) {
+            el.innerHTML = "";
+            return;
+        }
+        const maxWeeks = Math.max.apply(null, plan.map(function (b) { return b.weeks || 1; }));
+        const currentRange = micro ? getCurrentBlockRange(state.macrocycle, micro) : null;
+        const html = plan.map(function (b, i) {
+            const isCurrent = currentRange && currentRange.index === i;
+            const pct = Math.round(((b.weeks || 1) / maxWeeks) * 100);
+            const barH = Math.max(32, Math.min(100, pct));
+            const cls = "chos-phase" + (isCurrent ? " is-current" : "");
+            return `<div class="${cls}" title="${CHOS.escape(blockTypeLabel(b.type))}">
+                <div class="chos-phase__bar" style="height: ${barH}%"></div>
+                <span class="chos-phase__label">${CHOS.escape(blockTypeLabel(b.type))}</span>
+                <span class="chos-phase__weeks num">${t("schedule.modal.weeks_short", { n: b.weeks })}</span>
+            </div>`;
+        }).join("");
+        el.innerHTML = html;
+    }
+
+    function renderWeekStrip() {
+        const el = document.getElementById("week-strip");
+        if (!el || !state.macrocycle || !state.currentMicro) return;
+        const range = getCurrentBlockRange(state.macrocycle, state.currentMicro);
+        if (!range) {
+            el.innerHTML = "";
+            return;
+        }
+        const weeks = (state.macrocycle.microcycles || []).filter(function (m) {
+            return m.week_index_in_macro >= range.startWeek && m.week_index_in_macro <= range.endWeek;
+        });
+        const html = weeks.map(function (m) {
+            const isActive = state.currentMicro && String(m.id) === String(state.currentMicro.id);
+            const cls = "chos-week-strip__pill num" + (isActive ? " is-active" : "");
+            return `<button type="button" class="${cls}" data-micro-id="${m.id}" aria-current="${isActive ? "true" : "false"}">${t("shared.week_n_short", { n: m.week_index_in_block || m.week_index_in_macro })}</button>`;
+        }).join("");
+        el.innerHTML = html;
+        el.querySelectorAll("[data-micro-id]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                jumpToMicro(btn.getAttribute("data-micro-id"));
+            });
+        });
+        const active = el.querySelector(".is-active");
+        if (active && active.scrollIntoView) {
+            active.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+        }
+    }
+
+    function renderWeekStats(micro) {
+        const el = document.getElementById("week-stats");
+        if (!el) return;
+        const sessions = micro.sessions || [];
+        const byDate = {};
+        sessions.forEach(function (s) {
+            (byDate[s.date] = byDate[s.date] || []).push(s);
+        });
+        let training = 0;
+        let generated = 0;
+        let completed = 0;
+        let restDays = 0;
+        const start = parseISODate(micro.start_date);
+        for (let i = 0; i < 7; i++) {
+            const iso = toISODate(addDays(start, i));
+            const daySessions = byDate[iso] || [];
+            if (!daySessions.length) {
+                restDays++;
+            } else if (daySessions.every(function (s) { return s.status === "skipped"; })) {
+                restDays++;
+            } else {
+                const active = daySessions.filter(function (s) { return s.status !== "skipped"; });
+                training += active.length;
+                generated += active.filter(function (s) { return s.status === "generated"; }).length;
+                completed += active.filter(function (s) { return s.completed; }).length;
+            }
+        }
+        const pct = training > 0 ? Math.round((completed / training) * 100) : 0;
+        el.innerHTML = `
+            <div class="chos-week-stats-progress mb-2">
+                <div class="d-flex justify-content-between align-items-center small text-secondary mb-1">
+                    <span>${t("schedule.week_stats.progress", { done: completed, total: training })}</span>
+                    <span class="num fw-semibold">${pct}%</span>
+                </div>
+                <div class="chos-progress" style="height: 5px;" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="chos-progress-fill success" style="width: ${pct}%"></div>
+                </div>
+            </div>
+            <span class="chos-schedule-stat is-training"><i class="fas fa-dumbbell"></i>${t("schedule.week_stats.training", { n: training })}</span>
+            <span class="chos-schedule-stat is-generated"><i class="fas fa-check"></i>${t("schedule.week_stats.generated", { n: generated })}</span>
+            <span class="chos-schedule-stat is-done"><i class="fas fa-flag-checkered"></i>${t("schedule.week_stats.completed", { n: completed })}</span>
+            <span class="chos-schedule-stat is-rest"><i class="fas fa-bed"></i>${t("schedule.week_stats.rest", { n: restDays })}</span>
+        `;
+    }
+
+    function canQuickStartSession(s) {
+        return !!(s && s.generated_template_id && !s.completed && s.status !== "skipped");
+    }
+
+    function compareSessionsForStart(a, b) {
+        if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+        const orderA = a.order_in_day || 0;
+        const orderB = b.order_in_day || 0;
+        if (orderA !== orderB) return orderA - orderB;
+        const timeA = a.start_time || "";
+        const timeB = b.start_time || "";
+        return timeA.localeCompare(timeB);
+    }
+
+    function findNextQuickStartSession(micro) {
+        if (!micro) return null;
+        const todayIso = toISODate(new Date());
+        const weekEnd = micro.end_date;
+        const candidates = (micro.sessions || []).filter(canQuickStartSession)
+            .filter(function (s) { return s.date <= weekEnd; })
+            .sort(compareSessionsForStart);
+        if (!candidates.length) return null;
+
+        const todayFirst = candidates.find(function (s) { return s.date === todayIso; });
+        if (todayFirst) return todayFirst;
+
+        const upcoming = candidates.find(function (s) { return s.date >= todayIso; });
+        return upcoming || candidates[0];
+    }
+
+    function formatNextWorkoutWhen(session) {
+        const todayIso = toISODate(new Date());
+        if (session.date === todayIso) return t("schedule.next_workout.today");
+        return formatShortPt(parseISODate(session.date));
+    }
+
+    function renderNextWorkoutBanner(micro) {
+        const el = document.getElementById("schedule-next-workout");
+        if (!el) return;
+        const session = findNextQuickStartSession(micro);
+        if (!session) {
+            el.classList.add("d-none");
+            el.innerHTML = "";
+            return;
+        }
+
+        const title = focusDisplayLabel(session.focus)
+            || (session.workout_type ? t("schedule.workout_type." + session.workout_type) : t("schedule.next_workout.label"));
+        const when = formatNextWorkoutWhen(session);
+        const meta = formatSessionScheduleMeta(session);
+        const catCls = S().catClassForWorkoutType(session.workout_type);
+
+        el.classList.remove("d-none");
+        el.innerHTML = `
+            <div class="chos-next-workout-banner__inner ${catCls}">
+                <div class="chos-next-workout-banner__copy">
+                    <div class="chos-next-workout-banner__eyebrow">${t("schedule.next_workout.label")}</div>
+                    <div class="chos-next-workout-banner__title">${CHOS.escape(title)}</div>
+                    <div class="chos-next-workout-banner__meta num">
+                        <span class="chos-badge chos-badge-primary" style="font-size:0.65rem;">${CHOS.escape(when)}</span>
+                        ${meta ? `<span class="text-secondary">${CHOS.escape(meta)}</span>` : ""}
+                    </div>
+                </div>
+                <button type="button" class="chos-btn chos-btn-primary chos-btn-sm" data-action="quickstart" data-session-id="${session.id}">
+                    <i class="fas fa-play me-1"></i>${t("schedule.next_workout.start")}
+                </button>
+            </div>`;
+    }
+
+    function renderSessionQuickStart(s) {
+        if (!canQuickStartSession(s)) return "";
+        const label = t("schedule.session.quick_start");
+        const short = t("schedule.session.quick_start_short");
+        return `<button type="button" class="chos-session-quickstart" data-action="quickstart" data-session-id="${s.id}"`
+            + ` aria-label="${CHOS.escape(label)}" title="${CHOS.escape(label)}">`
+            + `<span class="chos-session-quickstart__icon"><i class="fas fa-play"></i></span>`
+            + `<span class="chos-session-quickstart__label d-none d-md-inline">${CHOS.escape(label)}</span>`
+            + `<span class="chos-session-quickstart__label d-md-none">${CHOS.escape(short)}</span>`
+            + `</button>`;
+    }
+
+    function resolveSessionStatus(s) {
+        if (s.status === "skipped") return { key: "rest", cls: "is-rest" };
+        if (s.completed) return { key: "completed", cls: "is-completed" };
+        if (s.status === "generated") return { key: "generated", cls: "is-generated" };
+        return { key: "planned", cls: "is-planned" };
+    }
+
+    function sessionMovementPreviewHtml(s) {
+        if (!s.generated_template_id) return "";
+        const tmpl = getTemplate(s.generated_template_id);
+        if (!tmpl || !tmpl.movements || !tmpl.movements.length) return "";
+        const line = tmpl.movements.slice(0, 3).map(function (m) {
+            return humanize(m.movement || m.name);
+        }).join(" · ");
+        return `<div class="chos-session-item__preview">${CHOS.escape(line)}</div>`;
+    }
+
+    function buildSessionTooltip(tmpl) {
+        if (!tmpl) return "";
+        const parts = [];
+        const stimRaw = tmpl.target_stimulus || tmpl.description || "";
+        if (stimRaw) {
+            const stim = (CHOS.stimulus && CHOS.stimulus.isKnown(stimRaw))
+                ? CHOS.stimulus.label(stimRaw) : stimRaw;
+            parts.push(stim);
+        }
+        const eq = (tmpl.equipment_required || []).filter(Boolean);
+        if (eq.length) {
+            parts.push(t("schedule.tooltip.equipment", { list: eq.join(", ") }));
+        } else {
+            parts.push(t("schedule.tooltip.no_equipment"));
+        }
+        return parts.join("\n");
+    }
+
+    function escAttr(s) {
+        return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;")
+            .replace(/\n/g, "&#10;");
+    }
+
+    function wireSessionTooltips() {
+        if (typeof bootstrap === "undefined") return;
+        const canHover = window.matchMedia("(hover: hover)").matches;
+        document.querySelectorAll(".chos-session-item[data-bs-title]").forEach(function (el) {
+            const inst = bootstrap.Tooltip.getInstance(el);
+            if (inst) inst.dispose();
+            if (!canHover) return;
+            new bootstrap.Tooltip(el, {
+                title: el.getAttribute("data-bs-title") || "",
+                placement: "top",
+                trigger: "hover focus",
+                customClass: "chos-session-tooltip",
+            });
+        });
+    }
+
+    function applySessionTooltip(el, tmpl) {
+        if (!el || !tmpl) return;
+        const tip = buildSessionTooltip(tmpl);
+        if (!tip) return;
+        el.setAttribute("data-bs-title", tip);
+        el.setAttribute("tabindex", "0");
+    }
+
+    function prefetchWeekTemplates(micro) {
+        (micro.sessions || []).forEach(function (s) {
+            if (s.generated_template_id) loadTemplateForGrid(s.generated_template_id);
+        });
+    }
+
+    function loadTemplateForGrid(templateId) {
+        if (!templateId || state.templateCache[templateId] || state.templateLoading[templateId]) return;
+        state.templateLoading[templateId] = true;
+        CHOS.api.get(`/api/v1/training/templates/${templateId}`)
+            .then(function (data) {
+                state.templateCache[templateId] = data;
+                delete state.templateLoading[templateId];
+                refreshSessionPreviews();
+            })
+            .catch(function () {
+                delete state.templateLoading[templateId];
+            });
+    }
+
+    function refreshSessionPreviews() {
+        document.querySelectorAll(".chos-session-item[data-template-id]").forEach(function (el) {
+            const tid = el.getAttribute("data-template-id");
+            const tmpl = getTemplate(tid);
+            if (!tmpl || !tmpl.movements || !tmpl.movements.length) return;
+            const line = tmpl.movements.slice(0, 3).map(function (m) {
+                return humanize(m.movement || m.name);
+            }).join(" · ");
+            let slot = el.querySelector(".chos-session-item__preview");
+            if (!slot) {
+                slot = document.createElement("div");
+                slot.className = "chos-session-item__preview";
+                const meta = el.querySelector(".chos-session-item__meta");
+                if (meta) meta.before(slot);
+                else el.appendChild(slot);
+            }
+            slot.textContent = line;
+        });
+        document.querySelectorAll(".chos-session-item[data-template-id]").forEach(function (el) {
+            const tid = el.getAttribute("data-template-id");
+            applySessionTooltip(el, getTemplate(tid));
+        });
+        wireSessionTooltips();
     }
 
     function renderWeek() {
@@ -223,24 +880,41 @@ const ScheduleUI = (function () {
 
             const sessionHtml = sessions.length
                 ? sessions.map(function (s) {
-                    const shift = SHIFT_LABELS[s.shift] || (s.start_time ? s.start_time.slice(0, 5) : "");
-                    const stateBadge = s.status === "generated"
-                        ? `<span class="chos-badge chos-badge-success ms-1" title="${t("schedule.session.generated_tooltip")}"><i class="fas fa-check"></i></span>`
-                        : s.status === "skipped"
-                        ? `<span class="chos-badge ms-1" style="background: var(--surface-sunken); color: var(--color-text-secondary);" title="${t("schedule.session.rest_tooltip")}"><i class="fas fa-bed"></i></span>`
-                        : "";
                     const wtLabel = s.workout_type ? t("schedule.workout_type." + s.workout_type) : "?";
-                    const safeFocus = s.focus ? CHOS.escape(s.focus) : "";
+                    const title = focusDisplayLabel(s.focus) || wtLabel;
+                    const timeMeta = formatSessionTimeMeta(s);
+                    const shiftBadge = Sh().buildGridBadge(s);
                     const isRest = s.status === "skipped";
                     const catCls = isRest ? '' : (catModifier[s.workout_type] || 'is-recovery');
+                    const st = resolveSessionStatus(s);
+                    const statusLabel = t("schedule.session.status_" + st.key);
+                    const completedCls = s.completed ? " is-completed" : "";
+                    const previewHtml = sessionMovementPreviewHtml(s);
+                    const tmpl = s.generated_template_id ? getTemplate(s.generated_template_id) : null;
+                    const tipAttr = tmpl ? ` data-bs-title="${escAttr(buildSessionTooltip(tmpl))}"` : "";
+                    const quickStart = renderSessionQuickStart(s);
+                    const quickCls = quickStart ? " is-quickstartable" : "";
+                    const tplAttr = s.generated_template_id ? ` data-template-id="${s.generated_template_id}"` : "";
+                    const quickTab = quickStart ? ` tabindex="0" aria-label="${CHOS.escape(title)}. ${CHOS.escape(t("schedule.session.double_tap_title"))}"` : "";
                     return `
-                        <div class="chos-session-item ${catCls} ${isRest ? 'is-rest' : ''}" data-session-id="${s.id}">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <span class="chos-cat ${catCls}" style="font-size: 0.75rem;">${wtLabel.toUpperCase()}</span>
-                                ${stateBadge}
+                        <div class="chos-session-item ${catCls}${completedCls}${quickCls} ${isRest ? 'is-rest' : ''}" data-session-id="${s.id}"${tplAttr}${tipAttr}${quickTab}>
+                            <div class="chos-session-item__layout">
+                                ${quickStart}
+                                <div class="chos-session-item__body">
+                            <div class="d-flex align-items-start justify-content-between gap-1 mb-1">
+                                <span class="chos-session-item__title"${quickStart ? ` title="${CHOS.escape(t("schedule.session.double_tap_title"))}"` : ""}>${title}</span>
+                                <span class="chos-session-status ${st.cls}">${statusLabel}</span>
                             </div>
-                            <div class="text-secondary small mt-1"><i class="fas fa-clock me-1"></i>${shift} · ${s.duration_minutes || "?"}${t("schedule.session.duration_min")}</div>
-                            ${safeFocus ? `<div class="fst-italic small text-body mt-1">${safeFocus}</div>` : ""}
+                            ${previewHtml}
+                            <div class="chos-session-item__meta d-flex align-items-center justify-content-between mt-1 gap-1">
+                                <div class="d-flex align-items-center gap-1 flex-wrap min-w-0">
+                                    <span class="chos-cat ${catCls}" style="font-size: 0.65rem;">${wtLabel.toUpperCase()}</span>
+                                    ${shiftBadge}
+                                </div>
+                                ${timeMeta ? `<span class="text-secondary small num flex-shrink-0"><i class="fas fa-clock me-1"></i>${CHOS.escape(timeMeta)}</span>` : ""}
+                            </div>
+                                </div>
+                            </div>
                         </div>`;
                 }).join("")
                 : `<div class="d-flex flex-column align-items-center justify-content-center h-100" style="min-height: 80px;">
@@ -250,13 +924,20 @@ const ScheduleUI = (function () {
 
             const dragEnabled = sessions.length <= 1;
             const todayCls = isToday ? 'chos-day-today' : '';
+            const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
+            const todayStart = new Date(today); todayStart.setHours(0, 0, 0, 0);
+            const pastCls = dayStart < todayStart ? 'chos-day-past' : '';
+            const trainingSessions = sessions.filter(function (s) { return s.status !== "skipped"; });
+            const doneCls = trainingSessions.length > 0 && trainingSessions.every(function (s) { return s.completed; })
+                ? ' chos-day-done' : '';
             html += `
-                <div class="col-md">
-                    <div class="chos-card chos-day-card ${todayCls} h-100" onclick="ScheduleUI.openDayDrawer('${iso}')" style="cursor:pointer">
+                <div class="chos-day-cell">
+                    <div class="chos-card chos-day-card ${todayCls}${doneCls} ${pastCls} h-100" onclick="ScheduleUI.openDayDrawer('${iso}')" style="cursor:pointer" role="button" tabindex="0" aria-label="${CHOS.escape(formatShortPt(d))}">
                         <div class="card-body" style="padding: var(--space-3);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <span class="fw-semibold small ${isToday ? 'text-primary' : 'text-secondary'}" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem;">${formatShortPt(d)}</span>
-                                ${isToday ? `<span class="chos-badge chos-badge-primary" style="font-size: 0.65rem;">${t("schedule.today_suffix")}</span>` : ""}
+                                ${doneCls ? `<span class="chos-day-done-badge" title="${t("schedule.session.status_completed")}"><i class="fas fa-check-circle"></i></span>`
+                                    : isToday ? `<span class="chos-badge chos-badge-primary" style="font-size: 0.65rem;">${t("schedule.today_suffix")}</span>` : ""}
                             </div>
                             <div class="chos-day-dropzone" data-date="${iso}" data-drag-enabled="${dragEnabled}">${sessionHtml}</div>
                         </div>
@@ -264,11 +945,26 @@ const ScheduleUI = (function () {
                 </div>`;
         }
         document.getElementById("calendar-grid").innerHTML = html;
+        renderNextWorkoutBanner(micro);
+        if (CHOS.trainNow) CHOS.trainNow.updateFromMicro(micro);
+        renderWeekStats(micro);
+        prefetchWeekTemplates(micro);
         wireDragAndDrop();
-
-        // Enable "copy previous" only if there is a previous microcycle
+        wireGridQuickStart();
+        wireSessionTooltips();
+        scrollToTodayCell();
         const prevMicro = findAdjacentMicro(micro, -1);
         document.getElementById("btn-copy-prev").disabled = !prevMicro;
+    }
+
+    function scrollToTodayCell() {
+        const todayCard = document.querySelector(".chos-day-card.chos-day-today");
+        if (!todayCard) return;
+        const cell = todayCard.closest(".chos-day-cell");
+        if (!cell) return;
+        const grid = document.getElementById("calendar-grid");
+        if (!grid || grid.scrollWidth <= grid.clientWidth) return;
+        cell.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
     }
 
     // ----- Drag-and-drop session move/swap ----------------------------------
@@ -284,6 +980,11 @@ const ScheduleUI = (function () {
             // here doesn't conflict with drag-and-drop.
             zone.querySelectorAll(".chos-session-item").forEach(function (item) {
                 item.addEventListener("click", function (ev) {
+                    if (ev.target.closest("[data-action='quickstart']")) return;
+                    if (ev.target.closest(".chos-session-item__body, .chos-session-item__title") && item.classList.contains("is-quickstartable")) {
+                        ev.stopPropagation();
+                        return;
+                    }
                     ev.stopPropagation();
                     const date = zone.getAttribute("data-date");
                     if (date) openDayDrawer(date);
@@ -294,6 +995,17 @@ const ScheduleUI = (function () {
                 draggable: ".chos-session-item",
                 animation: 150,
                 ghostClass: "sortable-ghost",
+                chosenClass: "sortable-chosen",
+                dragClass: "sortable-drag",
+                delay: 120,
+                delayOnTouchOnly: true,
+                touchStartThreshold: 4,
+                onStart: function () {
+                    document.body.classList.add("chos-schedule-dragging");
+                },
+                onEnd: function () {
+                    document.body.classList.remove("chos-schedule-dragging");
+                },
                 onAdd: function (evt) {
                     const fromZone = evt.from;
                     const toZone = evt.to;
@@ -309,6 +1021,106 @@ const ScheduleUI = (function () {
                     submitSwap(sourceId, targetDate, targetId);
                 },
             });
+        });
+    }
+
+    let gridQuickStartBound = false;
+    const TITLE_TAP_MS = 320;
+    const titleTapState = { sessionId: null, lastTap: 0, timer: null };
+
+    function cancelTitleTapTimer() {
+        if (titleTapState.timer) {
+            clearTimeout(titleTapState.timer);
+            titleTapState.timer = null;
+        }
+    }
+
+    function openDrawerForSessionItem(item) {
+        const zone = item && item.closest(".chos-day-dropzone");
+        const date = zone && zone.getAttribute("data-date");
+        if (date) openDayDrawer(date);
+    }
+
+    function quickStartTapTarget(ev) {
+        const item = ev.target.closest(".chos-session-item.is-quickstartable");
+        if (!item || ev.target.closest("[data-action='quickstart']")) return null;
+        if (!ev.target.closest(".chos-session-item__body, .chos-session-item__title")) return null;
+        return item;
+    }
+
+    function wireGridQuickStart() {
+        const grid = document.getElementById("calendar-grid");
+        if (!grid || gridQuickStartBound) return;
+        gridQuickStartBound = true;
+
+        grid.addEventListener("click", function (ev) {
+            const btn = ev.target.closest("[data-action='quickstart']");
+            if (btn) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                cancelTitleTapTimer();
+                const sessionId = btn.getAttribute("data-session-id");
+                if (sessionId) quickStart(sessionId, btn);
+                return;
+            }
+
+            const item = quickStartTapTarget(ev);
+            if (!item) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const sessionId = item.getAttribute("data-session-id");
+            if (!sessionId) return;
+
+            if (ev.detail >= 2) {
+                cancelTitleTapTimer();
+                titleTapState.sessionId = null;
+                titleTapState.lastTap = 0;
+                quickStart(sessionId);
+                return;
+            }
+
+            const now = Date.now();
+            if (titleTapState.sessionId === sessionId && titleTapState.lastTap && (now - titleTapState.lastTap) < TITLE_TAP_MS) {
+                cancelTitleTapTimer();
+                titleTapState.sessionId = null;
+                titleTapState.lastTap = 0;
+                quickStart(sessionId);
+                return;
+            }
+
+            titleTapState.sessionId = sessionId;
+            titleTapState.lastTap = now;
+            cancelTitleTapTimer();
+            titleTapState.timer = setTimeout(function () {
+                titleTapState.timer = null;
+                titleTapState.sessionId = null;
+                titleTapState.lastTap = 0;
+                openDrawerForSessionItem(item);
+            }, TITLE_TAP_MS);
+        }, true);
+
+        grid.addEventListener("dblclick", function (ev) {
+            const item = quickStartTapTarget(ev);
+            if (!item) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            cancelTitleTapTimer();
+            titleTapState.sessionId = null;
+            titleTapState.lastTap = 0;
+            const sessionId = item.getAttribute("data-session-id");
+            if (sessionId) quickStart(sessionId);
+        }, true);
+
+        grid.addEventListener("keydown", function (ev) {
+            if (ev.key !== "Enter" && ev.key !== " ") return;
+            const item = ev.target.closest(".chos-session-item.is-quickstartable");
+            if (!item || !item.contains(ev.target)) return;
+            if (ev.target.closest("[data-action='quickstart']")) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            cancelTitleTapTimer();
+            const sessionId = item.getAttribute("data-session-id");
+            if (sessionId) quickStart(sessionId);
         });
     }
 
@@ -348,6 +1160,17 @@ const ScheduleUI = (function () {
         renderWeek();
     }
 
+    function jumpToMicro(microId) {
+        if (!state.macrocycle) return;
+        const target = (state.macrocycle.microcycles || []).find(function (m) {
+            return String(m.id) === String(microId);
+        });
+        if (!target) return;
+        state.currentMicro = target;
+        state.viewDate = parseISODate(target.start_date);
+        renderWeek();
+    }
+
     function goToToday() {
         if (!state.macrocycle) return;
         const today = new Date();
@@ -381,7 +1204,7 @@ const ScheduleUI = (function () {
                 cursor = addDays(blockEnd, 1);
                 weekIdx += b.weeks;
                 html += `<div class="mb-1">
-                    <span class="chos-badge chos-badge-primary">${b.type}</span>
+                    <span class="chos-badge chos-badge-primary">${CHOS.escape(blockTypeLabel(b.type))}</span>
                     <span class="text-muted ms-2">${t("schedule.modal.weeks_short", { n: b.weeks })}</span>
                     <span class="text-muted ms-2">${formatLongPt(blockStart)} – ${formatLongPt(blockEnd)}</span>
                 </div>`;
@@ -485,7 +1308,8 @@ const ScheduleUI = (function () {
         if (!state.currentMicro) return;
         state.drawerDate = isoDate;
         const d = parseISODate(isoDate);
-        document.getElementById("drawer-title").textContent = formatLongPt(d);
+        document.getElementById("drawer-title").textContent =
+            tDate(d, { weekday: "long", day: "numeric", month: "long" });
 
         const allSessions = state.currentMicro.sessions || [];
         const existing = allSessions.filter(function (s) { return s.date === isoDate; });
@@ -645,10 +1469,11 @@ const ScheduleUI = (function () {
         // instead of parsing bold-text-with-colon.
         const meta = [];
         if (stimulus) {
+            const stimText = isKnownStimulus(stimulus) ? S().label(stimulus) : stimulus;
             meta.push(`<div class="d-flex align-items-start gap-2">
                 <i class="fas fa-bullseye text-secondary mt-1" style="width: 16px;"></i>
                 <div><div class="small text-secondary fw-medium">${t("schedule.drawer.stimulus")}</div>
-                <div class="text-body small">${e(stimulus)}</div></div>
+                <div class="text-body small">${e(stimText)}</div></div>
             </div>`);
         }
         if (warmup) {
@@ -687,19 +1512,28 @@ const ScheduleUI = (function () {
             return;
         }
 
-        const wtOptions = ["strength", "metcon", "skill", "conditioning", "mixed"];
-        const shiftOptions = ["morning", "afternoon", "evening", "custom"];
-
         let html = "";
         state.drawerSessions.forEach(function (s, idx) {
             if (s._deleted) return;
+            const sessionShift = Sh().isValid(s.shift) ? s.shift : "morning";
 
             const template = s.generated_template_id ? getTemplate(s.generated_template_id) : null;
             const templateLoading = s.generated_template_id && !state.templateCache[s.generated_template_id];
             const workoutDetail = template ? renderWorkoutDetail(template) : '';
             const loadingSpinner = templateLoading
-                ? '<div class="spinner-border spinner-border-sm text-primary ms-2" role="status" aria-hidden="true"></div>'
+                ? '<span class="spinner-border spinner-border-sm text-primary ms-2" role="status" aria-hidden="true"></span>'
                 : '';
+            const workoutBlock = (workoutDetail || templateLoading)
+                ? `<details class="chos-drawer-workout mb-3"${workoutDetail ? " open" : ""}>
+                        <summary class="chos-drawer-workout__summary">
+                            <i class="fas fa-dumbbell me-1"></i>${t("schedule.drawer.workout_content")}
+                            ${loadingSpinner}
+                        </summary>
+                        <div class="chos-drawer-workout__body mt-2">
+                            ${workoutDetail || `<div class="text-secondary small fst-italic">${t("schedule.toast.session_load_error")}</div>`}
+                        </div>
+                   </details>`
+                : "";
 
             // Color the session header by workout type so the eye groups them.
             const catModifier = {
@@ -707,16 +1541,21 @@ const ScheduleUI = (function () {
                 skill: 'is-nutrition', mixed: 'is-recovery'
             };
             const catCls = catModifier[s.workout_type] || 'is-recovery';
+            const wtLabel = s.workout_type ? t("schedule.workout_type." + s.workout_type) : "?";
+            const focusText = focusDisplayLabel(s.focus) || t("schedule.drawer.focus_unset");
+            const scheduleChip = formatSessionScheduleMeta(s);
 
             // Start button — only meaningful when a workout template has
             // been generated for this session. Clicking it stashes the
             // template in sessionStorage and routes to /dashboard/workouts
             // which auto-opens the tracking modal.
-            const startBtn = s.generated_template_id
+            const startBtn = (s.generated_template_id && !s.completed)
                 ? `<button class="chos-btn chos-btn-primary chos-btn-sm" onclick="ScheduleUI.startSession(${idx})" aria-label="${t("schedule.drawer.start_session")}" title="${t("schedule.drawer.start_session")}">
                        <i class="fas fa-play me-1"></i><span class="d-none d-sm-inline">${t("schedule.drawer.start_session")}</span>
                    </button>`
-                : '';
+                : (s.completed
+                    ? `<span class="chos-session-status is-completed">${t("schedule.session.status_completed")}</span>`
+                    : '');
 
             html += `
                 <div class="chos-card mb-3" data-idx="${idx}">
@@ -724,7 +1563,6 @@ const ScheduleUI = (function () {
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="chos-cat ${catCls} fw-semibold">
                                 ${t("schedule.drawer.session_n", { n: s.order_in_day })}
-                                ${loadingSpinner}
                             </span>
                             <div class="d-flex align-items-center gap-2">
                                 ${startBtn}
@@ -734,36 +1572,45 @@ const ScheduleUI = (function () {
                             </div>
                         </div>
 
-                        ${workoutDetail}
+                        ${workoutBlock}
+
+                        <div class="d-flex flex-wrap gap-2 mb-3" data-session-summary>
+                            <span class="chos-chip"><span class="chip-dot"></span><i class="fas fa-clock me-1 text-secondary" style="font-size:0.7rem;"></i>${CHOS.escape(scheduleChip)}</span>
+                            <span class="chos-chip ${catCls}"><span class="chip-dot"></span>${CHOS.escape(wtLabel)}</span>
+                            <span class="chos-chip"><span class="chip-dot"></span><i class="fas fa-bullseye me-1 text-secondary" style="font-size:0.7rem;"></i>${CHOS.escape(focusText)}</span>
+                        </div>
 
                         <div class="small text-secondary fw-medium mt-3 mb-2" style="text-transform: uppercase; letter-spacing: 0.04em;">${t("schedule.drawer.session_settings")}</div>
                         <div class="row g-3">
-                            <div class="col-md-3 col-6">
-                                <label class="chos-label">${t("schedule.drawer.field_shift")}</label>
-                                <select class="form-select" data-field="shift">
-                                    ${shiftOptions.map(v => `<option value="${v}" ${s.shift === v ? "selected" : ""}>${t("schedule.shift." + v)}</option>`).join("")}
-                                </select>
-                            </div>
-                            <div class="col-md-3 col-6">
-                                <label class="chos-label">${t("schedule.drawer.field_start_time")}</label>
-                                <input type="time" class="form-control" data-field="start_time" value="${s.start_time ? s.start_time.slice(0,5) : ""}">
-                            </div>
-                            <div class="col-md-3 col-6">
-                                <label class="chos-label">${t("schedule.drawer.field_duration")}</label>
-                                <div class="position-relative">
-                                    <input type="number" class="form-control" data-field="duration_minutes" min="15" max="240" step="5" value="${s.duration_minutes || 60}" style="padding-right: 3.25rem;">
-                                    <span class="position-absolute text-secondary small" style="right: 0.875rem; top: 50%; transform: translateY(-50%); pointer-events: none;">min</span>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-6">
-                                <label class="chos-label">${t("schedule.drawer.field_type")}</label>
-                                <select class="form-select" data-field="workout_type">
-                                    ${wtOptions.map(v => `<option value="${v}" ${s.workout_type === v ? "selected" : ""}>${t("schedule.workout_type." + v)}</option>`).join("")}
-                                </select>
-                            </div>
                             <div class="col-12">
+                                <label class="chos-label">${t("schedule.drawer.field_shift")}</label>
+                                <div data-shift-picker class="mb-2">
+                                    ${Sh().buildPickerHtml(sessionShift)}
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <label class="chos-label">${t("schedule.drawer.field_start_time")}</label>
+                                        <input type="time" class="chos-input" data-field="start_time" value="${s.start_time ? s.start_time.slice(0,5) : ""}">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="chos-label">${t("schedule.drawer.field_duration")}</label>
+                                        <div data-duration-picker>
+                                            ${D().buildPickerHtml(s.duration_minutes || getMacroDefaultDuration(), durationPickerOptions())}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-text text-secondary small mt-1">${t("schedule.drawer.shift_time_hint")}</div>
+                            </div>
+                            <div class="col-12 chos-session-pickers">
+                                <label class="chos-label">${t("schedule.drawer.field_type")}</label>
+                                <div data-type-picker class="mb-3">
+                                    ${S().buildWorkoutTypePickerHtml(s.workout_type)}
+                                </div>
                                 <label class="chos-label">${t("schedule.drawer.field_focus")}</label>
-                                <input type="text" class="form-control" data-field="focus" value="${CHOS.escape(s.focus || "")}" placeholder="${t("schedule.drawer.focus_placeholder")}">
+                                <div data-focus-picker>
+                                    ${S().buildPickerHtml(s.focus, s.workout_type, { placeholder: t("schedule.drawer.focus_placeholder") })}
+                                </div>
+                                <div class="form-text text-secondary small mt-1">${t("schedule.drawer.focus_hint")}</div>
                             </div>
                         </div>
                     </div>
@@ -776,19 +1623,6 @@ const ScheduleUI = (function () {
             if (s.generated_template_id && !state.templateCache[s.generated_template_id]) {
                 loadTemplate(s.generated_template_id);
             }
-        });
-
-        // Auto-save on field change
-        container.querySelectorAll("[data-field]").forEach(function (el) {
-            el.addEventListener("change", function (e) {
-                const wrapper = e.target.closest("[data-idx]");
-                const idx = parseInt(wrapper.dataset.idx, 10);
-                const field = e.target.dataset.field;
-                let value = e.target.value;
-                if (field === "duration_minutes") value = parseInt(value, 10);
-                state.drawerSessions[idx][field] = value || null;
-                persistSession(state.drawerSessions[idx]);
-            });
         });
     }
 
@@ -803,7 +1637,7 @@ const ScheduleUI = (function () {
             order_in_day: nextOrder,
             shift: "morning",
             start_time: "06:00",
-            duration_minutes: 60,
+            duration_minutes: getMacroDefaultDuration(),
             workout_type: "mixed",
             focus: "",
             _isNew: true,
@@ -852,7 +1686,7 @@ const ScheduleUI = (function () {
     function persistSession(session) {
         if (!session.id) return;
         const payload = {
-            shift: session.shift,
+            shift: isValidShift(session.shift) ? session.shift : "morning",
             start_time: session.start_time,
             duration_minutes: session.duration_minutes,
             workout_type: session.workout_type,
@@ -888,20 +1722,64 @@ const ScheduleUI = (function () {
             .fail(function () { CHOS.toast.error(t("schedule.toast.copy_error")); });
     }
 
-    // ----- Start a session from the drawer ----------------------------------
-    function startSession(idx) {
-        const s = state.drawerSessions[idx];
-        if (!s || !s.generated_template_id) return;
+    function quickStart(sessionId, triggerEl) {
+        const sessions = (state.currentMicro && state.currentMicro.sessions) || [];
+        const s = sessions.find(function (x) { return String(x.id) === String(sessionId); });
+        if (!s || !canQuickStartSession(s)) return;
+        const btn = triggerEl || document.querySelector('[data-action="quickstart"][data-session-id="' + sessionId + '"]');
+        if (btn) {
+            btn.classList.add("is-loading");
+            btn.setAttribute("aria-busy", "true");
+            btn.disabled = true;
+        }
+        const done = function () {
+            if (btn) {
+                btn.classList.remove("is-loading");
+                btn.removeAttribute("aria-busy");
+                btn.disabled = false;
+            }
+        };
+        const handoff = function (template) {
+            CHOS.startWorkoutFromTemplate(
+                Object.assign({}, template, { id: s.generated_template_id }),
+                { planned_session_id: s.id }
+            );
+        };
         const cached = getTemplate(s.generated_template_id);
         if (cached) {
-            CHOS.startWorkoutFromTemplate(cached);
+            handoff(cached);
+            done();
             return;
         }
-        // Template not in cache yet — fetch on demand, then handoff.
         CHOS.api.get(`/api/v1/training/templates/${s.generated_template_id}`)
             .done(function (template) {
                 state.templateCache[s.generated_template_id] = template;
-                CHOS.startWorkoutFromTemplate(template);
+                handoff(template);
+            })
+            .fail(function () {
+                done();
+                CHOS.toast.error(t("schedule.toast.session_load_error"));
+            });
+    }
+
+    function startSession(idx) {
+        const s = state.drawerSessions[idx];
+        if (!s || !s.generated_template_id) return;
+        const handoff = function (template) {
+            CHOS.startWorkoutFromTemplate(
+                Object.assign({}, template, { id: s.generated_template_id }),
+                { planned_session_id: s.id }
+            );
+        };
+        const cached = getTemplate(s.generated_template_id);
+        if (cached) {
+            handoff(cached);
+            return;
+        }
+        CHOS.api.get(`/api/v1/training/templates/${s.generated_template_id}`)
+            .done(function (template) {
+                state.templateCache[s.generated_template_id] = template;
+                handoff(template);
             })
             .fail(function () {
                 CHOS.toast.error(t("schedule.toast.session_load_error"));
@@ -911,6 +1789,7 @@ const ScheduleUI = (function () {
     return {
         init: init,
         navigateWeek: navigateWeek,
+        jumpToMicro: jumpToMicro,
         goToToday: goToToday,
         showCreateMacrocycle: showCreateMacrocycle,
         saveMacrocycle: saveMacrocycle,
@@ -924,6 +1803,7 @@ const ScheduleUI = (function () {
         openCreateMacroPosterior: openCreateMacroPosterior,
         openCreateMacroSubstituir: openCreateMacroSubstituir,
         startSession: startSession,
+        quickStart: quickStart,
     };
 })();
 

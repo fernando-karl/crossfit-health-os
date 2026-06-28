@@ -13,9 +13,10 @@ from passlib.context import CryptContext
 
 from sqlalchemy.orm import Session as _OrmSession
 from fastapi import Depends
+from sqlalchemy import select
 
-from app.db.database import init_db, fetchone, execute
-from app.db.session import get_session
+from app.db.session import get_session, SessionLocal
+from app.db.models import User as UserDB
 from app.core.config import settings
 from app.core.rate_limit import limiter, ip_key
 from app.core import refresh_tokens as _rt
@@ -25,12 +26,6 @@ logger = logging.getLogger(__name__)
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# Initialize database on module load
-try:
-    init_db()
-except Exception as e:
-    logger.warning(f"Could not initialize database: {e}")
 
 # ============================================
 # Request/Response Models
@@ -86,6 +81,16 @@ class LoginRequest(BaseModel):
     """User login"""
     email: EmailStr
     password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str = Field(..., min_length=8)
+    confirm_password: str
 
 
 class UserResponse(BaseModel):
@@ -156,19 +161,59 @@ def verify_jwt_token(token: str) -> Optional[dict]:
         logger.warning(f"JWT verification failed: {e}")
         return None
 
+
+def create_password_reset_token(user_id: int, email: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(hours=1)
+    payload = {
+        "sub": str(user_id),
+        "email": email,
+        "purpose": "password_reset",
+        "exp": expire,
+        "iat": datetime.now(timezone.utc),
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def verify_password_reset_token(token: str) -> Optional[dict]:
+    payload = verify_jwt_token(token)
+    if not payload or payload.get("purpose") != "password_reset":
+        return None
+    return payload
+
+
+def update_user_password(user_id: int, new_password: str) -> None:
+    with SessionLocal() as db:
+        user = db.get(UserDB, user_id)
+        if not user:
+            return
+        user.password_hash = hash_password(new_password)
+        db.commit()
+
+
 def get_user_by_id(user_id: int):
-    """Get user by ID"""
-    return fetchone(
-        "SELECT id, email, name, birth_date, weight_kg, height_cm, fitness_level, goals FROM users WHERE id = %s",
-        user_id
-    )
+    """Get user by ID (tuple compatible with legacy callers)."""
+    with SessionLocal() as db:
+        user = db.get(UserDB, user_id)
+        if not user:
+            return None
+        return (
+            user.id, user.email, user.name, user.birth_date,
+            user.weight_kg, user.height_cm, user.fitness_level, user.goals,
+        )
+
 
 def get_user_by_email(email: str):
-    """Get user by email"""
-    return fetchone(
-        "SELECT id, email, password_hash, name, birth_date, weight_kg, height_cm, fitness_level, goals FROM users WHERE email = %s",
-        email
-    )
+    """Get user by email including password hash."""
+    with SessionLocal() as db:
+        user = db.execute(
+            select(UserDB).where(UserDB.email == email)
+        ).scalar_one_or_none()
+        if not user:
+            return None
+        return (
+            user.id, user.email, user.password_hash, user.name, user.birth_date,
+            user.weight_kg, user.height_cm, user.fitness_level, user.goals,
+        )
 
 TRIAL_DURATION_DAYS = 14
 TERMS_VERSION = "1.0"
@@ -178,41 +223,30 @@ PRIVACY_VERSION = "1.0"
 def create_user(user_data: RegisterRequest) -> int:
     """Create a new user with a 14-day trial window and consent record."""
     password_hash = hash_password(user_data.password)
-
-    # Convert goals list to PostgreSQL array format
-    goals_array = "{" + ",".join(f'"{g}"' for g in user_data.goals) + "}"
-
     now = datetime.utcnow()
     trial_expires = now + timedelta(days=TRIAL_DURATION_DAYS)
 
-    execute(
-        """INSERT INTO users (
-                email, password_hash, name, birth_date,
-                weight_kg, height_cm, fitness_level, goals,
-                trial_started_at, trial_expires_at, subscription_status,
-                terms_accepted_at, terms_version, privacy_version
-           )
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-           RETURNING id""",
-        user_data.email,
-        password_hash,
-        user_data.name,
-        user_data.birth_date,
-        user_data.weight_kg,
-        user_data.height_cm,
-        user_data.fitness_level,
-        goals_array,
-        now,
-        trial_expires,
-        "trialing",
-        now,
-        TERMS_VERSION,
-        PRIVACY_VERSION,
-    )
-
-    # Get the inserted ID
-    user = fetchone("SELECT lastval()")
-    return user[0] if user else None
+    with SessionLocal() as db:
+        user = UserDB(
+            email=user_data.email,
+            password_hash=password_hash,
+            name=user_data.name,
+            birth_date=user_data.birth_date,
+            weight_kg=user_data.weight_kg,
+            height_cm=user_data.height_cm,
+            fitness_level=user_data.fitness_level,
+            goals=user_data.goals or [],
+            trial_started_at=now,
+            trial_expires_at=trial_expires,
+            subscription_status="trialing",
+            terms_accepted_at=now,
+            terms_version=TERMS_VERSION,
+            privacy_version=PRIVACY_VERSION,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user.id
 
 
 # ============================================
@@ -450,3 +484,61 @@ async def logout(
         _rt.revoke(db, payload.refresh_token)
     _clear_access_cookie(response)
     return {"message": "Logged out successfully"}
+
+
+@router.post("/forgot-password")
+@limiter.limit("5/hour", key_func=ip_key)
+async def forgot_password(
+    request: Request,
+    payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+):
+    """Request a password reset link (always returns success to prevent enumeration)."""
+    user = get_user_by_email(payload.email)
+    if user:
+        user_id = user[0]
+        email = user[1]
+        token = create_password_reset_token(user_id, email)
+        reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/update-password?token={token}"
+        background_tasks.add_task(_deliver_password_reset_email, email, reset_url)
+    return {"message": "If that email is registered, a reset link has been sent."}
+
+
+def _deliver_password_reset_email(email: str, reset_url: str) -> None:
+    from app.core.email import send_password_reset_email, smtp_configured
+
+    if smtp_configured():
+        if send_password_reset_email(email, reset_url):
+            return
+    logger.info("Password reset link for %s: %s", email, reset_url)
+
+
+@router.post("/reset-password")
+@limiter.limit("10/hour", key_func=ip_key)
+async def reset_password(request: Request, payload: ResetPasswordRequest):
+    """Reset password using a token from the forgot-password email."""
+    if payload.password != payload.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
+    try:
+        if len(payload.password) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if not re.search(r'[A-Z]', payload.password):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r'[a-z]', payload.password):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r'[0-9]', payload.password):
+            raise ValueError("Password must contain at least one number")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    token_payload = verify_password_reset_token(payload.token)
+    if not token_payload:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    user_id = int(token_payload.get("sub", 0))
+    if not user_id or not get_user_by_id(user_id):
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    update_user_password(user_id, payload.password)
+    return {"message": "Password updated successfully"}

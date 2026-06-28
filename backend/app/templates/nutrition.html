@@ -8,6 +8,13 @@
 
 {% block content %}
 <!-- Daily Macros Overview -->
+<div class="container-fluid py-4 chos-page chos-nutrition-page">
+    <div class="chos-page-header mb-4">
+        <div>
+            <h1 class="h3">{{ t("nutrition.page_title") }}</h1>
+        </div>
+    </div>
+
 <div class="row g-4 mb-4">
     <!-- Macro Rings -->
     <div class="col-lg-8">
@@ -38,7 +45,7 @@
                     </div>
                 </div>
 
-                <div class="mt-4 p-3 bg-light rounded">
+                <div class="chos-calories-strip">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                         <div>
                             <p class="small text-muted mb-1">{{ t("nutrition.total_calories") }}</p>
@@ -69,8 +76,8 @@
 
                 <form id="add-meal-form">
                     <div class="mb-3">
-                        <label class="form-label small fw-medium">{{ t("nutrition.meal") }}</label>
-                        <select class="form-select" id="add-meal-type">
+                        <label class="chos-label">{{ t("nutrition.meal") }}</label>
+                        <select class="chos-input" id="add-meal-type">
                             <option value="breakfast">{{ t("nutrition.meal_options.breakfast") }}</option>
                             <option value="lunch">{{ t("nutrition.meal_options.lunch") }}</option>
                             <option value="snack">{{ t("nutrition.meal_options.snack") }}</option>
@@ -81,31 +88,78 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-medium">{{ t("nutrition.calories") }}</label>
-                        <input type="number" class="form-control" id="add-meal-cals" placeholder="kcal" min="0">
+                        <label class="chos-label">{{ t("nutrition.calories") }}</label>
+                        <input type="number" class="chos-input" id="add-meal-cals" placeholder="kcal" min="0">
                     </div>
 
                     <div class="row g-2 mb-3">
                         <div class="col-4">
-                            <label class="form-label small fw-medium mb-1">{{ t("nutrition.protein") }}</label>
-                            <input type="number" class="form-control form-control-sm" id="add-meal-protein" placeholder="g" min="0">
+                            <label class="chos-label mb-1">{{ t("nutrition.protein") }}</label>
+                            <input type="number" class="chos-input" id="add-meal-protein" placeholder="g" min="0">
                         </div>
                         <div class="col-4">
-                            <label class="form-label small fw-medium mb-1">{{ t("nutrition.carbs") }}</label>
-                            <input type="number" class="form-control form-control-sm" id="add-meal-carbs" placeholder="g" min="0">
+                            <label class="chos-label mb-1">{{ t("nutrition.carbs") }}</label>
+                            <input type="number" class="chos-input" id="add-meal-carbs" placeholder="g" min="0">
                         </div>
                         <div class="col-4">
-                            <label class="form-label small fw-medium mb-1">{{ t("nutrition.fat") }}</label>
-                            <input type="number" class="form-control form-control-sm" id="add-meal-fat" placeholder="g" min="0">
+                            <label class="chos-label mb-1">{{ t("nutrition.fat") }}</label>
+                            <input type="number" class="chos-input" id="add-meal-fat" placeholder="g" min="0">
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100" id="add-meal-submit">
+                    <button type="submit" class="chos-btn chos-btn-primary w-100" id="add-meal-submit">
                         <i class="fas fa-plus me-2"></i>{{ t("nutrition.btn_add") }}
                     </button>
                 </form>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Daily macro targets (manual override) -->
+<div class="chos-card mb-4">
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="fas fa-bullseye text-primary me-2"></i>{{ t("nutrition.targets_title") }}</h5>
+                <p class="text-secondary mb-0 small">{{ t("nutrition.targets_subtitle") }}</p>
+            </div>
+            <span class="chos-badge {% if target_source == 'manual' %}chos-badge-primary{% elif target_source == 'diet_plan' %}chos-badge-success{% else %}{% endif %}" id="target-source-badge" style="{% if target_source == 'default' %}background: var(--surface-sunken); color: var(--color-text-secondary);{% endif %}">
+                {% if target_source == 'manual' %}{{ t("nutrition.target_source_manual") }}
+                {% elif target_source == 'diet_plan' %}{{ t("nutrition.target_source_diet_plan") }}
+                {% else %}{{ t("nutrition.target_source_default") }}{% endif %}
+            </span>
+        </div>
+
+        <form id="macro-targets-form" class="row g-3 align-items-end">
+            <div class="col-6 col-md-3">
+                <label class="chos-label" for="target-calories">{{ t("nutrition.calories") }}</label>
+                <input type="number" class="chos-input" id="target-calories" min="800" max="10000" value="{{ targets.calories }}" required>
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="chos-label" for="target-protein">{{ t("nutrition.protein") }} (g)</label>
+                <input type="number" class="chos-input" id="target-protein" min="0" max="1000" value="{{ targets.protein }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="chos-label" for="target-carbs">{{ t("nutrition.carbs") }} (g)</label>
+                <input type="number" class="chos-input" id="target-carbs" min="0" max="1000" value="{{ targets.carbs }}">
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="chos-label" for="target-fat">{{ t("nutrition.fat") }} (g)</label>
+                <input type="number" class="chos-input" id="target-fat" min="0" max="1000" value="{{ targets.fat }}">
+            </div>
+            <div class="col-12 d-flex gap-2 flex-wrap">
+                <button type="submit" class="chos-btn chos-btn-primary" id="btn-save-targets">
+                    <i class="fas fa-save me-1"></i>{{ t("nutrition.targets_save") }}
+                </button>
+                <button type="button" class="chos-btn chos-btn-outline" id="btn-reset-targets">
+                    {{ t("nutrition.targets_reset") }}
+                </button>
+            </div>
+        </form>
+        {% if target_source == 'default' %}
+        <p class="text-muted small mb-0 mt-3">{{ t("nutrition.targets_default_hint") }}</p>
+        {% endif %}
     </div>
 </div>
 
@@ -118,11 +172,11 @@
                 <p class="text-secondary mb-0 small">{{ t("nutrition.diet_plan_subtitle") }}</p>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <label for="diet-plan-input" class="btn btn-primary mb-0" style="cursor: pointer;">
+                <label for="diet-plan-input" class="chos-btn chos-btn-primary mb-0" style="cursor: pointer;">
                     <i class="fas fa-upload me-2"></i>{% if diet_plan %}{{ t("nutrition.diet_plan_replace") }}{% else %}{{ t("nutrition.diet_plan_upload") }}{% endif %}
                 </label>
                 {% if diet_plan %}
-                <button type="button" id="diet-plan-remove" class="btn btn-outline-secondary mb-0">
+                <button type="button" id="diet-plan-remove" class="chos-btn chos-btn-outline mb-0">
                     <i class="fas fa-trash me-1"></i>{{ t("nutrition.diet_plan_remove") }}
                 </button>
                 {% endif %}
@@ -131,7 +185,7 @@
         </div>
 
         {% if diet_plan %}
-        <div class="mt-3 p-3 bg-light rounded d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="mt-3 chos-sunken-strip d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div>
                 <span class="fw-medium">{{ diet_plan.file_name }}</span>
                 {% if diet_plan.uploaded_at %}<span class="small text-muted ms-2">{{ t("nutrition.diet_plan_uploaded") }} {{ diet_plan.uploaded_at }}</span>{% endif %}
@@ -142,10 +196,11 @@
         </div>
         {% else %}
         <p class="text-muted small mb-0 mt-3">{{ t("nutrition.diet_plan_none") }}</p>
+        <p class="text-muted small mb-0 mt-1">{{ t("nutrition.diet_plan_or_manual") }}</p>
         {% endif %}
 
         <div id="diet-plan-loading" class="d-none text-center py-3">
-            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+            <div class="spinner-border spinner-border-sm chos-spinner-brand me-2" role="status"></div>
             <span class="text-secondary small">{{ t("nutrition.diet_plan_uploading") }}</span>
         </div>
     </div>
@@ -303,10 +358,12 @@
     </div>
 </div>
 
+</div>
+
 <!-- Edit meal modal -->
 <div class="modal fade" id="edit-meal-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content chos-modal">
             <div class="modal-header">
                 <h5 class="modal-title">{{ t("nutrition.edit_meal_title") }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -314,8 +371,8 @@
             <div class="modal-body">
                 <input type="hidden" id="edit-meal-id">
                 <div class="mb-3">
-                    <label class="form-label small fw-medium">{{ t("nutrition.meal") }}</label>
-                    <select class="form-select" id="edit-meal-type">
+                    <label class="chos-label">{{ t("nutrition.meal") }}</label>
+                    <select class="chos-input" id="edit-meal-type">
                         <option value="breakfast">{{ t("nutrition.meal_options.breakfast") }}</option>
                         <option value="lunch">{{ t("nutrition.meal_options.lunch") }}</option>
                         <option value="snack">{{ t("nutrition.meal_options.snack") }}</option>
@@ -344,8 +401,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ t("common.actions.cancel") }}</button>
-                <button type="button" class="btn btn-primary" id="edit-meal-save">{{ t("nutrition.btn_save") }}</button>
+                <button type="button" class="chos-btn chos-btn-outline" data-bs-dismiss="modal">{{ t("common.actions.cancel") }}</button>
+                <button type="button" class="chos-btn chos-btn-primary" id="edit-meal-save">{{ t("nutrition.btn_save") }}</button>
             </div>
         </div>
     </div>
@@ -417,6 +474,58 @@
         colors: [_cssVar('--cat-nutrition'), _cssVar('--cat-cardio'), _cssVar('--cat-fat')]
     };
     new ApexCharts(document.querySelector("#macro-trend-chart"), macroTrendOptions).render();
+
+    // ====== Daily macro targets ======
+    (function () {
+        const sourceLabels = {
+            manual: t('nutrition.target_source_manual'),
+            diet_plan: t('nutrition.target_source_diet_plan'),
+            default: t('nutrition.target_source_default'),
+        };
+        const sourceClasses = {
+            manual: 'text-bg-primary',
+            diet_plan: 'text-bg-success',
+            default: 'text-bg-secondary',
+        };
+
+        function updateSourceBadge(source) {
+            const $badge = $('#target-source-badge');
+            $badge.removeClass('text-bg-primary text-bg-success text-bg-secondary');
+            $badge.addClass(sourceClasses[source] || 'text-bg-secondary');
+            $badge.text(sourceLabels[source] || source);
+        }
+
+        $('#macro-targets-form').on('submit', function (e) {
+            e.preventDefault();
+            const payload = {
+                calories: parseInt($('#target-calories').val(), 10),
+                protein: parseInt($('#target-protein').val(), 10),
+                carbs: parseInt($('#target-carbs').val(), 10),
+                fat: parseInt($('#target-fat').val(), 10),
+            };
+            CHOS.api.put('/api/v1/nutrition/targets', payload)
+                .done(function (data) {
+                    updateSourceBadge(data.source || 'manual');
+                    CHOS.toast.success(t('nutrition.targets_saved'));
+                    window.location.reload();
+                })
+                .fail(function (xhr) {
+                    const detail = xhr.responseJSON && xhr.responseJSON.detail;
+                    CHOS.toast.error(detail || t('nutrition.targets_save_error'));
+                });
+        });
+
+        $('#btn-reset-targets').on('click', function () {
+            CHOS.api.delete('/api/v1/nutrition/targets')
+                .done(function () {
+                    CHOS.toast.success(t('nutrition.targets_reset_done'));
+                    window.location.reload();
+                })
+                .fail(function () {
+                    CHOS.toast.error(t('nutrition.targets_save_error'));
+                });
+        });
+    })();
 
     // ====== Meal photo analyzer ======
     (function () {

@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # FastAPI Backend
+  # FastAPI Backend (local dev — run `alembic upgrade head` after first boot)
   backend:
     build:
       context: ./backend
@@ -10,28 +10,27 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@supabase-db:5432/postgres
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/crossfit
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY}
-      - GOOGLE_CALENDAR_CLIENT_ID=${GOOGLE_CALENDAR_CLIENT_ID}
-      - GOOGLE_CALENDAR_CLIENT_SECRET=${GOOGLE_CALENDAR_CLIENT_SECRET}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TODOIST_API_TOKEN=${TODOIST_API_TOKEN}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production-12345678}
+      - GOOGLE_CALENDAR_CLIENT_ID=${GOOGLE_CALENDAR_CLIENT_ID:-}
+      - GOOGLE_CALENDAR_CLIENT_SECRET=${GOOGLE_CALENDAR_CLIENT_SECRET:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - INTERNAL_CRON_SECRET=${INTERNAL_CRON_SECRET:-dev-cron-secret}
       - ENVIRONMENT=development
+      - FRONTEND_URL=http://localhost:8000
     volumes:
       - ./backend:/app
-      - /app/__pycache__
     depends_on:
       - redis
-      - supabase-db
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - postgres
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     networks:
       - crossfit-network
 
-  # Redis for caching and Celery broker
   redis:
     image: redis:7-alpine
     container_name: crossfit-redis
@@ -43,78 +42,19 @@ services:
       - crossfit-network
     command: redis-server --appendonly yes
 
-  # Celery Worker for async tasks
-  celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: crossfit-celery-worker
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@supabase-db:5432/postgres
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
-      - REDIS_URL=redis://redis:6379/0
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - redis
-      - supabase-db
-    command: celery -A app.tasks.worker worker --loglevel=info
-    networks:
-      - crossfit-network
-
-  # Celery Beat for scheduled tasks
-  celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: crossfit-celery-beat
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@supabase-db:5432/postgres
-      - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
-      - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - redis
-      - supabase-db
-    command: celery -A app.tasks.worker beat --loglevel=info
-    networks:
-      - crossfit-network
-
-  # Local Supabase Database (optional - for local dev without cloud)
-  supabase-db:
-    image: supabase/postgres:15.1.0.147
+  postgres:
+    image: postgres:16-alpine
     container_name: crossfit-postgres
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_DB: crossfit
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./infra/supabase/migrations:/docker-entrypoint-initdb.d
     networks:
       - crossfit-network
-
-  # pgAdmin for database management (optional)
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: crossfit-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@crossfit.local
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - supabase-db
-    networks:
-      - crossfit-network
-    profiles:
-      - tools
 
 networks:
   crossfit-network:

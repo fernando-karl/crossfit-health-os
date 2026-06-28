@@ -11,19 +11,27 @@ from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 
+from app.core.datetime_utils import user_today
 from app.db.models import (
     Macrocycle as MacrocycleDB,
     Microcycle as MicrocycleDB,
     PlannedSession as PlannedSessionDB,
     RecoveryMetric as RecoveryMetricDB,
+    WorkoutSession as WorkoutSessionDB,
     WorkoutTemplate as WorkoutTemplateDB,
 )
 
 
+def _test_today():
+    """Align seeded planned-session dates with /training/today (user timezone)."""
+    return user_today({"timezone": "America/Sao_Paulo"})
+
+
 def _seed_active_program(db_session, user_id: int, *, sets: int = 5, reps: int = 10):
     """Create macro → micro → planned_session → template chain for today."""
-    today = _Date.today()
+    today = _test_today()
     macro = MacrocycleDB(
         id=uuid4(), user_id=user_id, name="Test", methodology="hwpo",
         start_date=today, end_date=today, block_plan=[{"type": "build", "weeks": 1}],
@@ -64,7 +72,7 @@ def _seed_active_program(db_session, user_id: int, *, sets: int = 5, reps: int =
 def _seed_recovery(db_session, user_id: int, *, sleep_q=10, stress=1, soreness=1, hrv=80):
     """High readiness by default — caller can flip values for low-readiness path."""
     db_session.add(RecoveryMetricDB(
-        id=uuid4(), user_id=user_id, date=_Date.today(),
+        id=uuid4(), user_id=user_id, date=_test_today(),
         sleep_duration_hours=8.0, sleep_quality=sleep_q,
         hrv_ms=hrv, resting_heart_rate_bpm=55,
         stress_level=stress, muscle_soreness=soreness, energy_level=10,
@@ -122,3 +130,39 @@ class TestTodayWorkoutOverlay:
         meta = r.json()["adapted_meta"]
         assert meta["volume_multiplier"] >= 1.0
         assert meta["readiness_score"] >= 60
+
+    async def test_today_returns_planned_session_id(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        _seed_active_program(db_session, seeded_user.id)
+        _seed_recovery(db_session, seeded_user.id)
+
+        r = await authenticated_client.get("/api/v1/training/today")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["workout"] is not None
+        assert body["planned_session_id"]
+        assert body["template_id"]
+
+    async def test_today_completed_when_planned_session_done(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        _seed_active_program(db_session, seeded_user.id)
+        planned = db_session.execute(
+            select(PlannedSessionDB).where(PlannedSessionDB.user_id == seeded_user.id)
+        ).scalar_one()
+        db_session.add(WorkoutSessionDB(
+            user_id=seeded_user.id,
+            planned_session_id=planned.id,
+            workout_type="strength",
+            started_at=datetime.utcnow(),
+            completed_at=datetime.utcnow(),
+        ))
+        db_session.commit()
+
+        r = await authenticated_client.get("/api/v1/training/today")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["workout"] is None
+        assert body["completed"] is True
+        assert body["planned_session_id"] == str(planned.id)

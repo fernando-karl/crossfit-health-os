@@ -7,13 +7,13 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 760px;">
+<div class="container py-4 chos-page" style="max-width: 760px;">
 
-    <div class="mb-4">
-        <h1 class="h2 fw-bold mb-1">
-            <i class="fas fa-user-friends me-2"></i>{{ t("referrals.page_title") }}
-        </h1>
-        <p class="text-muted mb-0">{{ t("referrals.subtitle") }}</p>
+    <div class="chos-page-header mb-4">
+        <div>
+            <h1 class="h2">{{ t("referrals.page_title") }}</h1>
+            <p class="chos-page-header__sub">{{ t("referrals.subtitle") }}</p>
+        </div>
     </div>
 
     <!-- My code card -->
@@ -21,15 +21,15 @@
         <div class="card-body">
             <h5 class="fw-bold mb-3">{{ t("referrals.your_code") }}</h5>
             <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-                <code id="ref-code" class="fs-3 fw-bold text-primary px-3 py-2 bg-light rounded">—</code>
-                <button class="btn btn-outline-primary" id="ref-copy-code">
+                <code id="ref-code" class="chos-code-block fs-4 fw-bold mb-0" style="color: var(--brand-accent-press);">—</code>
+                <button class="chos-btn chos-btn-outline" id="ref-copy-code">
                     <i class="fas fa-copy me-1"></i>{{ t("referrals.copy_code") }}
                 </button>
             </div>
-            <label class="form-label small text-muted mb-1">{{ t("referrals.share_link") }}</label>
-            <div class="input-group">
-                <input type="text" class="form-control" id="ref-share-url" readonly>
-                <button class="btn btn-outline-secondary" id="ref-copy-link" type="button">
+            <label class="chos-label">{{ t("referrals.share_link") }}</label>
+            <div class="d-flex gap-2 flex-wrap">
+                <input type="text" class="chos-input flex-grow-1" id="ref-share-url" readonly>
+                <button class="chos-btn chos-btn-outline" id="ref-copy-link" type="button">
                     <i class="fas fa-link me-1"></i>{{ t("referrals.copy_link") }}
                 </button>
             </div>
@@ -61,7 +61,7 @@
                 <input type="text" class="form-control" id="ref-redeem-input"
                        placeholder="{{ t('referrals.redeem_placeholder') }}"
                        maxlength="24" style="max-width: 280px;">
-                <button class="btn btn-primary" type="submit">
+                <button class="chos-btn chos-btn-primary" type="submit">
                     {{ t("referrals.redeem_btn") }}
                 </button>
             </form>

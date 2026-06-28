@@ -3,33 +3,32 @@
 {% block title %}{{ t("auth_extra.auth_handler_processing") }} - CrossFit Health OS{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center min-vh-100 align-items-center">
-        <div class="col-md-5">
-            <div class="card shadow-lg border-0">
-                <div class="card-body p-5 text-center">
-                    <div id="loading">
-                        <div class="spinner-border text-primary mb-4" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">{{ t("common.loading") }}</span>
-                        </div>
-                        <h3>{{ t("auth_extra.auth_handler_processing") }}</h3>
-                        <p class="text-muted">{{ t("auth_extra.auth_handler_wait") }}</p>
-                    </div>
+<div class="chos-auth-state">
+    <div class="chos-auth-state__card">
+        <a href="/" class="d-inline-flex align-items-center gap-2 text-decoration-none mb-4" style="color: var(--brand-ink); font-weight: 600;">
+            {% include "partials/brand_logo.html" %}
+        </a>
 
-                    <div id="success" class="d-none">
-                        <i class="fas fa-check-circle fa-5x text-success mb-4"></i>
-                        <h3>{{ t("auth_extra.auth_handler_success") }}</h3>
-                        <p class="text-muted" id="success-msg">{{ t("auth_extra.auth_handler_redirecting") }}</p>
-                    </div>
-
-                    <div id="error" class="d-none">
-                        <i class="fas fa-exclamation-circle fa-5x text-danger mb-4"></i>
-                        <h3>{{ t("auth_extra.auth_handler_error") }}</h3>
-                        <p class="text-muted" id="error-msg">{{ t("auth_extra.auth_handler_generic") }}</p>
-                        <a href="/login" class="btn btn-primary btn-lg">{{ t("auth_extra.back_to_login") }}</a>
-                    </div>
-                </div>
+        <div id="loading">
+            <div class="chos-auth-state__mark mb-4" aria-hidden="true"></div>
+            <div class="spinner-border chos-spinner-brand mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">{{ t("common.loading") }}</span>
             </div>
+            <h3 class="fw-bold mb-2">{{ t("auth_extra.auth_handler_processing") }}</h3>
+            <p class="text-secondary mb-0">{{ t("auth_extra.auth_handler_wait") }}</p>
+        </div>
+
+        <div id="success" class="d-none">
+            <i class="fas fa-check-circle chos-auth-state__icon is-success"></i>
+            <h3 class="fw-bold mb-2">{{ t("auth_extra.auth_handler_success") }}</h3>
+            <p class="text-secondary mb-0" id="success-msg">{{ t("auth_extra.auth_handler_redirecting") }}</p>
+        </div>
+
+        <div id="error" class="d-none">
+            <i class="fas fa-exclamation-circle chos-auth-state__icon is-error"></i>
+            <h3 class="fw-bold mb-2">{{ t("auth_extra.auth_handler_error") }}</h3>
+            <p class="text-secondary mb-4" id="error-msg">{{ t("auth_extra.auth_handler_generic") }}</p>
+            <a href="/login" class="chos-btn chos-btn-primary chos-btn-lg">{{ t("auth_extra.back_to_login") }}</a>
         </div>
     </div>
 </div>

@@ -20,7 +20,17 @@ from app.db.session import get_session
 security = HTTPBearer()
 
 
+def _nutrition_enabled(user: User) -> bool:
+    prefs = user.preferences or {}
+    if prefs.get("app_focus") == "training_only":
+        return False
+    if "nutrition_enabled" in prefs:
+        return bool(prefs["nutrition_enabled"])
+    return True
+
+
 def _user_to_dict(user: User) -> dict:
+    prefs = user.preferences or {}
     return {
         "id": user.id,
         "email": user.email,
@@ -31,7 +41,8 @@ def _user_to_dict(user: User) -> dict:
         "birth_date": user.birth_date.isoformat() if user.birth_date else None,
         "goals": user.goals or [],
         "timezone": user.timezone,
-        "preferences": user.preferences or {},
+        "preferences": prefs,
+        "nutrition_enabled": _nutrition_enabled(user),
         "subscription_status": getattr(user, "subscription_status", "trialing"),
         "trial_expires_at": (
             user.trial_expires_at.isoformat()

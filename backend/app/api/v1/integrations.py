@@ -2,9 +2,11 @@
 Integrations API — HealthKit + Google Calendar (SQLAlchemy).
 """
 import logging
+from datetime import date as _Date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
@@ -15,12 +17,79 @@ from app.core.integrations.calendar import (
 )
 from app.core.oauth_state import consume_state, issue_state
 from app.core.integrations.healthkit import sync_healthkit_data
-from app.db.models import User as UserDB
+from app.db.models import (
+    HealthkitData as HealthkitDataDB,
+    RecoveryMetric as RecoveryMetricDB,
+    User as UserDB,
+)
 from app.db.session import get_session
+from app.db.user_id import user_id_equals
 from app.models.health import HealthKitSyncRequest
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+HEALTHKIT_STALE_HOURS = 36
+
+
+def _infer_recovery_source(
+    today_recovery: RecoveryMetricDB | None,
+    last_hk_row: HealthkitDataDB | None,
+) -> str:
+    """Best-effort source label for today's recovery row."""
+    if not today_recovery:
+        return "none"
+
+    hk_fields = (
+        today_recovery.hrv_ms is not None
+        or today_recovery.resting_heart_rate_bpm is not None
+        or today_recovery.sleep_duration_hours is not None
+    )
+    manual_fields = (
+        today_recovery.stress_level is not None
+        or today_recovery.muscle_soreness is not None
+        or today_recovery.energy_level is not None
+    )
+
+    if last_hk_row and hk_fields:
+        hk_date = (
+            last_hk_row.start_date.date()
+            if last_hk_row.start_date
+            else last_hk_row.created_at.date()
+        )
+        if hk_date == today_recovery.date:
+            return "mixed" if manual_fields else "healthkit"
+
+    if hk_fields and manual_fields:
+        return "mixed"
+    if manual_fields:
+        return "manual"
+    if hk_fields:
+        return "healthkit"
+    return "none"
+
+
+def _healthkit_last_metrics(row: HealthkitDataDB | None) -> dict | None:
+    if not row:
+        return None
+    payload = row.data if isinstance(row.data, dict) else {}
+    metrics = {
+        "hrv_rmssd_ms": payload.get("hrv_rmssd_ms"),
+        "sleep_duration_hours": payload.get("sleep_duration_hours"),
+        "resting_heart_rate_bpm": payload.get("resting_heart_rate_bpm"),
+        "device": payload.get("device") or row.device_name,
+        "metric_date": (
+            row.start_date.date().isoformat()
+            if row.start_date
+            else row.created_at.date().isoformat()
+        ),
+    }
+    if not any(
+        metrics.get(k) is not None
+        for k in ("hrv_rmssd_ms", "sleep_duration_hours", "resting_heart_rate_bpm")
+    ):
+        return None
+    return metrics
 
 
 # ============================================
@@ -41,6 +110,64 @@ async def sync_healthkit(
         "records_synced": result.get("count", 0),
         "recovery_metric_updated": result.get("recovery_metric_updated", False),
         "metric_date": result.get("metric_date"),
+        "readiness_score": result.get("readiness_score"),
+    }
+
+
+@router.get("/healthkit/status")
+async def healthkit_status(
+    request: Request,
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    """Last HealthKit sync, connection health, and inferred recovery data source."""
+    user_id = int(current_user["id"])
+    today = _Date.today()
+
+    last_hk_row = db.execute(
+        select(HealthkitDataDB)
+        .where(user_id_equals(HealthkitDataDB.user_id, user_id))
+        .order_by(HealthkitDataDB.created_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+    last_sync = last_hk_row.created_at if last_hk_row else None
+
+    today_recovery = db.execute(
+        select(RecoveryMetricDB).where(
+            RecoveryMetricDB.user_id == user_id,
+            RecoveryMetricDB.date == today,
+        )
+    ).scalar_one_or_none()
+
+    connected = last_sync is not None
+    stale = False
+    if last_sync:
+        age = datetime.utcnow() - last_sync.replace(tzinfo=None)
+        stale = age > timedelta(hours=HEALTHKIT_STALE_HOURS)
+
+    recovery_source = _infer_recovery_source(today_recovery, last_hk_row)
+    last_metrics = _healthkit_last_metrics(last_hk_row)
+
+    base_url = str(request.base_url).rstrip("/")
+    today_payload = None
+    if today_recovery:
+        today_payload = {
+            "readiness_score": today_recovery.readiness_score,
+            "hrv_rmssd_ms": today_recovery.hrv_ms,
+            "sleep_duration_hours": today_recovery.sleep_duration_hours,
+            "resting_heart_rate_bpm": today_recovery.resting_heart_rate_bpm,
+        }
+
+    return {
+        "connected": connected,
+        "stale": stale,
+        "last_sync_at": last_sync.isoformat() if last_sync else None,
+        "recovery_source": recovery_source,
+        "last_metrics": last_metrics,
+        "sync_url": f"{base_url}/api/v1/integrations/healthkit/sync",
+        "today_recovery": today_payload,
+        "user_email": current_user.get("email"),
     }
 
 

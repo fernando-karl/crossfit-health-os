@@ -285,6 +285,10 @@ const CHOS = {
          return this._request('PATCH', url, data);
       },
 
+      put(url, data) {
+         return this._request('PUT', url, data);
+      },
+
       delete(url) {
          return this._request('DELETE', url);
       },
@@ -306,6 +310,35 @@ const CHOS = {
             CHOS.toast.error((window.t ? t('common.server_error') : 'Server error. Please try again later.'));
          }
       }
+   },
+
+   /**
+    * Build recovery payload for POST /api/v1/training/generate.
+    * Field names match WorkoutGenerationRequest on the backend.
+    */
+   async buildRecoveryGeneratePayload() {
+      const defaults = {
+         readiness_score: 75,
+         hrv_rmssd_ms: 60,
+         sleep_duration_hours: 7.5,
+         muscle_soreness: 3,
+      };
+      try {
+         const recovery = await CHOS.api.get('/api/v1/health/recovery/latest');
+         if (recovery) {
+            return {
+               readiness_score: recovery.readiness_score ?? defaults.readiness_score,
+               hrv_rmssd_ms: recovery.hrv_rmssd_ms ?? defaults.hrv_rmssd_ms,
+               sleep_duration_hours: recovery.sleep_duration_hours ?? defaults.sleep_duration_hours,
+               muscle_soreness: recovery.muscle_soreness ?? defaults.muscle_soreness,
+               stress_level: recovery.stress_level ?? undefined,
+               sleep_quality_score: recovery.sleep_quality_score ?? undefined,
+            };
+         }
+      } catch (e) {
+         /* use defaults */
+      }
+      return defaults;
    },
    
    // ============================================
@@ -350,25 +383,239 @@ const CHOS = {
    // The workouts page reads `chos-quick-workout` when ?quick=1 is present.
    startWorkoutFromTemplate(template, opts) {
       if (!template) return false;
+      opts = opts || {};
       const movements = (template.movements && template.movements.length)
          ? template.movements
          : (template.adjusted_movements || []);
+      const templateId = template.id || opts.template_id || null;
       const response = {
+         planned_session_id: opts.planned_session_id || template.planned_session_id || null,
          template: {
+            id: templateId,
             name: template.name,
             workout_type: template.workout_type || 'mixed',
             duration_minutes: template.duration_minutes || 60,
             description: template.description || '',
+            target_stimulus: template.target_stimulus || '',
+            equipment_required: template.equipment_required || [],
             movements: movements
          },
          adjusted_movements: movements,
-         recommendation: (opts && opts.recommendation) || template.description || ''
+         recommendation: opts.recommendation || template.description || template.target_stimulus || ''
       };
       try {
          sessionStorage.setItem('chos-quick-workout', JSON.stringify(response));
       } catch (_) { /* storage might be disabled */ }
       window.location.href = '/dashboard/workouts?quick=1';
       return true;
+   },
+
+   /** Local calendar date as YYYY-MM-DD (not UTC). */
+   todayLocalIso() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+   },
+
+   // Global "Train now" — next planned session from active macrocycle.
+   trainNow: {
+      CACHE_MS: 60000,
+      _cache: null,
+      _cacheAt: 0,
+      _templateCache: {},
+      _navBound: false,
+
+      todayIso() {
+         return CHOS.todayLocalIso();
+      },
+
+      isQuickStartable(s) {
+         return !!(s && s.generated_template_id && !s.completed && s.status !== 'skipped');
+      },
+
+      compareSessions(a, b) {
+         if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+         const orderA = a.order_in_day || 0;
+         const orderB = b.order_in_day || 0;
+         if (orderA !== orderB) return orderA - orderB;
+         const timeA = a.start_time || '';
+         const timeB = b.start_time || '';
+         return timeA.localeCompare(timeB);
+      },
+
+      pickNext(sessions, weekEnd) {
+         const todayIso = this.todayIso();
+         const candidates = (sessions || [])
+            .filter(s => this.isQuickStartable(s))
+            .filter(s => !weekEnd || s.date <= weekEnd)
+            .sort((a, b) => this.compareSessions(a, b));
+         if (!candidates.length) return null;
+
+         const todayFirst = candidates.find(s => s.date === todayIso);
+         if (todayFirst) return todayFirst;
+
+         const upcoming = candidates.find(s => s.date >= todayIso);
+         return upcoming || candidates[0];
+      },
+
+      sessionLabel(session) {
+         if (!session) return '';
+         const tr = window.t || (k => k);
+         if (session.focus && CHOS.stimulus) {
+            return CHOS.stimulus.displayLabel(session.focus);
+         }
+         if (session.workout_type) {
+            const key = 'schedule.workout_type.' + session.workout_type;
+            const hit = tr(key);
+            return hit !== key ? hit : CHOS.humanize(session.workout_type);
+         }
+         return tr('nav.train_now.label');
+      },
+
+      invalidate() {
+         this._cache = null;
+         this._cacheAt = 0;
+      },
+
+      updateFromMicro(micro) {
+         if (!micro) {
+            this.invalidate();
+            this.refreshNav();
+            return;
+         }
+         this._cache = this.pickNext(micro.sessions || [], micro.end_date);
+         this._cacheAt = Date.now();
+         this.refreshNav();
+      },
+
+      async fetchNextSession(force) {
+         const now = Date.now();
+         if (!force && this._cache && (now - this._cacheAt) < this.CACHE_MS) {
+            return this._cache;
+         }
+         try {
+            const macro = await CHOS.api.get('/api/v1/schedule/macrocycles/active');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            let micro = (macro.microcycles || []).find(m => {
+               const s = new Date(m.start_date + 'T00:00:00');
+               const e = new Date(m.end_date + 'T23:59:59');
+               return today >= s && today <= e;
+            });
+            if (!micro && macro.microcycles && macro.microcycles.length) {
+               micro = macro.microcycles[macro.microcycles.length - 1];
+            }
+            if (!micro) {
+               this._cache = null;
+               this._cacheAt = now;
+               return null;
+            }
+            const microData = await CHOS.api.get('/api/v1/schedule/microcycles/' + micro.id);
+            const next = this.pickNext(microData.sessions || [], microData.end_date);
+            this._cache = next;
+            this._cacheAt = now;
+            return next;
+         } catch (xhr) {
+            if (xhr && xhr.status === 404) {
+               this._cache = null;
+               this._cacheAt = Date.now();
+               return null;
+            }
+            throw xhr;
+         }
+      },
+
+      async startSession(session, triggerEl) {
+         if (!session || !session.generated_template_id) return false;
+         const btn = triggerEl;
+         const done = () => {
+            if (btn) {
+               btn.classList.remove('is-loading');
+               btn.disabled = false;
+            }
+         };
+         if (btn) {
+            btn.classList.add('is-loading');
+            btn.disabled = true;
+         }
+         const templateId = session.generated_template_id;
+         let template = this._templateCache[templateId];
+         if (!template) {
+            try {
+               template = await CHOS.api.get('/api/v1/training/templates/' + templateId);
+               this._templateCache[templateId] = template;
+            } catch (_) {
+               done();
+               CHOS.toast.error((window.t && t('schedule.toast.session_load_error')) || 'Error');
+               return false;
+            }
+         }
+         CHOS.startWorkoutFromTemplate(
+            Object.assign({}, template, { id: templateId }),
+            { planned_session_id: session.id }
+         );
+         return true;
+      },
+
+      async start(opts) {
+         opts = opts || {};
+         try {
+            const session = await this.fetchNextSession(opts.force);
+            if (session) {
+               return this.startSession(session, opts.trigger);
+            }
+         } catch (_) {
+            CHOS.toast.error((window.t && t('schedule.toast.session_load_error')) || 'Error');
+            return false;
+         }
+         if (typeof window.startWorkout === 'function') {
+            window.startWorkout();
+            return true;
+         }
+         CHOS.toast.info((window.t && t('nav.train_now.none')) || 'No workout');
+         window.location.href = '/dashboard/programs';
+         return false;
+      },
+
+      bindNav() {
+         if (this._navBound) return;
+         const btn = document.getElementById('nav-train-now');
+         if (!btn) return;
+         this._navBound = true;
+         btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.start({ trigger: btn });
+         });
+      },
+
+      refreshNav() {
+         const item = document.getElementById('nav-train-now-item');
+         const btn = document.getElementById('nav-train-now');
+         if (!btn || !item) return;
+         const session = this._cache;
+         if (!session || !this.isQuickStartable(session)) {
+            item.classList.add('d-none');
+            return;
+         }
+         item.classList.remove('d-none');
+         const label = this.sessionLabel(session);
+         btn.title = label;
+         const sub = btn.querySelector('.nav-train-now__sub');
+         if (sub) sub.textContent = label;
+      },
+
+      init() {
+         this.bindNav();
+         if (!CHOS.auth.getToken()) return;
+         this.fetchNextSession()
+            .then(() => this.refreshNav())
+            .catch(() => {
+               const item = document.getElementById('nav-train-now-item');
+               if (item) item.classList.add('d-none');
+            });
+      }
    },
 
    // ============================================
@@ -391,6 +638,332 @@ const CHOS = {
       return String(s)
          .replace(/_/g, ' ')
          .replace(/\b\w/g, c => c.toUpperCase());
+   },
+
+   // CFAI primary_stimulus keys — shared by calendar drawer and programs viewer.
+   stimulus: {
+      FOCUS_CUSTOM: '__custom__',
+
+      TO_WORKOUT_TYPE: {
+         strength_max: 'strength',
+         strength_volume: 'strength',
+         hypertrophy: 'strength',
+         power: 'strength',
+         aerobic_z2: 'conditioning',
+         aerobic_threshold: 'conditioning',
+         vo2_max: 'metcon',
+         lactic_tolerance: 'metcon',
+         alactic_power: 'metcon',
+         mixed_modal: 'metcon',
+         gymnastic_capacity: 'skill',
+         skill_acquisition: 'skill',
+         midline_endurance: 'skill',
+         recovery: 'conditioning',
+      },
+
+      GROUPS: [
+         { groupKey: 'schedule.stimulus.group_strength', items: ['strength_max', 'strength_volume', 'hypertrophy', 'power'] },
+         { groupKey: 'schedule.stimulus.group_conditioning', items: ['aerobic_z2', 'aerobic_threshold', 'recovery'] },
+         { groupKey: 'schedule.stimulus.group_metcon', items: ['vo2_max', 'lactic_tolerance', 'alactic_power', 'mixed_modal'] },
+         { groupKey: 'schedule.stimulus.group_skill', items: ['gymnastic_capacity', 'skill_acquisition', 'midline_endurance'] },
+      ],
+
+      _t(key) {
+         const hit = window.t ? window.t(key) : null;
+         return hit && hit !== key ? hit : null;
+      },
+
+      isKnown(focus) {
+         return !!(focus && Object.prototype.hasOwnProperty.call(this.TO_WORKOUT_TYPE, focus));
+      },
+
+      label(key) {
+         if (!key) return '';
+         const i18nKey = 'schedule.stimulus.' + key;
+         return this._t(i18nKey) || CHOS.humanize(key);
+      },
+
+      displayLabel(focus) {
+         if (!focus) return '';
+         return this.isKnown(focus) ? this.label(focus) : focus;
+      },
+
+      workoutTypeFor(stimulus) {
+         return this.TO_WORKOUT_TYPE[stimulus] || 'mixed';
+      },
+
+      stimuliForWorkoutType(workoutType) {
+         if (!workoutType || workoutType === 'mixed') {
+            return Object.keys(this.TO_WORKOUT_TYPE);
+         }
+         return Object.keys(this.TO_WORKOUT_TYPE).filter(
+            key => this.TO_WORKOUT_TYPE[key] === workoutType
+         );
+      },
+
+      isCompatible(stimulus, workoutType) {
+         if (!workoutType || workoutType === 'mixed') return true;
+         return this.workoutTypeFor(stimulus) === workoutType;
+      },
+
+      catClassForStimulus(stimulus) {
+         const wt = this.workoutTypeFor(stimulus);
+         return this.catClassForWorkoutType(wt);
+      },
+
+      catClassForWorkoutType(workoutType) {
+         const map = {
+            strength: 'is-strength',
+            metcon: 'is-cardio',
+            conditioning: 'is-recovery',
+            skill: 'is-nutrition',
+            mixed: 'is-recovery',
+         };
+         return map[workoutType] || 'is-recovery';
+      },
+
+      buildPickerHtml(focus, workoutType, opts) {
+         const o = opts || {};
+         const t = window.t || function (k) { return k; };
+         const esc = CHOS.escape;
+         const allowed = workoutType === 'mixed'
+            ? null
+            : new Set(this.stimuliForWorkoutType(workoutType));
+         const isKnown = this.isKnown(focus);
+         const isCustom = !!(focus && !isKnown);
+         const customSelected = isCustom;
+         let html = '';
+
+         this.GROUPS.forEach(function (g) {
+            const chips = g.items
+               .filter(function (key) { return !allowed || allowed.has(key); })
+               .map(function (key) {
+                  const catCls = CHOS.stimulus.catClassForStimulus(key);
+                  const sel = isKnown && focus === key ? ' is-selected' : '';
+                  return '<button type="button" class="chos-stimulus-chip ' + catCls + sel + '"'
+                     + ' data-stimulus="' + esc(key) + '"'
+                     + ' aria-pressed="' + (sel ? 'true' : 'false') + '">'
+                     + '<span class="chip-dot"></span>' + esc(CHOS.stimulus.label(key))
+                     + '</button>';
+               })
+               .join('');
+            if (!chips) return;
+            html += '<div class="chos-stimulus-group mb-2">'
+               + '<div class="chos-stimulus-group__label small text-secondary fw-medium mb-1">'
+               + esc(t(g.groupKey)) + '</div>'
+               + '<div class="d-flex flex-wrap gap-2">' + chips + '</div></div>';
+         });
+
+         const customSel = customSelected ? ' is-selected' : '';
+         html += '<div class="d-flex flex-wrap gap-2 mt-1">'
+            + '<button type="button" class="chos-stimulus-chip chos-stimulus-chip--custom' + customSel + '"'
+            + ' data-stimulus="' + esc(CHOS.stimulus.FOCUS_CUSTOM) + '"'
+            + ' aria-pressed="' + (customSelected ? 'true' : 'false') + '">'
+            + '<span class="chip-dot"></span>' + esc(t('schedule.stimulus.custom'))
+            + '</button></div>';
+
+         const customHidden = customSelected ? '' : ' d-none';
+         const customValue = customSelected ? esc(focus || '') : '';
+         const placeholder = esc(o.placeholder || t('schedule.drawer.focus_placeholder'));
+         html += '<input type="text" class="chos-input mt-2' + customHidden + '" data-field="focus_custom"'
+            + ' value="' + customValue + '" placeholder="' + placeholder + '"'
+            + ' aria-label="' + esc(t('schedule.drawer.field_focus')) + '">';
+
+         if (workoutType && workoutType !== 'mixed') {
+            html += '<div class="form-text text-secondary small mt-1">'
+               + esc(t('schedule.drawer.focus_filtered')) + '</div>';
+         }
+
+         return html;
+      },
+
+      WORKOUT_TYPES: ['strength', 'metcon', 'skill', 'conditioning', 'mixed'],
+
+      TYPE_ICONS: {
+         strength: 'fa-dumbbell',
+         metcon: 'fa-fire',
+         skill: 'fa-star',
+         conditioning: 'fa-heart-pulse',
+         mixed: 'fa-layer-group',
+      },
+
+      buildWorkoutTypePickerHtml(selectedType) {
+         const t = window.t || function (k) { return k; };
+         const esc = CHOS.escape;
+         const selected = selectedType || 'mixed';
+         const self = this;
+         return '<div class="d-flex flex-wrap gap-2">' + this.WORKOUT_TYPES.map(function (wt) {
+            const catCls = self.catClassForWorkoutType(wt);
+            const sel = selected === wt ? ' is-selected' : '';
+            const icon = self.TYPE_ICONS[wt] || 'fa-circle';
+            return '<button type="button" class="chos-stimulus-chip chos-type-chip ' + catCls + sel + '"'
+               + ' data-workout-type="' + esc(wt) + '"'
+               + ' aria-pressed="' + (sel ? 'true' : 'false') + '">'
+               + '<i class="fas ' + icon + '" style="font-size:0.75rem;opacity:0.85;"></i>'
+               + esc(t('schedule.workout_type.' + wt))
+               + '</button>';
+         }).join('') + '</div>';
+      },
+   },
+
+   // Session shift picker — calendar drawer.
+   shift: {
+      SHIFTS: ['morning', 'afternoon', 'evening', 'custom'],
+
+      ICONS: {
+         morning: 'fa-sun',
+         afternoon: 'fa-cloud-sun',
+         evening: 'fa-moon',
+         custom: 'fa-clock',
+      },
+
+      DEFAULT_TIMES: {
+         morning: '06:00',
+         afternoon: '14:00',
+         evening: '18:00',
+      },
+
+      CAT_CLASS: {
+         morning: 'is-morning',
+         afternoon: 'is-afternoon',
+         evening: 'is-evening',
+         custom: 'is-custom',
+      },
+
+      isValid(shift) {
+         return this.SHIFTS.indexOf(shift) !== -1;
+      },
+
+      label(shift) {
+         if (!this.isValid(shift)) return '';
+         const key = 'schedule.shift.' + shift;
+         const hit = window.t ? window.t(key) : null;
+         return (hit && hit !== key) ? hit : CHOS.humanize(shift);
+      },
+
+      buildPickerHtml(selectedShift) {
+         const esc = CHOS.escape;
+         const selected = this.isValid(selectedShift) ? selectedShift : 'morning';
+         const self = this;
+         return '<div class="d-flex flex-wrap gap-2">' + this.SHIFTS.map(function (sh) {
+            const catCls = self.CAT_CLASS[sh] || '';
+            const sel = selected === sh ? ' is-selected' : '';
+            const icon = self.ICONS[sh] || 'fa-circle';
+            return '<button type="button" class="chos-stimulus-chip chos-shift-chip ' + catCls + sel + '"'
+               + ' data-shift="' + esc(sh) + '"'
+               + ' aria-pressed="' + (sel ? 'true' : 'false') + '">'
+               + '<i class="fas ' + icon + '" style="font-size:0.75rem;opacity:0.85;"></i>'
+               + esc(self.label(sh))
+               + '</button>';
+         }).join('') + '</div>';
+      },
+
+      buildGridBadge(session) {
+         if (!session) return '';
+         const esc = CHOS.escape;
+         const shift = this.isValid(session.shift) ? session.shift : '';
+         if (!shift) {
+            if (session.start_time) {
+               return '<span class="chos-session-shift is-custom" title="' + esc(session.start_time.slice(0, 5)) + '">'
+                  + '<i class="fas fa-clock"></i><span class="num">' + esc(session.start_time.slice(0, 5)) + '</span></span>';
+            }
+            return '';
+         }
+         const cat = this.CAT_CLASS[shift] || '';
+         const icon = this.ICONS[shift] || 'fa-clock';
+         const fullLabel = this.label(shift);
+         const shortLabel = shift === 'custom' && session.start_time
+            ? session.start_time.slice(0, 5)
+            : fullLabel;
+         return '<span class="chos-session-shift ' + cat + '" title="' + esc(fullLabel) + '">'
+            + '<i class="fas ' + icon + '"></i>'
+            + '<span>' + esc(shortLabel) + '</span></span>';
+      },
+   },
+
+   // Session duration presets — calendar drawer.
+   duration: {
+      PRESETS: [45, 60, 75, 90, 120],
+
+      presetsFor(macroDefault) {
+         const base = this.PRESETS.slice();
+         const d = parseInt(macroDefault, 10) || 60;
+         if (d >= 15 && d <= 240 && base.indexOf(d) === -1) {
+            return { presets: base.concat([d]).sort(function (a, b) { return a - b; }), macroDefault: d };
+         }
+         return { presets: base, macroDefault: d };
+      },
+
+      buildPickerHtml(selectedMinutes, opts) {
+         const o = opts || {};
+         const esc = CHOS.escape;
+         const t = window.t || function (k) { return k; };
+         const presetInfo = this.presetsFor(o.macroDefault);
+         const presets = presetInfo.presets;
+         const macroDefault = presetInfo.macroDefault;
+         const selected = parseInt(selectedMinutes, 10) || macroDefault;
+         const isPreset = presets.indexOf(selected) !== -1;
+         const macroHint = t('schedule.drawer.duration_macro_hint');
+         const chips = presets.map(function (mins) {
+            const sel = isPreset && selected === mins ? ' is-selected' : '';
+            const isMacro = mins === macroDefault;
+            const macroCls = isMacro ? ' chos-duration-chip--macro' : '';
+            const macroTitle = isMacro ? ' title="' + esc(macroHint) + '"' : '';
+            return '<button type="button" class="chos-stimulus-chip chos-duration-chip' + macroCls + sel + '"'
+               + ' data-duration="' + mins + '"' + macroTitle
+               + ' aria-pressed="' + (sel ? 'true' : 'false') + '">'
+               + (isMacro ? '<i class="fas fa-star" style="font-size:0.55rem;opacity:0.75;"></i>' : '')
+               + '<span class="num">' + mins + '</span> min'
+               + '</button>';
+         }).join('');
+         const customSel = !isPreset ? ' is-selected' : '';
+         return '<div class="d-flex flex-wrap gap-2 align-items-center mb-2">' + chips
+            + '<button type="button" class="chos-stimulus-chip chos-duration-chip chos-duration-chip--custom' + customSel + '"'
+            + ' data-duration="custom" aria-pressed="' + (!isPreset ? 'true' : 'false') + '">'
+            + '<i class="fas fa-sliders-h" style="font-size:0.75rem;opacity:0.85;"></i>'
+            + esc(t('schedule.drawer.duration_custom'))
+            + '</button></div>'
+            + '<div class="chos-duration-custom' + (isPreset ? ' d-none' : '') + '">'
+            + '<div class="position-relative" style="max-width: 8rem;">'
+            + '<input type="number" class="chos-input" data-field="duration_minutes" min="15" max="240" step="5"'
+            + ' value="' + (isPreset ? '' : esc(String(selected))) + '"'
+            + ' aria-label="' + esc(t('schedule.drawer.field_duration')) + '">'
+            + '<span class="position-absolute text-secondary small" style="right: 0.875rem; top: 50%; transform: translateY(-50%); pointer-events: none;">min</span>'
+            + '</div></div>';
+      },
+   },
+
+   // Macrocycle create form — duration + training days chips.
+   macroForm: {
+      DURATION_PRESETS: [30, 45, 60, 90, 120, 180],
+      DAYS_OPTIONS: [3, 4, 5, 6, 7],
+
+      buildDurationPickerHtml(selectedMinutes) {
+         const esc = CHOS.escape;
+         const selected = parseInt(selectedMinutes, 10) || 60;
+         return '<div class="d-flex flex-wrap gap-2">' + this.DURATION_PRESETS.map(function (mins) {
+            const sel = selected === mins ? ' is-selected' : '';
+            return '<button type="button" class="chos-stimulus-chip chos-macro-chip' + sel + '"'
+               + ' data-macro-duration="' + mins + '"'
+               + ' aria-pressed="' + (sel ? 'true' : 'false') + '">'
+               + '<span class="num">' + mins + '</span> min</button>';
+         }).join('') + '</div>';
+      },
+
+      buildDaysPickerHtml(selectedDays) {
+         const esc = CHOS.escape;
+         const t = window.t || function (k, p) { return k; };
+         const selected = parseInt(selectedDays, 10) || 5;
+         return '<div class="d-flex flex-wrap gap-2">' + this.DAYS_OPTIONS.map(function (days) {
+            const sel = selected === days ? ' is-selected' : '';
+            return '<button type="button" class="chos-stimulus-chip chos-macro-chip' + sel + '"'
+               + ' data-macro-days="' + days + '"'
+               + ' aria-pressed="' + (sel ? 'true' : 'false') + '">'
+               + '<span class="num">' + days + '</span> '
+               + esc(t('schedule.modal.days_chip', { n: days }))
+               + '</button>';
+         }).join('') + '</div>';
+      },
    },
 
    format: {
@@ -459,21 +1032,26 @@ const CHOS = {
    _setupDashboardUI() {
       const user = this.auth.getUser();
       if (user.name) {
-         $('#user-name').text(user.name);
-         $('#welcome-name').text(user.name.split(' ')[0]);
+         $('#user-name').text(user.name.split(' ')[0]);
+         if ($('#welcome-name').length) {
+            $('#welcome-name').text(user.name.split(' ')[0]);
+         }
       }
 
-      // Setup logout
       $('#logout-btn').on('click', function(e) {
          e.preventDefault();
          CHOS.auth.logout();
       });
 
-      // Set today's date
-      const today = new Date().toLocaleDateString('pt-BR', {
-         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-      });
-      $('#today-date').text(today);
+      if (CHOS.trainNow) CHOS.trainNow.init();
+
+      // Date/greeting on dashboard are set by loadUserData with locale-aware tDate().
+      if (!$('#welcome-greeting').length) {
+         const today = new Date().toLocaleDateString(window.LOCALE || 'pt-BR', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+         });
+         $('#today-date').text(today);
+      }
    }
 };
 
@@ -544,7 +1122,7 @@ CHOS.trial = {
       };
 
       const isUrgent = expired || daysLeft <= 3;
-      const cls = expired ? 'alert-danger' : (isUrgent ? 'alert-warning' : 'alert-info');
+      const variant = expired ? 'is-danger' : (isUrgent ? 'is-warning' : 'is-info');
       const title = expired
          ? tr('billing.banner.expired_title', null, 'Your free trial has ended')
          : tr('billing.banner.trialing_title', { days: daysLeft }, daysLeft + ' day(s) left in your free trial');
@@ -554,10 +1132,10 @@ CHOS.trial = {
          : '<button type="button" class="btn-close ms-2" aria-label="Dismiss" data-chos-trial-dismiss></button>';
 
       const html =
-         '<div class="alert ' + cls + ' d-flex align-items-center mb-3" role="alert">' +
-            '<i class="fas fa-clock me-2"></i>' +
+         '<div class="chos-trial-banner ' + variant + '" role="status">' +
+            '<i class="fas fa-clock chos-trial-banner__icon"></i>' +
             '<div class="flex-grow-1">' + title + '</div>' +
-            '<a href="/dashboard/billing" class="btn btn-sm btn-light ms-3">' + cta + '</a>' +
+            '<a href="/dashboard/billing" class="chos-btn chos-btn-sm chos-btn-primary ms-2">' + cta + '</a>' +
             dismissBtn +
          '</div>';
       $mount.html(html);
@@ -569,7 +1147,56 @@ CHOS.trial = {
    }
 };
 
-$(document).ready(function () { CHOS.trial.init(); });
+$(document).ready(function () {
+   CHOS.trial.init();
+   CHOS.prefs.init();
+});
+
+// ============================================
+// User preferences (nutrition gating, etc.)
+// ============================================
+CHOS.prefs = {
+   init() {
+      if (!CHOS.auth.isAuthenticated()) return;
+      const self = this;
+      CHOS.api.get('/api/v1/users/me')
+         .then(function (user) {
+            self.applyNutritionGating(user);
+            if (user && user.name) {
+               try {
+                  const stored = JSON.parse(localStorage.getItem('user') || '{}');
+                  stored.preferences = user.preferences || stored.preferences;
+                  stored.nutrition_enabled = user.nutrition_enabled;
+                  localStorage.setItem('user', JSON.stringify({ ...stored, ...user }));
+               } catch (e) { /* ignore */ }
+            }
+         })
+         .fail(function () { /* silent */ });
+   },
+
+   isNutritionEnabled(user) {
+      if (!user) return true;
+      if (typeof user.nutrition_enabled === 'boolean') return user.nutrition_enabled;
+      const prefs = user.preferences || {};
+      if (prefs.app_focus === 'training_only') return false;
+      if ('nutrition_enabled' in prefs) return Boolean(prefs.nutrition_enabled);
+      return true;
+   },
+
+   applyNutritionGating(user) {
+      const enabled = this.isNutritionEnabled(user);
+      if (enabled) return;
+
+      $('.nav-nutrition').addClass('d-none');
+
+      if (window.location.pathname === '/dashboard/nutrition') {
+         CHOS.toast && CHOS.toast.info(
+            window.t ? t('nav.nutrition_disabled_redirect') : 'Nutrition is disabled for your plan.'
+         );
+         window.location.replace('/dashboard');
+      }
+   }
+};
 
 // ============================================
 // Upgrade modal (shown on 402 from premium endpoints)

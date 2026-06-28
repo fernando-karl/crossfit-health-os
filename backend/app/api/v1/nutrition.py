@@ -10,6 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user
 from app.core.integrations.meal_vision import parse_meal_photo
+from app.core.nutrition_targets import (
+    clear_manual_macro_targets,
+    resolve_macro_targets,
+    save_manual_macro_targets,
+)
 from app.db.models import MealLog as MealLogDB
 from app.db.session import get_session
 
@@ -219,10 +224,90 @@ async def get_macro_summary(
     total_protein = sum((r.protein_g or 0) for r in rows)
     total_carbs = sum((r.carbs_g or 0) for r in rows)
     total_fat = sum((r.fat_g or 0) for r in rows)
+    resolved = resolve_macro_targets(db, user_id)
+    targets = resolved["targets"]
     return {
         "calories": total_calories,
         "protein_g": total_protein,
         "carbs_g": total_carbs,
         "fat_g": total_fat,
         "meals_logged": len(rows),
+        "targets": {
+            "calories": targets["calories"],
+            "protein_g": targets["protein"],
+            "carbs_g": targets["carbs"],
+            "fat_g": targets["fat"],
+        },
+        "target_source": resolved["source"],
+    }
+
+
+@router.get("/targets")
+async def get_macro_targets(
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    resolved = resolve_macro_targets(db, int(current_user["id"]))
+    targets = resolved["targets"]
+    return {
+        "calories": targets["calories"],
+        "protein": targets["protein"],
+        "carbs": targets["carbs"],
+        "fat": targets["fat"],
+        "source": resolved["source"],
+    }
+
+
+@router.put("/targets")
+async def set_macro_targets(
+    payload: dict,
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    """Save manual daily macro targets (overrides diet-plan defaults)."""
+    user_id = int(current_user["id"])
+    calories = payload.get("calories")
+    if calories is None:
+        raise HTTPException(status_code=422, detail="calories is required")
+    try:
+        cal = int(calories)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="calories must be a number")
+    if not 800 <= cal <= 10000:
+        raise HTTPException(status_code=422, detail="calories must be between 800 and 10000")
+
+    for field in ("protein", "carbs", "fat"):
+        if field in payload and payload[field] is not None:
+            try:
+                val = int(payload[field])
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=422, detail=f"{field} must be a number")
+            if not 0 <= val <= 1000:
+                raise HTTPException(status_code=422, detail=f"{field} must be between 0 and 1000")
+
+    resolved = save_manual_macro_targets(db, user_id, payload)
+    targets = resolved["targets"]
+    return {
+        "calories": targets["calories"],
+        "protein": targets["protein"],
+        "carbs": targets["carbs"],
+        "fat": targets["fat"],
+        "source": resolved["source"],
+    }
+
+
+@router.delete("/targets")
+async def reset_macro_targets(
+    db: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user),
+):
+    """Clear manual targets; fall back to diet plan or system default."""
+    resolved = clear_manual_macro_targets(db, int(current_user["id"]))
+    targets = resolved["targets"]
+    return {
+        "calories": targets["calories"],
+        "protein": targets["protein"],
+        "carbs": targets["carbs"],
+        "fat": targets["fat"],
+        "source": resolved["source"],
     }

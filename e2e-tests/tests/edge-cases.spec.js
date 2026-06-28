@@ -10,7 +10,11 @@ const {
   clearBrowserData, 
   getAllValidationErrors,
   loginViaAPI,
-  registerViaAPI
+  registerViaAPI,
+  gotoAuthPage,
+  fillMinimalRegister,
+  submitRegister,
+  fillInput,
 } = require('../utils/helpers');
 
 test.describe('Edge Cases', () => {
@@ -30,58 +34,38 @@ test.describe('Edge Cases', () => {
   test.describe('Repeated Registration', () => {
 
     test('should handle rapid registration attempts', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      const email = generateRandomEmail('rapid');
+      await fillMinimalRegister(page, { email: generateRandomEmail('rapid'), name: 'Rapid User' });
+      await submitRegister(page);
       
-      // Fill form quickly
-      await page.locator('#name').fill('Rapid User');
-      await page.locator('#email').fill(email);
-      await page.locator('#password').fill('SecurePass123');
-      await page.locator('#confirm_password').fill('SecurePass123');
-      
-      // Submit immediately
-      await page.locator('#register-btn').click();
-      
-      // Should handle without crashing
       await expect(page.locator('body')).toBeVisible();
     });
 
     test('should handle double-click on register button', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      const email = generateRandomEmail('double');
-      await page.locator('#name').fill('Double User');
-      await page.locator('#email').fill(email);
-      await page.locator('#password').fill('SecurePass123');
-      await page.locator('#confirm_password').fill('SecurePass123');
+      await fillMinimalRegister(page, { email: generateRandomEmail('double'), name: 'Double User' });
       
-      // Double click
-      await Promise.all([
-        page.locator('#register-btn').click(),
-        page.locator('#register-btn').click()
-      ]);
+      const btn = page.locator('#register-btn');
+      await btn.scrollIntoViewIfNeeded();
+      await Promise.all([btn.click(), btn.click()]);
       
-      // Should handle gracefully - either success or error
       await expect(page.locator('body')).toBeVisible();
     });
 
     test('should handle multiple sequential registration attempts', async ({ page }) => {
       for (let i = 0; i < 3; i++) {
-        await page.goto('/register');
+        await gotoAuthPage(page, '/register');
         
-        const email = generateRandomEmail(`seq${i}`);
-        await page.locator('#name').fill(`Seq User ${i}`);
-        await page.locator('#email').fill(email);
-        await page.locator('#password').fill('SecurePass123');
-        await page.locator('#confirm_password').fill('SecurePass123');
-        await page.locator('#register-btn').click();
-        
-        // Wait for response
+        await fillMinimalRegister(page, {
+          email: generateRandomEmail(`seq${i}`),
+          name: `Seq User ${i}`,
+        });
+        await submitRegister(page);
         await page.waitForTimeout(1000);
       }
       
-      // Should handle without crashing
       await expect(page.locator('body')).toBeVisible();
     });
 
@@ -179,33 +163,25 @@ test.describe('Edge Cases', () => {
   test.describe('Input Validation Edge Cases', () => {
 
     test('should reject future birth date', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
       const futureDate = new Date();
       futureDate.setFullYear(futureDate.getFullYear() + 5);
       const futureDateStr = futureDate.toISOString().split('T')[0];
       
-      await page.locator('#birth_date').fill(futureDateStr);
-      await page.locator('#birth_date').blur();
-      
-      // Should show validation error
-      const hasError = await page.locator('#birth_date').evaluate(
-        el => el.classList.contains('is-invalid')
-      );
-      expect(hasError).toBe(true);
+      const result = await page.evaluate((dateStr) => {
+        return FormValidator.validateBirthDate(dateStr);
+      }, futureDateStr);
+      expect(result.valid).toBe(false);
     });
 
     test('should reject very old birth date', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      await page.locator('#birth_date').fill('1900-01-01');
-      await page.locator('#birth_date').blur();
-      
-      // Should show validation error (unrealistic age)
-      const hasError = await page.locator('#birth_date').evaluate(
-        el => el.classList.contains('is-invalid')
-      );
-      // May or may not have error depending on validation rules
+      const result = await page.evaluate(() => {
+        return FormValidator.validateBirthDate('1900-01-01');
+      });
+      expect(result.valid).toBe(false);
     });
 
     test('should handle extremely long name input', async ({ page }) => {
@@ -239,51 +215,31 @@ test.describe('Edge Cases', () => {
     });
 
     test('should handle negative weight values', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      await page.locator('#weight_kg').fill('-50');
-      await page.locator('#weight_kg').blur();
-      
-      const hasError = await page.locator('#weight_kg').evaluate(
-        el => el.classList.contains('is-invalid')
-      );
-      expect(hasError).toBe(true);
+      const result = await page.evaluate(() => FormValidator.validateWeight('-50'));
+      expect(result.valid).toBe(false);
     });
 
     test('should handle extremely high weight values', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      await page.locator('#weight_kg').fill('1000');
-      await page.locator('#weight_kg').blur();
-      
-      const hasError = await page.locator('#weight_kg').evaluate(
-        el => el.classList.contains('is-invalid')
-      );
-      expect(hasError).toBe(true);
+      const result = await page.evaluate(() => FormValidator.validateWeight('1000'));
+      expect(result.valid).toBe(false);
     });
 
     test('should handle zero height', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      await page.locator('#height_cm').fill('0');
-      await page.locator('#height_cm').blur();
-      
-      const hasError = await page.locator('#height_cm').evaluate(
-        el => el.classList.contains('is-invalid')
-      );
-      expect(hasError).toBe(true);
+      const result = await page.evaluate(() => FormValidator.validateHeight('0'));
+      expect(result.valid).toBe(false);
     });
 
     test('should handle negative height values', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      await page.locator('#height_cm').fill('-100');
-      await page.locator('#height_cm').blur();
-      
-      const hasError = await page.locator('#height_cm').evaluate(
-        el => el.classList.contains('is-invalid')
-      );
-      expect(hasError).toBe(true);
+      const result = await page.evaluate(() => FormValidator.validateHeight('-100'));
+      expect(result.valid).toBe(false);
     });
 
   });
@@ -554,15 +510,15 @@ test.describe('Edge Cases', () => {
       await page.locator('#login-btn').click();
       
       // Wait for error alert
-      await expect(page.locator('.alert-danger')).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('.lp-notice.is-danger, .alert-danger')).toBeVisible({ timeout: 10000 });
       
       // Close alert
-      const closeBtn = page.locator('.alert-danger button.btn-close');
+      const closeBtn = page.locator('.lp-notice.is-danger, .alert-danger button.btn-close');
       if (await closeBtn.isVisible()) {
         await closeBtn.click();
         
         // Alert should be gone
-        await expect(page.locator('.alert-danger')).not.toBeVisible();
+        await expect(page.locator('.lp-notice.is-danger, .alert-danger')).not.toBeVisible();
       }
     });
 
@@ -575,19 +531,15 @@ test.describe('Edge Cases', () => {
   test.describe('State Persistence', () => {
 
     test('should preserve form data on validation error', async ({ page }) => {
-      await page.goto('/register');
+      await gotoAuthPage(page, '/register');
       
-      await page.locator('#name').fill('Test User');
-      await page.locator('#email').fill('test@example.com');
-      await page.locator('#password').fill('weak');
-      await page.locator('#confirm_password').fill('weak');
-      await page.locator('#register-btn').click();
+      await fillInput(page, '#name', 'Test User');
+      await fillInput(page, '#email', 'test@example.com');
+      await fillInput(page, '#password', 'weak');
+      await submitRegister(page);
       
-      // Fix password
-      await page.locator('#password').fill('SecurePass123');
-      await page.locator('#confirm_password').fill('SecurePass123');
+      await fillInput(page, '#password', 'SecurePass123');
       
-      // Name and email should still be filled
       const nameValue = await page.locator('#name').inputValue();
       expect(nameValue).toBe('Test User');
       

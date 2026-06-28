@@ -2,6 +2,7 @@
 Web routes for serving HTML pages with Jinja2
 """
 import json
+import logging
 import time
 
 from fastapi import APIRouter, Request
@@ -11,8 +12,12 @@ from pathlib import Path
 
 from app.core.config import settings as _settings
 from app.core.i18n import DEFAULT_LOCALE, get_catalog, t as _t
+from app.core.nutrition_targets import get_active_diet_plan, resolve_macro_targets
+from app.web.seo import landing_schema_json as build_landing_schema_json
+from app.web.seo import landing_seo_meta as build_landing_seo_meta
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Setup Jinja2 templates
 templates_dir = Path(__file__).parent.parent / "templates"
@@ -89,11 +94,23 @@ def _i18n_json_global(ctx) -> str:
     )
 
 
+@pass_context
+def _get_landing_seo(ctx) -> dict:
+    return build_landing_seo_meta(_request_locale(ctx))
+
+
+@pass_context
+def _get_landing_schema(ctx) -> str:
+    return build_landing_schema_json(_request_locale(ctx))
+
+
 # Make `t`, `locale`, and `i18n_json` callable from any template/base.html.
 templates.env.globals["t"] = _t_global
 templates.env.globals["locale"] = _locale_global
 templates.env.globals["i18n_json"] = _i18n_json_global
 templates.env.globals["asset_version"] = _current_asset_version
+templates.env.globals["get_landing_seo"] = _get_landing_seo
+templates.env.globals["get_landing_schema"] = _get_landing_schema
 
 
 # ============================================
@@ -183,15 +200,6 @@ async def billing_page(request: Request):
     })
 
 
-@router.get("/dashboard/integrations")
-async def integrations_page(request: Request):
-    """Third-party integrations (Google Calendar, HealthKit instructions)."""
-    return templates.TemplateResponse("integrations.html", {
-        "request": request,
-        "active_page": "integrations",
-    })
-
-
 @router.get("/dashboard/referrals")
 async def referrals_page(request: Request):
     """Referral code + invitations dashboard."""
@@ -213,12 +221,51 @@ async def programs_page(request: Request):
 @router.get("/dashboard/health")
 async def health_page(request: Request):
     """Health/biometrics page"""
+    from sqlalchemy import select
+
+    from app.db.models import BiomarkerReading as BiomarkerReadingDB
+    from app.db.session import SessionLocal
+
+    biomarkers = []
+    user_id = _web_user_id(request)
+    if user_id:
+        try:
+            with SessionLocal() as db:
+                rows = db.execute(
+                    select(BiomarkerReadingDB)
+                    .where(BiomarkerReadingDB.user_id == str(user_id))
+                    .order_by(BiomarkerReadingDB.test_date.desc())
+                    .limit(12)
+                ).scalars().all()
+                biomarkers = [
+                    {
+                        "name": r.biomarker_name,
+                        "value": r.value,
+                        "unit": r.unit,
+                        "status": r.status or "normal",
+                        "date": r.test_date.isoformat() if r.test_date else "",
+                    }
+                    for r in rows
+                ]
+        except Exception:
+            logger.exception("Failed to load biomarkers for health page (user_id=%s)", user_id)
+
     return templates.TemplateResponse("health.html", {
         "request": request,
         "active_page": "health",
-        "biomarkers": [],
-        "recovery_trend": []
+        "biomarkers": biomarkers,
+        "recovery_trend": [],
     })
+
+
+@router.get("/dashboard/integrations")
+async def integrations_page(request: Request):
+    """Third-party integrations (Google Calendar, HealthKit instructions)."""
+    return templates.TemplateResponse("integrations.html", {
+        "request": request,
+        "active_page": "integrations",
+    })
+
 
 
 _DEFAULT_MACRO_TARGETS = {"protein": 150, "carbs": 200, "fat": 70, "calories": 2000}
@@ -259,11 +306,12 @@ async def nutrition_page(request: Request):
 
     from sqlalchemy import select
 
-    from app.db.models import MealLog as _MealLog, UserDietPlan as _DietPlan
+    from app.db.models import MealLog as _MealLog
     from app.db.session import SessionLocal
 
     today_macros = {"protein": 0, "carbs": 0, "fat": 0, "calories": 0}
     targets = dict(_DEFAULT_MACRO_TARGETS)
+    target_source = "default"
     recent_meals = []
     diet_plan = None
 
@@ -323,25 +371,14 @@ async def nutrition_page(request: Request):
                 for r in rows
             ]
 
-            # Targets come from the user's active diet plan. The
-            # user_diet_plans table currently drifts from the UserDietPlan
-            # model (missing columns), so this is best-effort: on any failure
-            # we keep the default targets rather than 500 the whole page.
+            # Targets: manual preferences > diet plan PDF > 2000 kcal default.
             try:
-                plan = db.execute(
-                    select(_DietPlan)
-                    .where(_DietPlan.user_id == user_id, _DietPlan.active.is_(True))
-                    .order_by(_DietPlan.uploaded_at.desc())
-                    .limit(1)
-                ).scalar_one_or_none()
+                resolved = resolve_macro_targets(db, user_id)
+                targets = resolved["targets"]
+                target_source = resolved["source"]
+
+                plan = get_active_diet_plan(db, user_id)
                 if plan:
-                    # Keep each target non-zero — the template divides by them.
-                    targets = {
-                        "protein": plan.protein_g or _DEFAULT_MACRO_TARGETS["protein"],
-                        "carbs": plan.carbs_g or _DEFAULT_MACRO_TARGETS["carbs"],
-                        "fat": plan.fat_g or _DEFAULT_MACRO_TARGETS["fat"],
-                        "calories": plan.daily_calories or _DEFAULT_MACRO_TARGETS["calories"],
-                    }
                     diet_plan = {
                         "file_name": plan.file_name or "diet-plan.pdf",
                         "uploaded_at": plan.uploaded_at.strftime("%Y-%m-%d") if plan.uploaded_at else "",
@@ -358,6 +395,7 @@ async def nutrition_page(request: Request):
         "active_page": "nutrition",
         "today_macros": today_macros,
         "targets": targets,
+        "target_source": target_source,
         "recent_meals": recent_meals,
         "diet_plan": diet_plan,
         "macro_trend": macro_trend,
@@ -398,40 +436,19 @@ async def onboarding_page(request: Request):
 
 
 # ============================================
-# Auth Verification Routes (Supabase callbacks)
+# Auth Verification Routes (legacy — redirect to local JWT auth)
 # ============================================
 
 @router.get("/auth/callback")
 async def auth_callback(request: Request):
-    """Handle Supabase auth callback"""
-    from app.core.config import settings
-
-    token = request.query_params.get("token")
-    type_param = request.query_params.get("type")
-    redirect_to = request.query_params.get("redirect_to", "/dashboard")
-
-    return templates.TemplateResponse("auth_callback.html", {
-        "request": request,
-        "token": token,
-        "type": type_param,
-        "redirect_to": redirect_to,
-        "supabase_url": settings.SUPABASE_URL,
-        "supabase_anon_key": settings.SUPABASE_ANON_KEY
-    })
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/login?legacy_auth=1", status_code=302)
 
 
 @router.get("/auth/verify")
 async def auth_verify(request: Request):
-    """Alternative verify route"""
-    token = request.query_params.get("token")
-    type_param = request.query_params.get("type")
-
-    return templates.TemplateResponse("auth_callback.html", {
-        "request": request,
-        "token": token,
-        "type": type_param,
-        "redirect_to": "/dashboard"
-    })
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/login?legacy_auth=1", status_code=302)
 
 
 @router.get("/auth/handler")
@@ -476,10 +493,6 @@ async def reset_password_redirect(request: Request):
 @router.get("/update-password")
 async def update_password_page(request: Request):
     """Page to set new password after recovery link"""
-    from app.core.config import settings
-
     return templates.TemplateResponse("update_password.html", {
         "request": request,
-        "supabase_url": settings.SUPABASE_URL,
-        "supabase_anon_key": settings.SUPABASE_ANON_KEY
     })

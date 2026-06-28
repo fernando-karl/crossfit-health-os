@@ -323,9 +323,14 @@ class TestSyncCalendarEvents:
         event_resp.raise_for_status = MagicMock()
         event_resp.json.return_value = {"id": "ev_created", "status": "confirmed"}
 
+        empty_list = MagicMock()
+        empty_list.raise_for_status = MagicMock()
+        empty_list.json.return_value = {"items": []}
+
         mock_http = AsyncMock()
         mock_http.__aenter__ = AsyncMock(return_value=mock_http)
         mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(return_value=empty_list)
         mock_http.post = AsyncMock(side_effect=[refresh_resp] + [event_resp] * 7)
 
         with patch("httpx.AsyncClient", return_value=mock_http):
@@ -368,9 +373,14 @@ class TestSyncCalendarEvents:
         refresh_resp.raise_for_status = MagicMock()
         refresh_resp.json.return_value = {"access_token": "at"}
 
+        empty_list = MagicMock()
+        empty_list.raise_for_status = MagicMock()
+        empty_list.json.return_value = {"items": []}
+
         mock_http = AsyncMock()
         mock_http.__aenter__ = AsyncMock(return_value=mock_http)
         mock_http.__aexit__ = AsyncMock(return_value=False)
+        mock_http.get = AsyncMock(return_value=empty_list)
         mock_http.post = AsyncMock(
             side_effect=[refresh_resp, Exception("Calendar API error")]
         )

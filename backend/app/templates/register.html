@@ -2,123 +2,57 @@
 
 {% block title %}{{ t("auth.register.title") }} - CrossFit Health OS{% endblock %}
 
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/landing.css?v={{ asset_version() }}">
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-lg border-0">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-dumbbell fa-3x text-primary mb-3"></i>
-                        <h2 class="fw-bold">{{ t("auth.register.title") }}</h2>
-                        <p class="text-muted">{{ t("auth.register.subtitle") }}</p>
-                    </div>
+<div class="lp-auth">
+    <div class="lp-auth__card lp-auth__card--wide">
+        <a href="/" class="lp-auth__brand">
+            <span class="lp-mark" aria-hidden="true"></span>
+            CrossFit Health OS
+        </a>
+        <div class="lp-auth__head">
+            <h1 class="lp-auth__title">{{ t("auth.register.title") }}</h1>
+            <p class="lp-auth__sub">{{ t("auth.register.subtitle") }}</p>
+        </div>
 
                     <div id="alert-container"></div>
 
                     <!-- Referral banner (shown when ?ref= is in URL) -->
-                    <div id="ref-banner" class="alert alert-success d-none" role="alert">
-                        <i class="fas fa-gift me-2"></i>
+                    <div id="ref-banner" class="lp-ref-banner d-none" role="status">
+                        <i class="fas fa-gift me-2" style="color: var(--lp-accent);"></i>
                         <strong>{{ t("referrals.banner.code_applied") }}</strong>
                         <code id="ref-banner-code" class="ms-1">—</code>
-                        <span class="d-block small mt-1 text-success-emphasis">
+                        <span class="lp-ref-banner__bonus">
                             {{ t("referrals.banner.bonus_text") }}
                         </span>
                     </div>
 
                     <form id="register-form">
-                        <!-- Basic Info -->
-                        <h5 class="fw-bold mb-3">{{ t("auth.register.section_basic") }}</h5>
-                        <div class="row mb-3">
-                            <div class="col-md-6 mb-3">
-                                <label for="name" class="form-label">{{ t("auth.register.name_label") }}</label>
-                                <input type="text" class="form-control" id="name" name="name" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="email" class="form-label">{{ t("auth.register.email_label") }}</label>
-                                <input type="email" class="form-control" id="email" name="email" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="password" class="form-label">{{ t("auth.register.password_label") }}</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                                <small class="text-muted">{{ t("auth.register.password_hint") }}</small>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="confirm_password" class="form-label">{{ t("auth.register.confirm_password_label") }}</label>
-                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <!-- Profile Info -->
-                        <h5 class="fw-bold mb-3">{{ t("auth.register.section_profile") }} <span class="text-muted fw-normal">{{ t("auth.register.section_profile_optional") }}</span></h5>
-                        <div class="row mb-3">
-                            <div class="col-md-4 mb-3">
-                                <label for="birth_date" class="form-label">{{ t("auth.register.birth_date") }}</label>
-                                <input type="date" class="form-control" id="birth_date" name="birth_date">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="weight_kg" class="form-label">{{ t("auth.register.weight_kg") }}</label>
-                                <input type="number" class="form-control" id="weight_kg" name="weight_kg" step="0.1" placeholder="80">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="height_cm" class="form-label">{{ t("auth.register.height_cm") }}</label>
-                                <input type="number" class="form-control" id="height_cm" name="height_cm" placeholder="175">
-                            </div>
-                        </div>
-
                         <div class="mb-3">
-                            <label for="fitness_level" class="form-label">{{ t("auth.register.fitness_level") }}</label>
-                            <select class="form-select" id="fitness_level" name="fitness_level">
-                                <option value="beginner">{{ t("auth.register.fitness_levels.beginner") }}</option>
-                                <option value="intermediate" selected>{{ t("auth.register.fitness_levels.intermediate") }}</option>
-                                <option value="advanced">{{ t("auth.register.fitness_levels.advanced") }}</option>
-                            </select>
+                            <label for="name" class="form-label">{{ t("auth.register.name_label") }}</label>
+                            <input type="text" class="form-control" id="name" name="name" required autocomplete="name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">{{ t("auth.register.email_label") }}</label>
+                            <input type="email" class="form-control" id="email" name="email" required autocomplete="email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">{{ t("auth.register.password_label") }}</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password" required autocomplete="new-password">
+                                <button class="btn btn-outline-secondary" type="button" id="toggle-password" tabindex="-1" aria-label="Show password">
+                                    <i class="fas fa-eye" id="toggle-password-icon"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">{{ t("auth.register.password_hint") }}</small>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label">{{ t("auth.register.goals_label") }}</label>
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input goal-checkbox" type="checkbox" value="strength" id="goal-strength">
-                                        <label class="form-check-label" for="goal-strength">{{ t("auth.register.goals.strength") }}</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input goal-checkbox" type="checkbox" value="conditioning" id="goal-conditioning">
-                                        <label class="form-check-label" for="goal-conditioning">{{ t("auth.register.goals.conditioning") }}</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input goal-checkbox" type="checkbox" value="lose_fat" id="goal-lose-fat">
-                                        <label class="form-check-label" for="goal-lose-fat">{{ t("auth.register.goals.lose_fat") }}</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input goal-checkbox" type="checkbox" value="gain_muscle" id="goal-gain-muscle">
-                                        <label class="form-check-label" for="goal-gain-muscle">{{ t("auth.register.goals.gain_muscle") }}</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input goal-checkbox" type="checkbox" value="general_fitness" id="goal-general" checked>
-                                        <label class="form-check-label" for="goal-general">{{ t("auth.register.goals.general_fitness") }}</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input goal-checkbox" type="checkbox" value="competition" id="goal-competition">
-                                        <label class="form-check-label" for="goal-competition">{{ t("auth.register.goals.competition") }}</label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <!-- LGPD/GDPR consent — both required to submit -->
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" id="accepted_terms" name="accepted_terms" required>
@@ -133,7 +67,7 @@
                             </label>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-lg w-100 mb-3" id="register-btn">
+                        <button type="submit" class="lp-btn lp-btn--primary lp-btn--block mb-3" id="register-btn">
                             <span class="btn-text">{{ t("auth.register.submit") }}</span>
                             <span class="btn-spinner d-none">
                                 <span class="spinner-border spinner-border-sm me-2"></span>
@@ -142,7 +76,7 @@
                         </button>
                     </form>
 
-                    <hr>
+                    <hr class="lp-auth__divider">
 
                     <p class="text-center text-muted mb-0">
                         {{ t("common.already_have_account") }}
@@ -154,9 +88,6 @@
                             <i class="fas fa-arrow-left me-1"></i> {{ t("common.actions.back_home") }}
                         </a>
                     </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}
@@ -183,6 +114,13 @@ $(document).ready(function() {
     // Setup real-time validation
     FormValidator.setupRealtimeValidation($('#register-form'));
 
+    // Show/hide password
+    $('#toggle-password').on('click', function() {
+        const inp = $('#password');
+        inp.attr('type', inp.attr('type') === 'password' ? 'text' : 'password');
+        $('#toggle-password-icon').toggleClass('fa-eye fa-eye-slash');
+    });
+
     $('#register-form').on('submit', function(e) {
         e.preventDefault();
 
@@ -194,13 +132,7 @@ $(document).ready(function() {
         }
 
         const $btn = $('#register-btn');
-        
-        // Collect goals
-        const goals = [];
-        $('.goal-checkbox:checked').each(function() {
-            goals.push($(this).val());
-        });
-        
+
         // Consent: both LGPD/GDPR checkboxes required.
         const acceptedTerms = $('#accepted_terms').is(':checked');
         const acceptedHealth = $('#accepted_health_data').is(':checked');
@@ -215,17 +147,14 @@ $(document).ready(function() {
             return;
         }
 
-        // Build payload
+        // Build payload — profile (goal, level, body stats) is collected in
+        // onboarding; confirm_password mirrors password (single-field UX, the
+        // API still validates they match).
         const data = {
             email: $('#email').val(),
             password: $('#password').val(),
-            confirm_password: $('#confirm_password').val(),
+            confirm_password: $('#password').val(),
             name: $('#name').val(),
-            birth_date: $('#birth_date').val() || null,
-            weight_kg: $('#weight_kg').val() ? parseFloat($('#weight_kg').val()) : null,
-            height_cm: $('#height_cm').val() ? parseInt($('#height_cm').val()) : null,
-            fitness_level: $('#fitness_level').val(),
-            goals: goals,
             accepted_terms: acceptedTerms,
             accepted_health_data: acceptedHealth
         };
@@ -269,8 +198,9 @@ $(document).ready(function() {
     });
     
     function showAlert(message, type) {
+        const cls = type === 'danger' ? 'is-danger' : 'is-success';
         const alert = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <div class="lp-notice ${cls} alert-dismissible fade show" role="alert">
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>

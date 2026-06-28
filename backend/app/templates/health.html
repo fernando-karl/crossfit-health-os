@@ -7,27 +7,27 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 chos-page chos-health-page">
     <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="chos-page-header">
         <div>
-            <h1 class="h3 fw-bold mb-0">{{ t("health.page_title") }}</h1>
-            <p class="text-muted mb-0">{{ t("health.subtitle") }}</p>
+            <h1 class="h3">{{ t("health.page_title") }}</h1>
+            <p class="chos-page-header__sub">{{ t("health.subtitle") }}</p>
         </div>
-        <button class="chos-btn chos-btn-primary" data-bs-toggle="collapse" data-bs-target="#recovery-form-section" aria-expanded="false" aria-controls="recovery-form-section">
+        <button class="chos-btn chos-btn-primary" data-bs-toggle="modal" data-bs-target="#healthRecoveryModal">
             <i class="fas fa-plus"></i>
             <span class="d-none d-sm-inline ms-1">{{ t("health.btn_log_today") }}</span>
         </button>
     </div>
 
-    <!-- Today's Readiness — Apple Health-style ring + metric tiles -->
+    <!-- Today's Readiness -->
     <div class="row g-3 mb-4" id="readiness-card-row">
         <div class="col-lg-4">
             <div class="chos-card h-100" id="readiness-card">
                 <div class="card-body text-center">
                     <h6 class="text-secondary mb-3 fw-medium" style="text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.75rem;">{{ t("health.today_readiness") }}</h6>
                     <div id="readiness-ring" style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <div class="spinner-border spinner-border-sm chos-spinner-brand" role="status">
                             <span class="visually-hidden">{{ t("common.loading") }}</span>
                         </div>
                     </div>
@@ -83,120 +83,6 @@
         </div>
     </div>
 
-    <!-- Collapsible Recovery Logging Form -->
-    <div class="collapse mb-4" id="recovery-form-section">
-        <div class="chos-card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0"><i class="fas fa-clipboard-list me-2" style="color: var(--cat-recovery);"></i>{{ t("health.log_recovery") }}</h5>
-                <button type="button" class="btn-close" data-bs-toggle="collapse" data-bs-target="#recovery-form-section"></button>
-            </div>
-            <div class="card-body">
-                <form id="recovery-form">
-                    <div class="row g-3">
-                        <!-- Date -->
-                        <div class="col-md-4">
-                            <label for="recovery-date" class="form-label fw-semibold">{{ t("health.field_date") }}</label>
-                            <input type="date" class="form-control" id="recovery-date" required>
-                        </div>
-
-                        <!-- HRV -->
-                        <div class="col-md-4">
-                            <label for="recovery-hrv" class="form-label fw-semibold">{{ t("health.field_hrv") }}</label>
-                            <input type="number" class="form-control" id="recovery-hrv" min="20" max="150" step="1" placeholder="65" required>
-                        </div>
-
-                        <!-- Resting Heart Rate -->
-                        <div class="col-md-4">
-                            <label for="recovery-rhr" class="form-label fw-semibold">{{ t("health.field_rhr") }}</label>
-                            <input type="number" class="form-control" id="recovery-rhr" min="40" max="100" step="1" placeholder="55">
-                        </div>
-
-                        <!-- Sleep Duration -->
-                        <div class="col-md-4">
-                            <label for="recovery-sleep-duration" class="form-label fw-semibold">{{ t("health.field_sleep_duration") }}</label>
-                            <input type="number" class="form-control" id="recovery-sleep-duration" min="0" max="12" step="0.5" placeholder="7.5" required>
-                        </div>
-
-                        <!-- Sleep Quality -->
-                        <div class="col-md-4">
-                            <label for="recovery-sleep-quality" class="form-label fw-semibold">{{ t("health.field_sleep_quality") }}</label>
-                            <input type="number" class="form-control" id="recovery-sleep-quality" min="1" max="100" step="1" placeholder="80" required>
-                        </div>
-
-                        <!-- Stress Level -->
-                        <div class="col-md-4">
-                            <label for="recovery-stress" class="form-label fw-semibold">{{ t("health.field_stress") }}</label>
-                            <input type="range" class="form-range chos-range chos-range-mind mt-2" id="recovery-stress" min="1" max="10" value="5">
-                            <div class="d-flex justify-content-between">
-                                <small class="text-muted">{{ t("health.low") }}</small>
-                                <span class="badge bg-secondary" id="stress-value-badge">5</span>
-                                <small class="text-muted">{{ t("health.high") }}</small>
-                            </div>
-                        </div>
-
-                        <!-- Muscle Soreness -->
-                        <div class="col-md-4">
-                            <label for="recovery-soreness" class="form-label fw-semibold">{{ t("health.field_soreness") }}</label>
-                            <input type="range" class="form-range chos-range chos-range-cardio mt-2" id="recovery-soreness" min="1" max="10" value="3">
-                            <div class="d-flex justify-content-between">
-                                <small class="text-muted">{{ t("health.none") }}</small>
-                                <span class="badge bg-secondary" id="soreness-value-badge">3</span>
-                                <small class="text-muted">{{ t("health.severe") }}</small>
-                            </div>
-                        </div>
-
-                        <!-- Energy Level -->
-                        <div class="col-md-4">
-                            <label for="recovery-energy" class="form-label fw-semibold">{{ t("health.field_energy") }}</label>
-                            <input type="range" class="form-range chos-range chos-range-nutrition mt-2" id="recovery-energy" min="1" max="10" value="7">
-                            <div class="d-flex justify-content-between">
-                                <small class="text-muted">{{ t("health.low") }}</small>
-                                <span class="badge bg-secondary" id="energy-value-badge">7</span>
-                                <small class="text-muted">{{ t("health.high") }}</small>
-                            </div>
-                        </div>
-
-                        <!-- Mood Score -->
-                        <div class="col-md-4">
-                            <label for="recovery-mood" class="form-label fw-semibold">{{ t("health.field_mood") }}</label>
-                            <input type="range" class="form-range chos-range chos-range-recovery mt-2" id="recovery-mood" min="1" max="10" value="7">
-                            <div class="d-flex justify-content-between">
-                                <small class="text-muted">{{ t("health.low") }}</small>
-                                <span class="badge bg-secondary" id="mood-value-badge">7</span>
-                                <small class="text-muted">{{ t("health.high") }}</small>
-                            </div>
-                        </div>
-
-                        <!-- Notes -->
-                        <div class="col-12">
-                            <label for="recovery-notes" class="form-label fw-semibold">{{ t("health.field_notes") }}</label>
-                            <textarea class="form-control" id="recovery-notes" rows="2" placeholder="{{ t('health.notes_placeholder') }}"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Readiness Preview -->
-                    <div class="alert alert-info mt-3 d-flex align-items-center" id="readiness-preview">
-                        <i class="fas fa-chart-line me-3 fs-4"></i>
-                        <div>
-                            <strong>{{ t("health.estimated_readiness") }}</strong>
-                            <span id="readiness-preview-value" class="fs-5 fw-bold ms-2">--</span>
-                            <span class="text-muted">/100</span>
-                            <span class="badge ms-2" id="readiness-preview-badge">--</span>
-                        </div>
-                    </div>
-
-                    <!-- Submit -->
-                    <div class="d-flex justify-content-end mt-3">
-                        <button type="button" class="chos-btn chos-btn-ghost me-2" data-bs-toggle="collapse" data-bs-target="#recovery-form-section">{{ t("common.actions.cancel") }}</button>
-                        <button type="submit" class="chos-btn chos-btn-primary" id="submit-recovery-btn">
-                            <i class="fas fa-check me-1"></i>{{ t("health.save_metrics") }}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Upload Lab Report -->
     <div class="chos-card chos-card-feature is-recovery mb-4">
         <div class="card-body">
@@ -204,9 +90,10 @@
                 <div>
                     <h5 class="fw-bold mb-1">{{ t("health.upload_lab_title") }}</h5>
                     <p class="text-secondary mb-3">{{ t("health.upload_lab_desc") }}</p>
-                    <button class="chos-btn chos-btn-primary chos-btn-sm">
+                    <button class="chos-btn chos-btn-primary chos-btn-sm" id="btn-upload-lab">
                         <i class="fas fa-upload me-2"></i>{{ t("health.upload_btn") }}
                     </button>
+                    <input type="file" id="lab-upload-input" class="d-none" accept=".pdf,.jpg,.jpeg,.png">
                 </div>
                 <div class="d-none d-lg-block">
                     <i class="fas fa-file-medical" style="font-size: 3.5rem; color: var(--cat-recovery); opacity: 0.3;"></i>
@@ -245,7 +132,7 @@
             <h5 class="fw-bold mb-3">{{ t("health.recovery_history_title") }}</h5>
             <div class="table-responsive" id="recovery-table-container">
                 <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
+                    <div class="spinner-border chos-spinner-brand" role="status">
                         <span class="visually-hidden">{{ t("common.loading") }}</span>
                     </div>
                 </div>
@@ -261,128 +148,166 @@
         </div>
     </div>
 </div>
+
+<!-- Recovery check-in — same visual as dashboard -->
+<div class="modal fade" id="healthRecoveryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content chos-modal">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title fw-bold mb-1">{{ t("health.log_recovery") }}</h5>
+                    <p class="text-secondary small mb-0">{{ t("dashboard.recovery_modal.subtitle") }}</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ t('common.actions.close') }}"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <div class="chos-checkin__head">
+                    <span id="checkin-time" class="num"></span>
+                    <span class="chos-checkin__pill" id="checkin-source">{{ t("dashboard.readiness_card.source_manual") }}</span>
+                </div>
+
+                <div class="chos-checkin__preview">
+                    <svg class="chos-checkin__ring" viewBox="0 0 100 100" aria-hidden="true">
+                        <circle class="bg" cx="50" cy="50" r="42" stroke-width="9" fill="none"/>
+                        <circle class="fg" id="checkin-ring-fill" cx="50" cy="50" r="42" stroke-width="9" fill="none"/>
+                    </svg>
+                    <div>
+                        <div class="chos-checkin__score medium num" id="checkin-score">--</div>
+                        <div class="chos-checkin__score-label">{{ t("shared.readiness") }}</div>
+                    </div>
+                </div>
+
+                <div class="chos-checkin__metrics">
+                    <div class="chos-checkin__metric d-none" id="checkin-metric-hrv">
+                        <span>{{ t("shared.hrv") }}</span>
+                        <strong class="num"><span id="checkin-hrv-value">--</span> ms</strong>
+                    </div>
+                    <div class="chos-checkin__metric">
+                        <span>{{ t("shared.sleep_label") }}</span>
+                        <strong class="num" id="checkin-sleep-preview">7h</strong>
+                    </div>
+                </div>
+
+                <div class="chos-checkin__fields">
+                    <div class="chos-checkin__field--full">
+                        <label class="chos-label">
+                            <i class="fas fa-moon me-1" style="color: var(--cat-sleep);"></i>
+                            {{ t("dashboard.recovery_modal.sleep") }}
+                        </label>
+                        <div class="position-relative">
+                            <input type="number" class="chos-input" id="recovery-sleep" min="0" max="12" step="0.5" value="7" style="padding-right: 2.5rem;">
+                            <span class="position-absolute text-secondary" style="right: 0.875rem; top: 50%; transform: translateY(-50%); pointer-events: none;">h</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="chos-label mb-0">
+                                <i class="fas fa-bolt me-1" style="color: var(--cat-fat);"></i>
+                                {{ t("dashboard.recovery_modal.energy") }}
+                            </label>
+                            <span class="chos-badge num" id="energy-value-chip" style="background: var(--cat-fat); color: #fff; min-width: 36px; justify-content: center;">7</span>
+                        </div>
+                        <input type="range" class="form-range chos-range" id="recovery-energy" min="1" max="10" value="7">
+                    </div>
+
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="chos-label mb-0">
+                                <i class="fas fa-fire me-1" style="color: var(--cat-cardio);"></i>
+                                {{ t("dashboard.recovery_modal.soreness") }}
+                            </label>
+                            <span class="chos-badge num" id="soreness-value-chip" style="background: var(--cat-cardio); color: #fff; min-width: 36px; justify-content: center;">3</span>
+                        </div>
+                        <input type="range" class="form-range chos-range chos-range-cardio" id="recovery-soreness" min="1" max="10" value="3">
+                    </div>
+
+                    <div class="chos-checkin__field--full">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="chos-label mb-0">
+                                <i class="fas fa-brain me-1" style="color: var(--cat-mind);"></i>
+                                {{ t("dashboard.recovery_modal.stress") }}
+                            </label>
+                            <span class="chos-badge num" id="stress-value-chip" style="background: var(--cat-mind); color: #fff; min-width: 36px; justify-content: center;">5</span>
+                        </div>
+                        <input type="range" class="form-range chos-range chos-range-mind" id="recovery-stress" min="1" max="10" value="5">
+                    </div>
+                </div>
+
+                <p class="small text-secondary mt-3 mb-0">{{ t("dashboard.recovery_modal.checkin_hint") }}</p>
+
+                <details class="mt-3">
+                    <summary class="small fw-semibold text-secondary" style="cursor: pointer;">{{ t("health.advanced_details") }}</summary>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-4">
+                            <label for="recovery-date" class="chos-label">{{ t("health.field_date") }}</label>
+                            <input type="date" class="chos-input" id="recovery-date">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="recovery-hrv" class="chos-label">{{ t("health.field_hrv") }}</label>
+                            <input type="number" class="chos-input" id="recovery-hrv" min="20" max="150" step="1" placeholder="65">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="recovery-rhr" class="chos-label">{{ t("health.field_rhr") }}</label>
+                            <input type="number" class="chos-input" id="recovery-rhr" min="40" max="100" step="1" placeholder="55">
+                        </div>
+                        <div class="col-12">
+                            <label for="recovery-notes" class="chos-label">{{ t("health.field_notes") }}</label>
+                            <textarea class="chos-input" id="recovery-notes" rows="2" placeholder="{{ t('health.notes_placeholder') }}"></textarea>
+                        </div>
+                    </div>
+                </details>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="chos-btn chos-btn-ghost" data-bs-dismiss="modal">{{ t("common.actions.cancel") }}</button>
+                <button type="button" class="chos-btn chos-btn-primary" id="submit-recovery-btn" onclick="saveHealthRecovery()">
+                    <i class="fas fa-check me-1"></i>{{ t("health.save_metrics") }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Set default date to today
-    const today = new Date().toISOString().split('T')[0];
+    const today = CHOS.todayLocalIso();
     $('#recovery-date').val(today);
 
-    // The "Log Today's Metrics" button toggles a Bootstrap collapse that lives
-    // below the readiness card and metric tiles. On mobile that puts the form
-    // off-screen; auto-scroll into view when it expands.
-    (function () {
-        const section = document.getElementById('recovery-form-section');
-        if (!section) return;
-        section.addEventListener('shown.bs.collapse', function () {
-            const headerHeight = 60; // sticky navbar height (approx)
-            const top = section.getBoundingClientRect().top + window.pageYOffset - headerHeight;
-            window.scrollTo({ top, behavior: 'smooth' });
-            // Focus the first empty required field for fast entry.
-            const focusTarget = section.querySelector('#recovery-hrv') || section.querySelector('input,select');
-            if (focusTarget) setTimeout(() => focusTarget.focus({ preventScroll: true }), 350);
-        });
-    })();
-
-    // Range slider value display
-    $('#recovery-stress').on('input', function() {
-        $('#stress-value-badge').text(this.value);
-        updateReadinessPreview();
-    });
-    $('#recovery-soreness').on('input', function() {
-        $('#soreness-value-badge').text(this.value);
-        updateReadinessPreview();
-    });
-    $('#recovery-energy').on('input', function() {
-        $('#energy-value-badge').text(this.value);
-        updateReadinessPreview();
-    });
-    $('#recovery-mood').on('input', function() {
-        $('#mood-value-badge').text(this.value);
-        updateReadinessPreview();
-    });
-
-    // Also update preview when numeric fields change
-    $('#recovery-hrv, #recovery-sleep-quality').on('input', function() {
-        updateReadinessPreview();
-    });
-
-    // Real-time readiness score preview
-    // Uses same weights as adaptive engine: HRV 40%, sleep 30%, stress 20%, soreness 10%
-    function updateReadinessPreview() {
-        const hrv = parseFloat($('#recovery-hrv').val());
-        const sleepQuality = parseFloat($('#recovery-sleep-quality').val());
-        const stress = parseInt($('#recovery-stress').val());
-        const soreness = parseInt($('#recovery-soreness').val());
-
-        if (!hrv || !sleepQuality) {
-            $('#readiness-preview-value').text('--');
-            $('#readiness-preview-badge').text('--').removeClass('bg-success bg-primary bg-warning bg-danger');
-            return;
+    let healthRecoveryModal;
+    $(document).ready(function() {
+        healthRecoveryModal = new bootstrap.Modal(document.getElementById('healthRecoveryModal'));
+        if (window.CHOS && CHOS.checkin) {
+            CHOS.checkin.init({ modal: '#healthRecoveryModal' });
         }
+        loadTodayReadiness();
+        loadRecoveryHistory();
+    });
 
-        // Normalize HRV: assume baseline 50ms, ratio range 0.5-1.5 mapped to 0-1
-        const hrvRatio = hrv / 50;
-        const hrvNorm = Math.min(1, Math.max(0, (hrvRatio - 0.5) / 1.0));
-
-        // Sleep quality: 1-100 scaled to 0-1
-        const sleepNorm = Math.min(1, Math.max(0, sleepQuality / 100));
-
-        // Stress: inverted (1=low stress=good, 10=high stress=bad)
-        const stressNorm = Math.min(1, Math.max(0, (10 - stress) / 9));
-
-        // Soreness: inverted (1=no soreness=good, 10=severe=bad)
-        const sorenessNorm = Math.min(1, Math.max(0, (10 - soreness) / 9));
-
-        const score = Math.round((hrvNorm * 0.4 + sleepNorm * 0.3 + stressNorm * 0.2 + sorenessNorm * 0.1) * 100);
-
-        $('#readiness-preview-value').text(score);
-
-        const $badge = $('#readiness-preview-badge');
-        $badge.removeClass('bg-success bg-primary bg-warning bg-danger');
-        if (score >= 80) {
-            $badge.text(t('health.score_excellent')).addClass('bg-success');
-        } else if (score >= 60) {
-            $badge.text(t('health.score_good')).addClass('bg-primary');
-        } else if (score >= 40) {
-            $badge.text(t('health.score_fair')).addClass('bg-warning');
-        } else {
-            $badge.text(t('health.score_low')).addClass('bg-danger');
-        }
-    }
-
-    // Submit recovery form
-    $('#recovery-form').on('submit', async function(e) {
-        e.preventDefault();
-
+    async function saveHealthRecovery() {
         const data = {
-            date: $('#recovery-date').val(),
-            hrv_rmssd_ms: parseInt($('#recovery-hrv').val()),
-            resting_heart_rate_bpm: parseInt($('#recovery-rhr').val()) || null,
-            sleep_duration_hours: parseFloat($('#recovery-sleep-duration').val()),
-            sleep_quality_score: parseInt($('#recovery-sleep-quality').val()),
-            stress_level: parseInt($('#recovery-stress').val()),
-            muscle_soreness: parseInt($('#recovery-soreness').val()),
-            energy_level: parseInt($('#recovery-energy').val()),
-            mood_score: parseInt($('#recovery-mood').val()),
-            notes: $('#recovery-notes').val() || null
+            date: $('#recovery-date').val() || today,
+            sleep_duration_hours: parseFloat($('#recovery-sleep').val()) || null,
+            energy_level: parseInt($('#recovery-energy').val(), 10) || null,
+            muscle_soreness: parseInt($('#recovery-soreness').val(), 10) || null,
+            stress_level: parseInt($('#recovery-stress').val(), 10) || null,
         };
+        const hrv = parseInt($('#recovery-hrv').val(), 10);
+        const rhr = parseInt($('#recovery-rhr').val(), 10);
+        const notes = $('#recovery-notes').val();
+        if (!Number.isNaN(hrv) && hrv > 0) data.hrv_rmssd_ms = hrv;
+        if (!Number.isNaN(rhr) && rhr > 0) data.resting_heart_rate_bpm = rhr;
+        if (notes) data.notes = notes;
 
         const $btn = $('#submit-recovery-btn');
         CHOS.loading.button($btn, true);
-
         try {
             await CHOS.api.post('/api/v1/health/recovery', data);
             CHOS.toast.success(t('health.metrics_saved'));
-            // Collapse the form
-            bootstrap.Collapse.getOrCreateInstance(document.getElementById('recovery-form-section')).hide();
-            // Reload data
+            healthRecoveryModal.hide();
             loadTodayReadiness();
             loadRecoveryHistory();
         } catch (error) {
-            // FastAPI 422s come back as {detail: [{loc, msg, type, ...}, ...]}.
-            // Surface the field-level message instead of dumping [object Object].
             const detail = error.responseJSON?.detail;
             let message = t('health.metrics_save_error');
             if (Array.isArray(detail) && detail.length > 0) {
@@ -393,12 +318,11 @@
             } else if (typeof detail === 'string') {
                 message = detail;
             }
-            console.error('Recovery POST failed:', detail, 'payload:', data);
             CHOS.toast.error(message);
         } finally {
             CHOS.loading.button($btn, false);
         }
-    });
+    }
 
     function getCSSVar(name) {
         return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -504,8 +428,21 @@
         document.getElementById('readiness-ring').innerHTML = `
             <div class="text-secondary text-center">
                 <i class="fas fa-plus-circle mb-2 d-block" style="font-size: 2.5rem;"></i>
-                <small>No data today. Log your metrics!</small>
+                <small>${t('health.no_data_today')}</small>
             </div>`;
+    }
+
+    function readinessBadgeClass(score) {
+        if (score >= 80) return 'chos-badge-success';
+        if (score >= 60) return 'chos-badge-primary';
+        if (score >= 40) return 'chos-badge-warning';
+        return 'chos-badge-danger';
+    }
+    function readinessStatusLabel(score) {
+        if (score >= 80) return t('health.score_excellent');
+        if (score >= 60) return t('health.score_good');
+        if (score >= 40) return t('health.score_fair');
+        return t('health.score_low');
     }
 
     // Load 7-day recovery history
@@ -518,7 +455,7 @@
                 $('#recovery-table-container').html(`
                     <div class="text-center text-muted py-4">
                         <i class="fas fa-chart-line fa-3x mb-3"></i>
-                        <p>No recovery data yet. Log your first metrics above!</p>
+                        <p>${t('health.history_empty')}</p>
                     </div>
                 `);
                 return;
@@ -526,11 +463,8 @@
 
             let rows = records.map(r => {
                 const score = Math.round(r.readiness_score || 0);
-                let badgeClass = 'bg-warning text-dark';
-                let statusLabel = 'Fair';
-                if (score >= 80) { badgeClass = 'bg-success'; statusLabel = 'Excellent'; }
-                else if (score >= 60) { badgeClass = 'bg-primary'; statusLabel = 'Good'; }
-                else if (score < 40) { badgeClass = 'bg-danger'; statusLabel = 'Low'; }
+                const badgeClass = readinessBadgeClass(score);
+                const statusLabel = readinessStatusLabel(score);
 
                 const dateStr = r.date ? CHOS.format.date(r.date) : '--';
 
@@ -538,30 +472,30 @@
                     <tr>
                         <td class="fw-medium">${dateStr}</td>
                         <td class="text-center">
-                            <span class="badge rounded-pill ${badgeClass}" style="min-width: 40px;">${score}</span>
+                            <span class="chos-badge ${badgeClass} num" style="min-width: 40px; justify-content: center;">${score}</span>
                         </td>
-                        <td class="text-center">${r.hrv_rmssd_ms || '--'}</td>
-                        <td class="text-center">${r.sleep_duration_hours || '--'}</td>
-                        <td class="text-center">${r.stress_level || '--'}</td>
-                        <td class="text-center">${r.muscle_soreness || '--'}</td>
+                        <td class="text-center num">${r.hrv_rmssd_ms || '--'}</td>
+                        <td class="text-center num">${r.sleep_duration_hours || '--'}</td>
+                        <td class="text-center num">${r.stress_level || '--'}</td>
+                        <td class="text-center num">${r.muscle_soreness || '--'}</td>
                         <td class="text-center">
-                            <span class="badge ${badgeClass}">${statusLabel}</span>
+                            <span class="chos-badge ${badgeClass}">${statusLabel}</span>
                         </td>
                     </tr>
                 `;
             }).join('');
 
             $('#recovery-table-container').html(`
-                <table class="table table-hover mb-0">
+                <table class="chos-table">
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th class="text-center">Readiness</th>
-                            <th class="text-center">HRV (ms)</th>
-                            <th class="text-center">Sleep (h)</th>
-                            <th class="text-center">Stress</th>
-                            <th class="text-center">Soreness</th>
-                            <th class="text-center">Status</th>
+                            <th>${t('health.table_date')}</th>
+                            <th class="text-center">${t('shared.readiness')}</th>
+                            <th class="text-center">${t('health.hrv_ms')}</th>
+                            <th class="text-center">${t('health.sleep_h')}</th>
+                            <th class="text-center">${t('health.stress')}</th>
+                            <th class="text-center">${t('health.soreness')}</th>
+                            <th class="text-center">${t('health.table_status')}</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
@@ -570,43 +504,77 @@
         } catch (error) {
             $('#recovery-table-container').html(`
                 <div class="text-center text-muted py-4">
-                    <p>Failed to load recovery data</p>
+                    <p>${t('health.history_load_error')}</p>
                 </div>
             `);
         }
     }
 
-    // Initialize on page load
-    $(document).ready(function() {
-        loadTodayReadiness();
-        loadRecoveryHistory();
-    });
-
-    // Biomarker Trend Chart
+    // Biomarker Trend Chart (loaded from API)
     var biomarkerOptions = {
-        series: [
-            { name: 'Testosterone', data: [680, 695, 710, 720, 715, 720] },
-            { name: 'Vitamin D', data: [45, 52, 58, 63, 65, 65] },
-            { name: 'Cortisol', data: [18, 17, 16, 15.5, 15.2, 15.2] }
-        ],
-        chart: {
-            height: 350,
-            type: 'line',
-            toolbar: { show: false }
-        },
-        stroke: {
-            curve: 'smooth',
-            width: 3
-        },
-        xaxis: {
-            categories: ['Set', 'Out', 'Nov', 'Dez', 'Jan', 'Fev']
-        },
-        yaxis: [{
-            title: { text: 'ng/dL' }
-        }],
-        colors: ['#3b82f6', '#f59e0b', '#ef4444']
+        series: [],
+        chart: { height: 350, type: 'line', toolbar: { show: false } },
+        stroke: { curve: 'smooth', width: 3 },
+        xaxis: { categories: [] },
+        noData: { text: 'No biomarker data yet' }
     };
     var biomarkerChart = new ApexCharts(document.querySelector("#biomarker-trend-chart"), biomarkerOptions);
     biomarkerChart.render();
+
+    $('#btn-upload-lab').on('click', function() { $('#lab-upload-input').click(); });
+    $('#lab-upload-input').on('change', async function() {
+        const file = this.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+            await $.ajax({
+                url: '/api/v1/health/biomarkers/upload',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: { 'Authorization': 'Bearer ' + CHOS.auth.getToken() }
+            });
+            CHOS.toast.success('Lab report processed');
+            window.location.reload();
+        } catch (err) {
+            CHOS.toast.error('Upload failed');
+        }
+    });
+
+    async function loadBiomarkerTrends() {
+        const chartEl = document.querySelector('#biomarker-trend-chart');
+        if (!chartEl || typeof biomarkerChart === 'undefined') return;
+        try {
+            const rows = await CHOS.api.get('/api/v1/health/biomarkers?limit=50');
+            if (!Array.isArray(rows) || rows.length === 0) {
+                biomarkerChart.updateOptions({ series: [], xaxis: { categories: [] } });
+                return;
+            }
+            const byName = {};
+            rows.forEach(function(r) {
+                const name = r.biomarker_name || 'unknown';
+                if (!byName[name]) byName[name] = [];
+                const dateKey = String(r.test_date).slice(0, 10);
+                byName[name].push({ date: dateKey, value: r.value });
+            });
+            const names = Object.keys(byName).slice(0, 3);
+            const categories = [...new Set(rows.map(r => String(r.test_date).slice(0, 10)))].sort().slice(-6);
+            const series = names.map(function(name) {
+                return {
+                    name: name,
+                    data: categories.map(function(d) {
+                        const hit = byName[name].find(x => x.date === d);
+                        return hit && hit.value != null ? hit.value : null;
+                    })
+                };
+            });
+            biomarkerChart.updateOptions({ xaxis: { categories }, series });
+        } catch (e) {
+            biomarkerChart.updateOptions({ series: [], xaxis: { categories: [] } });
+        }
+    }
+    loadBiomarkerTrends();
 </script>
 {% endblock %}

@@ -4,7 +4,7 @@ Tests workout generation for all 4 readiness bands
 """
 import pytest
 from httpx import AsyncClient
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from uuid import uuid4
 
 
@@ -223,6 +223,26 @@ class TestWorkoutSessions:
     """Test workout session CRUD"""
     
     @pytest.mark.asyncio
+    async def test_create_workout_session_minimal_payload(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        """Frontend sends workout_type + notes without movements list."""
+        payload = {
+            "workout_type": "mixed",
+            "duration_minutes": 45,
+            "rpe_score": 7,
+            "notes": "Quick session",
+        }
+
+        response = await authenticated_client.post("/api/v1/training/sessions", json=payload)
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["workout_type"] == "mixed"
+        assert data["duration_minutes"] == 45
+        assert data["rpe_score"] == 7
+
+    @pytest.mark.asyncio
     async def test_create_workout_session(
         self, authenticated_client: AsyncClient, db_session, seeded_user
     ):
@@ -241,6 +261,106 @@ class TestWorkoutSessions:
         data = response.json()
         assert data["workout_type"] == "strength"
         assert "id" in data
+
+    @pytest.mark.asyncio
+    async def test_create_session_links_explicit_planned_session(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        """POST /sessions stores planned_session_id when provided."""
+        from uuid import UUID
+
+        macro = await authenticated_client.post(
+            "/api/v1/schedule/macrocycles",
+            json={"name": "Link test", "methodology": "hwpo", "start_date": "2026-04-20"},
+        )
+        assert macro.status_code == 201, macro.text
+        micro_id = macro.json()["microcycles"][0]["id"]
+        listed = await authenticated_client.get(f"/api/v1/schedule/microcycles/{micro_id}")
+        planned = next(s for s in listed.json()["sessions"] if s["date"] == "2026-04-20")
+
+        response = await authenticated_client.post(
+            "/api/v1/training/sessions",
+            json={
+                "workout_type": "strength",
+                "planned_session_id": planned["id"],
+            },
+        )
+        assert response.status_code == 201, response.text
+        data = response.json()
+        assert data["planned_session_id"] == planned["id"]
+
+    @pytest.mark.asyncio
+    async def test_create_session_auto_links_planned_by_template_today(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        """When template_id matches today's generated planned session, link automatically."""
+        from datetime import date
+        from uuid import uuid4
+
+        from app.db.models import (
+            Macrocycle as MacrocycleDB,
+            Microcycle as MicrocycleDB,
+            PlannedSession as PlannedSessionDB,
+            WorkoutTemplate as WorkoutTemplateDB,
+        )
+        from app.core.datetime_utils import snap_to_monday, user_today
+
+        today = user_today({"timezone": "America/Sao_Paulo"})
+        monday = snap_to_monday(today)
+        macro = MacrocycleDB(
+            user_id=seeded_user.id,
+            name="Auto link",
+            methodology="hwpo",
+            start_date=monday,
+            end_date=monday + timedelta(days=6),
+            block_plan=[{"type": "accumulation", "weeks": 1}],
+            active=True,
+        )
+        db_session.add(macro)
+        db_session.flush()
+        micro = MicrocycleDB(
+            macrocycle_id=macro.id,
+            user_id=seeded_user.id,
+            start_date=monday,
+            end_date=monday + timedelta(days=6),
+            week_index_in_macro=1,
+        )
+        db_session.add(micro)
+        db_session.flush()
+        tmpl = WorkoutTemplateDB(
+            id=uuid4(),
+            name="Today WOD",
+            methodology="hwpo",
+            workout_type="mixed",
+            difficulty_level=3,
+            movements=[],
+        )
+        db_session.add(tmpl)
+        db_session.flush()
+        planned = PlannedSessionDB(
+            microcycle_id=micro.id,
+            user_id=seeded_user.id,
+            date=today,
+            order_in_day=1,
+            shift="morning",
+            duration_minutes=60,
+            workout_type="mixed",
+            status="generated",
+            generated_template_id=tmpl.id,
+        )
+        db_session.add(planned)
+        db_session.commit()
+        db_session.refresh(planned)
+
+        response = await authenticated_client.post(
+            "/api/v1/training/sessions",
+            json={
+                "workout_type": "mixed",
+                "template_id": str(tmpl.id),
+            },
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["planned_session_id"] == str(planned.id)
     
     @pytest.mark.asyncio
     async def test_complete_workout_session(
@@ -286,6 +406,36 @@ class TestWorkoutSessions:
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["workout_type"] == "strength"
+
+    @pytest.mark.asyncio
+    async def test_list_workout_sessions_date_filter(
+        self, authenticated_client: AsyncClient, db_session, seeded_user
+    ):
+        from datetime import timedelta
+        from app.db.models import WorkoutSession as WorkoutSessionDB
+
+        today = datetime.utcnow()
+        yesterday = today - timedelta(days=1)
+        db_session.add(WorkoutSessionDB(
+            user_id=seeded_user.id,
+            workout_type="strength",
+            started_at=today,
+        ))
+        db_session.add(WorkoutSessionDB(
+            user_id=seeded_user.id,
+            workout_type="metcon",
+            started_at=yesterday,
+        ))
+        db_session.commit()
+
+        today_iso = today.date().isoformat()
+        response = await authenticated_client.get(
+            f"/api/v1/training/sessions?start_date={today_iso}&end_date={today_iso}"
+        )
+        assert response.status_code == 200
+        data = response.json()
         assert len(data) == 1
         assert data[0]["workout_type"] == "strength"
 

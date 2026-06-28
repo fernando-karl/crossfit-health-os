@@ -37,24 +37,17 @@ npx playwright test --trace on
 
 ## Test Coverage
 
-| Test File | Status | Description |
-|-----------|--------|-------------|
-| `auth.spec.js` | ✅ 38 passing | Login, registration, password reset, validation |
-| `edge-cases.spec.js` | ✅ Passing | Error handling, input validation |
-| `dashboard.spec.js` | ⏸️ Needs backend fix | Requires bcrypt fix in backend |
-| `onboarding.spec.js` | ⏸️ Needs backend fix | Requires bcrypt fix in backend |
-| `profile.spec.js` | ⏸️ Needs backend fix | Requires bcrypt fix in backend |
+| Test File | Description |
+|-----------|-------------|
+| `public-pages.spec.js` | Landing, login, register, legal pages, auth redirect |
+| `dashboard.spec.js` | Authenticated dashboard, CHOS/JS, onboarding prompt |
+| `onboarding.spec.js` | Multi-step onboarding wizard |
+| `navigation.spec.js` | Desktop navbar + mobile bottom tabs |
+| `feature-pages.spec.js` | Training, nutrition, health, schedule, reviews, profile |
+| `auth.spec.js` | Login, registration, password reset (legacy copy assertions) |
+| `edge-cases.spec.js` | Error handling, input validation |
 
-## Backend Issue
-
-**Note:** The backend has a bcrypt/passlib compatibility issue that prevents user registration:
-```
-ERROR: app.api.v1.auth: Registration error: password cannot be longer than 72 bytes
-```
-
-This affects tests that require authenticated users. Once fixed:
-1. Run `createAndLoginTestUser()` helper to authenticate
-2. Move skipped tests back to their proper files
+**BASE_URL:** production systemd runs on `http://127.0.0.1:8003`; use `http://localhost:8000` for local uvicorn/docker.
 
 ## Test Structure
 
