@@ -20,6 +20,8 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="{{ seo.title }}">
 <meta name="twitter:description" content="{{ seo.description }}">
+<meta property="og:image" content="{{ seo.canonical_url.rstrip('/') }}/static/brand/icon-512.png">
+<meta name="twitter:image" content="{{ seo.canonical_url.rstrip('/') }}/static/brand/icon-512.png">
 <script type="application/ld+json">{{ schema_json | safe }}</script>
 {% endblock %}
 
@@ -34,7 +36,7 @@
 <nav class="lp-nav">
     <div class="lp-container lp-nav__inner">
         <a class="lp-nav__brand" href="/">
-            <span class="lp-mark" aria-hidden="true"></span>
+            {% include "partials/brand_mark_img.html" %}
             CrossFit Health OS
         </a>
         <ul class="lp-nav__links">

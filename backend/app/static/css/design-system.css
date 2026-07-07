@@ -265,8 +265,8 @@ h4, .h4 { font-size: 1.125rem; font-weight: 600; line-height: 1.35; }
    height: 22px;
    border-radius: 6px;
    flex-shrink: 0;
-   background: linear-gradient(135deg, var(--brand-accent), var(--brand-hot));
-   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08) inset;
+   display: block;
+   object-fit: cover;
 }
 
 .chos-brand__name,
@@ -519,6 +519,14 @@ h4, .h4 { font-size: 1.125rem; font-weight: 600; line-height: 1.35; }
    min-height: 40px;
    line-height: 1;
    white-space: nowrap;
+   text-decoration: none;
+}
+
+.chos-btn:hover,
+.chos-btn:focus,
+.chos-btn:active,
+.chos-btn:visited {
+   text-decoration: none;
 }
 
 .chos-btn:active {
@@ -2044,6 +2052,43 @@ body.chos-schedule-dragging .chos-day-dropzone { pointer-events: auto; }
 }
 .chos-set-log__toast.is-visible { display: block; }
 
+.chos-workout-warmup__body {
+   padding: var(--space-4);
+   border-left: 3px solid var(--brand-hot);
+   background: linear-gradient(135deg, rgba(255, 159, 10, 0.08), var(--surface-sunken));
+}
+.chos-workout-warmup__icon {
+   width: 2rem;
+   height: 2rem;
+   border-radius: var(--radius-md);
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   flex-shrink: 0;
+   background: rgba(255, 159, 10, 0.14);
+   color: var(--brand-hot);
+}
+.chos-workout-warmup__label {
+   font-size: 0.75rem;
+   font-weight: 600;
+   text-transform: uppercase;
+   letter-spacing: 0.04em;
+   color: var(--color-text-secondary);
+   margin-bottom: var(--space-2);
+}
+.chos-workout-warmup__text {
+   font-size: 0.875rem;
+   line-height: 1.55;
+   color: var(--color-text);
+}
+.chos-workout-tracking-modal .modal-header {
+   align-items: flex-start;
+}
+.chos-workout-tracking-modal .modal-footer {
+   border-top: 1px solid var(--color-border);
+   gap: var(--space-2);
+}
+
 /* Dashboard daily hub — mirrors landing loop steps 1–2 */
 .chos-card-hub {
    position: relative;
@@ -2132,6 +2177,16 @@ body.chos-schedule-dragging .chos-day-dropzone { pointer-events: auto; }
    background: currentColor;
    opacity: 0.5;
 }
+
+.chos-loop-focus {
+   animation: chos-loop-focus-pulse 1.2s ease-out;
+}
+
+@keyframes chos-loop-focus-pulse {
+   0%, 100% { box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08)); }
+   35% { box-shadow: 0 0 0 3px var(--brand-accent-soft), 0 0 0 1px var(--brand-accent); }
+}
+
 .chos-checkin-summary {
    padding: var(--space-4);
    border-radius: var(--radius-lg);
@@ -2913,8 +2968,9 @@ body.chos-cta-generate .chos-workout-hero__actions > .chos-btn-primary { display
    height: 64px;
    border-radius: 16px;
    margin-inline: auto;
-   background: linear-gradient(135deg, var(--brand-accent), var(--brand-hot));
-   opacity: 0.35;
+   margin-bottom: var(--space-4);
+   display: block;
+   object-fit: cover;
 }
 .chos-error-page__code {
    font-family: var(--font-display);

@@ -11,6 +11,8 @@ backend/.env.test
 # Environment files with credentials
 .env
 backend/.env
+client_secret.json
+**/client_secret*.json
 
 # tarball artifacts
 *.tar.gz

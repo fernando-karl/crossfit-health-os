@@ -177,6 +177,14 @@ async def healthkit_status(
 
 @router.get("/calendar/oauth/url")
 async def get_calendar_oauth_url(current_user: dict = Depends(get_current_user)):
+    from app.core.integrations.calendar import is_google_calendar_configured
+
+    if not is_google_calendar_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="google_calendar_not_configured",
+        )
+
     # Single-use random nonce bound to this user. Replaces the prior
     # ``state=user_id`` design which let an attacker hijack the callback
     # to write tokens into another user's row.
@@ -185,18 +193,18 @@ async def get_calendar_oauth_url(current_user: dict = Depends(get_current_user))
     return {"auth_url": url}
 
 
-@router.get("/calendar/oauth/callback")
-async def calendar_oauth_callback(
+async def handle_calendar_oauth_callback(
     request: Request,
     code: str = "",
     state: str = "",
     error: str = "",
-    db: Session = Depends(get_session),
+    *,
+    db: Session,
 ):
     """OAuth2 callback from Google. Stores refresh_token in users.preferences."""
     if error:
         logger.warning(f"Calendar OAuth error: {error}")
-        return RedirectResponse(url="/dashboard/profile?calendar=error")
+        return RedirectResponse(url="/dashboard/integrations?calendar=error")
 
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing code or state")
@@ -212,21 +220,42 @@ async def calendar_oauth_callback(
         tokens = await exchange_code(code)
         refresh_token = tokens.get("refresh_token")
 
-        if refresh_token:
-            user = db.get(UserDB, user_id)
-            if user:
-                prefs = dict(user.preferences or {})
-                prefs["google_calendar_refresh_token"] = refresh_token
-                user.preferences = prefs
-                db.commit()
+        if not refresh_token:
+            logger.warning(
+                "Calendar OAuth callback: no refresh_token for user %s", user_id
+            )
+            return RedirectResponse(
+                url="/dashboard/integrations?calendar=no_refresh"
+            )
 
-        return RedirectResponse(url="/dashboard/profile?calendar=connected")
+        user = db.get(UserDB, user_id)
+        if user:
+            prefs = dict(user.preferences or {})
+            prefs["google_calendar_refresh_token"] = refresh_token
+            user.preferences = prefs
+            db.commit()
+
+        return RedirectResponse(url="/dashboard/integrations?calendar=connected")
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Calendar OAuth exchange failed: {e}", exc_info=True)
-        return RedirectResponse(url="/dashboard/profile?calendar=error")
+        return RedirectResponse(url="/dashboard/integrations?calendar=error")
+
+
+@router.get("/calendar/oauth/callback")
+async def calendar_oauth_callback(
+    request: Request,
+    code: str = "",
+    state: str = "",
+    error: str = "",
+    db: Session = Depends(get_session),
+):
+    """Legacy API-path callback (kept for consoles that register the /api/... URI)."""
+    return await handle_calendar_oauth_callback(
+        request, code=code, state=state, error=error, db=db
+    )
 
 
 @router.post("/calendar/sync")

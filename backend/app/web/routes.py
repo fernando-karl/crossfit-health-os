@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends
 from fastapi.templating import Jinja2Templates
 from jinja2 import pass_context
 from pathlib import Path
@@ -13,6 +13,7 @@ from pathlib import Path
 from app.core.config import settings as _settings
 from app.core.i18n import DEFAULT_LOCALE, get_catalog, t as _t
 from app.core.nutrition_targets import get_active_diet_plan, resolve_macro_targets
+from app.db.session import get_session
 from app.web.seo import landing_schema_json as build_landing_schema_json
 from app.web.seo import landing_seo_meta as build_landing_seo_meta
 
@@ -440,8 +441,25 @@ async def onboarding_page(request: Request):
 # ============================================
 
 @router.get("/auth/callback")
-async def auth_callback(request: Request):
+async def auth_callback(
+    request: Request,
+    code: str = "",
+    state: str = "",
+    error: str = "",
+    db=Depends(get_session),
+):
     from fastapi.responses import RedirectResponse
+
+    # Google Calendar OAuth return (registered redirect URI in Google Cloud).
+    # Legacy Supabase email links use ?token=…&type=… — not Google OAuth.
+    query = request.query_params
+    is_calendar_oauth = bool(error or code or state) and not query.get("token")
+    if is_calendar_oauth:
+        from app.api.v1.integrations import handle_calendar_oauth_callback
+        return await handle_calendar_oauth_callback(
+            request, code=code, state=state, error=error, db=db
+        )
+
     return RedirectResponse(url="/login?legacy_auth=1", status_code=302)
 
 

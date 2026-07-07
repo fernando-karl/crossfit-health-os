@@ -1,0 +1,3 @@
+# Optional dev/asset tooling — not required for production runtime.
+-r requirements.txt
+cairosvg==2.9.0  # scripts/export-brand-icons.py (needs libcairo on the host)

@@ -53,14 +53,32 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    const calendarResult = new URLSearchParams(window.location.search).get('calendar');
+    if (calendarResult) {
+        if (calendarResult === 'connected') {
+            CHOS.toast.success(window.t('integrations.toast_gcal_connected'));
+            $('#calendar-status').text(window.t('integrations.gcal_connected_status'));
+        } else if (calendarResult === 'no_refresh') {
+            CHOS.toast.error(window.t('integrations.toast_gcal_no_refresh'));
+        } else if (calendarResult === 'error') {
+            CHOS.toast.error(window.t('integrations.toast_gcal_error'));
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     $('#btn-calendar-connect').on('click', function() {
         CHOS.api.get('/api/v1/integrations/calendar/oauth/url')
             .done(function(data) {
                 const url = data.auth_url || data.authorization_url;
                 if (url) window.location.href = url;
             })
-            .fail(function() {
-                CHOS.toast.error(window.t('integrations.toast_gcal_not_configured'));
+            .fail(function(xhr) {
+                const detail = xhr.responseJSON && xhr.responseJSON.detail;
+                if (detail === 'google_calendar_not_configured') {
+                    CHOS.toast.error(window.t('integrations.toast_gcal_not_configured'));
+                } else {
+                    CHOS.toast.error(detail || window.t('integrations.toast_gcal_not_configured'));
+                }
             });
     });
 

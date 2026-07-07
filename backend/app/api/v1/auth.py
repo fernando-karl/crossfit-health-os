@@ -139,7 +139,7 @@ def _set_access_cookie(response: Response, token: str) -> None:
     response.set_cookie(
         key=ACCESS_COOKIE_NAME,
         value=token,
-        max_age=settings.JWT_EXPIRATION_HOURS * 3600,
+        max_age=settings.JWT_ACCESS_TTL_MINUTES * 60,
         httponly=True,
         secure=(settings.ENVIRONMENT == "production"),
         samesite="lax",

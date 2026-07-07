@@ -508,18 +508,12 @@ test.describe('Edge Cases', () => {
       await page.locator('#email').fill('wrong@example.com');
       await page.locator('#password').fill('WrongPass');
       await page.locator('#login-btn').click();
-      
-      // Wait for error alert
-      await expect(page.locator('.lp-notice.is-danger, .alert-danger')).toBeVisible({ timeout: 10000 });
-      
-      // Close alert
-      const closeBtn = page.locator('.lp-notice.is-danger, .alert-danger button.btn-close');
-      if (await closeBtn.isVisible()) {
-        await closeBtn.click();
-        
-        // Alert should be gone
-        await expect(page.locator('.lp-notice.is-danger, .alert-danger')).not.toBeVisible();
-      }
+
+      const alert = page.locator('#alert-container .lp-notice.is-danger');
+      await expect(alert).toBeVisible({ timeout: 10000 });
+
+      await alert.locator('button.btn-close').click();
+      await expect(alert).not.toBeVisible();
     });
 
   });

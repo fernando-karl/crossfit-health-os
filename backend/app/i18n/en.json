@@ -354,7 +354,7 @@
       "estimated": "Estimated: {minutes} minutes"
     },
     "recovery_modal": {
-      "title": "Log Recovery Metrics",
+      "title": "Morning check-in",
       "subtitle": "Morning check-in — your readiness updates in real time.",
       "feel": "How do you feel today?",
       "feel_options": {
@@ -432,7 +432,8 @@
       "workout": "Workout",
       "train": "Train",
       "review": "Review",
-      "block": "Block"
+      "block": "Block",
+      "checkin_first": "Log your morning check-in first to see today's workout."
     },
     "review_teaser": {
       "title": "Weekly review",
@@ -528,6 +529,7 @@
     "total_time": "Total Time",
     "rest_timer": "Rest Timer",
     "movements": "Movements",
+    "warmup_activation": "Warm-up & activation",
     "overall_rpe": "Overall Workout RPE",
     "workout_notes": "Workout Notes",
     "notes_placeholder": "How did it feel?",
@@ -1463,6 +1465,10 @@
     "recovery_desc": "Sleep, energy, stress, and soreness — under a minute. That's how we calculate readiness and adjust your training.",
     "recovery_cta": "Go to check-in",
     "toast_gcal_not_configured": "Google Calendar is not configured on this server.",
+    "toast_gcal_connected": "Google Calendar connected successfully.",
+    "toast_gcal_error": "Could not connect Google Calendar. Please try again.",
+    "toast_gcal_no_refresh": "Google authorized the app but did not return a refresh token. Revoke access in your Google account and connect again.",
+    "gcal_connected_status": "Connected — use \"Sync week\" to create events.",
     "toast_synced": "Calendar synced",
     "toast_sync_failed": "Failed to sync calendar",
     "events_created": "{count} event(s) created — {status}"

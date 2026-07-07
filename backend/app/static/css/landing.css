@@ -104,8 +104,8 @@
 .lp-nav__brand .lp-mark {
     width: 22px; height: 22px;
     border-radius: 6px;
-    background: linear-gradient(135deg, var(--lp-accent), var(--lp-hot));
-    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.08) inset;
+    display: block;
+    object-fit: cover;
 }
 .lp-nav__links {
     display: flex;
@@ -1298,8 +1298,8 @@ html[data-theme="dark"] .lp-footer a:hover { color: var(--lp-text-on-dark); }
 .lp-auth__brand .lp-mark {
     width: 26px; height: 26px;
     border-radius: 7px;
-    background: linear-gradient(135deg, var(--lp-accent), var(--lp-hot));
-    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.08) inset;
+    display: block;
+    object-fit: cover;
 }
 .lp-auth__head { text-align: center; margin-bottom: 28px; }
 .lp-auth__title {
@@ -1378,6 +1378,9 @@ html[data-theme="dark"] .lp-footer a:hover { color: var(--lp-text-on-dark); }
    margin-bottom: 16px;
    font-size: 14px;
    border: 1px solid transparent;
+}
+.lp-notice.alert {
+   margin-bottom: 16px;
 }
 .lp-notice.is-danger {
    background: rgba(255, 59, 48, 0.08);

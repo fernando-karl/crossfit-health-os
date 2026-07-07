@@ -354,7 +354,7 @@
       "estimated": "Estimado: {minutes} minutos"
     },
     "recovery_modal": {
-      "title": "Registrar métricas de recovery",
+      "title": "Check-in matinal",
       "subtitle": "Check-in matinal — sua prontidão atualiza em tempo real.",
       "feel": "Como você se sente hoje?",
       "feel_options": {
@@ -439,7 +439,8 @@
       "workout": "Treino",
       "train": "Sessão",
       "review": "Review",
-      "block": "Bloco"
+      "block": "Bloco",
+      "checkin_first": "Faça o check-in matinal primeiro para ver o treino do dia."
     },
     "review_teaser": {
       "title": "Review semanal",
@@ -528,6 +529,7 @@
     "total_time": "Tempo total",
     "rest_timer": "Timer de descanso",
     "movements": "Movimentos",
+    "warmup_activation": "Aquecimento e ativação",
     "overall_rpe": "RPE geral do treino",
     "workout_notes": "Notas do treino",
     "notes_placeholder": "Como foi o treino?",
@@ -1463,6 +1465,10 @@
     "recovery_desc": "Sono, energia, estresse e dor muscular — menos de um minuto. É assim que calculamos seu readiness e ajustamos o treino.",
     "recovery_cta": "Ir para o check-in",
     "toast_gcal_not_configured": "Google Calendar não configurado neste servidor.",
+    "toast_gcal_connected": "Google Calendar conectado com sucesso.",
+    "toast_gcal_error": "Não foi possível conectar o Google Calendar. Tente novamente.",
+    "toast_gcal_no_refresh": "Google autorizou, mas não enviou token de atualização. Desconecte o app no Google e conecte de novo.",
+    "gcal_connected_status": "Conectado — use \"Sincronizar semana\" para criar eventos.",
     "toast_synced": "Calendário sincronizado",
     "toast_sync_failed": "Falha ao sincronizar calendário",
     "events_created": "{count} evento(s) criado(s) — {status}"

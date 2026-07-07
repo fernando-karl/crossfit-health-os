@@ -5,7 +5,7 @@
 {% block content %}
 <div class="chos-error-page">
     <div class="text-center" style="max-width: 28rem;">
-        <div class="chos-error-page__mark mb-4" aria-hidden="true"></div>
+        {% include "partials/brand_mark_error.html" %}
         <p class="chos-error-page__code is-danger mb-3">500</p>
         <h1 class="h3 fw-bold mb-3">{{ t("errors.page_500_title") }}</h1>
         <p class="text-secondary mb-4">{{ t("errors.page_500_body") }}</p>

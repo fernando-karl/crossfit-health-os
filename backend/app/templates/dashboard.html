@@ -349,13 +349,13 @@ const dashboardLoop = {
 let recoveryModal;
 
 $(document).ready(async function() {
-    // Check auth
-    const token = localStorage.getItem('access_token');
-    if (!token) {
+    try {
+        await CHOS.auth.ensureSession();
+    } catch (e) {
         window.location.href = '/login';
         return;
     }
-    
+
     // Initialize modal
     recoveryModal = new bootstrap.Modal(document.getElementById('recoveryModal'));
     if (window.CHOS && CHOS.checkin) {
@@ -597,6 +597,28 @@ function renderBadges(badges) {
 let todayWorkoutForHandoff = null;
 let todayPlannedSessionId = null;
 
+function focusLoopSection(step) {
+    const targets = {
+        checkin: '#readiness-summary',
+        workout: '#today-workout-container',
+        train: '#today-workout-container',
+        review: '#review-teaser-col',
+        block: '#mesocycle-col',
+    };
+    const sel = targets[step];
+    if (!sel) return false;
+    const el = document.querySelector(sel);
+    if (!el || el.classList.contains('d-none')) return false;
+
+    const highlight = el.closest('.chos-card-hub')
+        || el.closest('.chos-card')
+        || el;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    highlight.classList.add('chos-loop-focus');
+    window.setTimeout(function () { highlight.classList.remove('chos-loop-focus'); }, 1600);
+    return true;
+}
+
 function updateLoopStrip() {
     const steps = [
         { key: 'checkin', label: t('dashboard.loop.checkin'), done: dashboardLoop.hasRecoveryToday },
@@ -619,21 +641,32 @@ function updateLoopStrip() {
 
     $('#loop-strip').off('click', '[data-loop-step]').on('click', '[data-loop-step]', function () {
         const step = $(this).data('loop-step');
-        if (step === 'checkin') openRecoveryModal();
-        else if (step === 'workout') {
+        if (step === 'checkin') {
+            focusLoopSection('checkin');
+            return;
+        }
+        if (step === 'workout') {
             if (dashboardLoop.hasWorkout) {
-                document.getElementById('today-workout-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                focusLoopSection('workout');
             } else if (dashboardLoop.hasRecoveryToday) {
                 generateWorkout();
             } else {
-                openRecoveryModal();
+                focusLoopSection('checkin');
+                CHOS.toast.info(t('dashboard.loop.checkin_first'));
             }
+            return;
         }
-        else if (step === 'train') {
-            if (todayWorkoutForHandoff) startWorkout();
-            else window.location.href = '/dashboard/workouts';
+        if (step === 'train') {
+            if (todayWorkoutForHandoff) {
+                startWorkout();
+            } else if (CHOS.trainNow && (dashboardLoop.hasWorkout || dashboardLoop.hasPlannedSession)) {
+                CHOS.trainNow.start();
+            } else {
+                focusLoopSection('workout');
+            }
+            return;
         }
-        else if (step === 'review') window.location.href = '/dashboard/reviews';
+        if (step === 'review') window.location.href = '/dashboard/reviews';
         else if (step === 'block') window.location.href = '/dashboard/schedule';
     });
 }
@@ -759,8 +792,7 @@ async function renderReadinessSummary() {
     try {
         const recovery = await CHOS.api.get('/api/v1/health/recovery/latest').catch(() => null);
 
-        const todayStr = CHOS.todayLocalIso();
-        const isToday = recovery && String(recovery.date).slice(0, 10) === todayStr;
+        const isToday = recovery && CHOS.recoveryIsToday(recovery);
         dashboardLoop.hasRecoveryToday = !!isToday;
         dashboardLoop.lastReadinessScore = (isToday && recovery.readiness_score != null)
             ? Math.round(recovery.readiness_score) : null;

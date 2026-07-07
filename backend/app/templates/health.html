@@ -391,18 +391,19 @@
     // Load today's readiness + 7-day series for sparklines.
     async function loadTodayReadiness() {
         try {
-            const today = await CHOS.api.get('/api/v1/health/recovery/latest');
+            const latest = await CHOS.api.get('/api/v1/health/recovery/latest');
             const series7d = await CHOS.api.get('/api/v1/health/recovery?limit=7').catch(() => []);
+            const isToday = latest && CHOS.recoveryIsToday(latest);
 
-            if (today) {
-                const score = Math.round(today.readiness_score || 0);
+            if (isToday) {
+                const score = Math.round(latest.readiness_score || 0);
                 renderReadinessRing(score);
                 $('#readiness-score-display').html(`<span class="chos-badge" style="background:${readinessColor(score)}1a;color:${readinessColor(score)};">${readinessLabel(score)}</span>`);
 
-                $('#today-hrv').text(today.hrv_rmssd_ms || '--');
-                $('#today-sleep').text(today.sleep_duration_hours ? today.sleep_duration_hours + 'h' : '--');
-                $('#today-stress').text(today.stress_level || '--');
-                $('#today-soreness').text(today.muscle_soreness || '--');
+                $('#today-hrv').text(latest.hrv_rmssd_ms || '--');
+                $('#today-sleep').text(latest.sleep_duration_hours ? latest.sleep_duration_hours + 'h' : '--');
+                $('#today-stress').text(latest.stress_level || '--');
+                $('#today-soreness').text(latest.muscle_soreness || '--');
             } else {
                 showNoReadinessData();
             }
@@ -430,6 +431,8 @@
                 <i class="fas fa-plus-circle mb-2 d-block" style="font-size: 2.5rem;"></i>
                 <small>${t('health.no_data_today')}</small>
             </div>`;
+        $('#readiness-score-display').empty();
+        $('#today-hrv, #today-sleep, #today-stress, #today-soreness').text('--');
     }
 
     function readinessBadgeClass(score) {

@@ -11,6 +11,17 @@ from datetime import datetime, timezone, date
 class TestGetOAuthUrl:
     """Test OAuth URL generation"""
 
+    @pytest.fixture(autouse=True)
+    def _gcal_credentials(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.core.integrations.calendar.settings.GOOGLE_CALENDAR_CLIENT_ID",
+            "test-client-id.apps.googleusercontent.com",
+        )
+        monkeypatch.setattr(
+            "app.core.integrations.calendar.settings.GOOGLE_CALENDAR_CLIENT_SECRET",
+            "test-client-secret",
+        )
+
     def test_get_oauth_url_with_state(self):
         from app.core.integrations.calendar import get_oauth_url
         url = get_oauth_url(state="user_abc")

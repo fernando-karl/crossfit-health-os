@@ -127,8 +127,48 @@ All have safe empty defaults, so the app boots without them.
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLIC_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID` | Billing endpoints |
 | `INTERNAL_CRON_SECRET` | `POST /api/v1/internal/cron/weekly-reviews` (wire to an external scheduler) |
 | `SMTP_HOST`, `SMTP_FROM`, … | Password-reset emails via `/api/v1/auth/forgot-password` (logs link if unset) |
+| `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET` | Google Calendar connect + sync (`/dashboard/integrations`) |
 
-### Weekly review cron (systemd)
+### Google Calendar OAuth
+
+Set credentials in **`backend/.env`** (what systemd loads). Keys may also live in the
+repo-root `.env`; the app backfills them into settings when `backend/.env` omits them.
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services →
+   Credentials → **OAuth 2.0 Client ID** (Web application).
+2. Enable the **Google Calendar API** for the project.
+3. **Authorized redirect URI** (must match `FRONTEND_URL` exactly):
+
+   ```
+   https://<your-domain>/auth/callback
+   ```
+
+   Example for this host: `https://crossfit.leicbit.com/auth/callback`
+
+   The legacy API path `/api/v1/integrations/calendar/oauth/callback` still works
+   if you register both URIs in Google Cloud Console.
+4. Add to `backend/.env`:
+
+   ```env
+   GOOGLE_CALENDAR_CLIENT_ID=….apps.googleusercontent.com
+   GOOGLE_CALENDAR_CLIENT_SECRET=….
+   ```
+
+5. `systemctl restart crossfit`
+
+If credentials are missing or still placeholders (`your-client-id`), the connect
+button returns **503** with `google_calendar_not_configured` instead of sending the
+user to Google with an empty `client_id`.
+
+**OAuth state store:** with **2 uvicorn workers** (`crossfit.service`), set a working
+`REDIS_URL` in `backend/.env`. Without Redis, OAuth `state` nonces live in process
+memory and callbacks can fail with `Invalid or expired state` when the redirect
+hits the other worker.
+
+Never commit `client_secret.json` or OAuth secrets — use `GOOGLE_CALENDAR_*` in
+`backend/.env` only. If a JSON client file was ever added to the repo, rotate the
+secret in Google Cloud Console.
+
 
 Copy the unit files from `infra/systemd/` and enable the timer:
 

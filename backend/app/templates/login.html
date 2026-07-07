@@ -13,7 +13,7 @@
 <div class="lp-auth">
     <div class="lp-auth__card">
         <a href="/" class="lp-auth__brand">
-            <span class="lp-mark" aria-hidden="true"></span>
+            {% include "partials/brand_mark_img.html" %}
             CrossFit Health OS
         </a>
         <div class="lp-auth__head">
@@ -102,14 +102,21 @@ $(document).ready(function() {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
+    function bindNoticeDismiss($notice) {
+        $notice.find('.btn-close').on('click', function () {
+            $notice.remove();
+        });
+    }
+
     function showSuccessBanner(message) {
-        const banner = `
-            <div class="lp-notice is-success alert-dismissible fade show mb-3" role="status">
+        const $banner = $(`
+            <div class="lp-notice is-success alert alert-dismissible fade show mb-3" role="status">
                 <i class="fas fa-check-circle me-2" style="color: var(--lp-accent);"></i>${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" aria-label="${t('common.actions.close')}"></button>
             </div>
-        `;
-        $('#success-banner-container').html(banner);
+        `);
+        bindNoticeDismiss($banner);
+        $('#success-banner-container').html($banner);
     }
 
     $('#login-form').on('submit', function(e) {
@@ -159,13 +166,14 @@ $(document).ready(function() {
 
     function showAlert(message, type) {
         const cls = type === 'danger' ? 'is-danger' : 'is-success';
-        const alert = `
-            <div class="lp-notice ${cls} alert-dismissible fade show" role="alert">
+        const $alert = $(`
+            <div class="lp-notice ${cls} alert alert-dismissible fade show" role="alert">
                 ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" aria-label="${t('common.actions.close')}"></button>
             </div>
-        `;
-        $('#alert-container').html(alert);
+        `);
+        bindNoticeDismiss($alert);
+        $('#alert-container').html($alert);
     }
 });
 </script>

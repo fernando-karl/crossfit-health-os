@@ -13,7 +13,7 @@
 <div class="lp-auth">
     <div class="lp-auth__card lp-auth__card--wide">
         <a href="/" class="lp-auth__brand">
-            <span class="lp-mark" aria-hidden="true"></span>
+            {% include "partials/brand_mark_img.html" %}
             CrossFit Health OS
         </a>
         <div class="lp-auth__head">
@@ -197,15 +197,22 @@ $(document).ready(function() {
         });
     });
     
+    function bindNoticeDismiss($notice) {
+        $notice.find('.btn-close').on('click', function () {
+            $notice.remove();
+        });
+    }
+
     function showAlert(message, type) {
         const cls = type === 'danger' ? 'is-danger' : 'is-success';
-        const alert = `
-            <div class="lp-notice ${cls} alert-dismissible fade show" role="alert">
+        const $alert = $(`
+            <div class="lp-notice ${cls} alert alert-dismissible fade show" role="alert">
                 ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <button type="button" class="btn-close" aria-label="${t('common.actions.close')}"></button>
             </div>
-        `;
-        $('#alert-container').html(alert);
+        `);
+        bindNoticeDismiss($alert);
+        $('#alert-container').html($alert);
     }
 });
 </script>

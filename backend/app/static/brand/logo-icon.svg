@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CrossFit Health OS">
+  <defs>
+    <linearGradient id="chos-bg" x1="88" y1="88" x2="424" y2="424" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#30d158"/>
+      <stop offset="48%" stop-color="#45d462"/>
+      <stop offset="100%" stop-color="#ff9f0a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#chos-bg)"/>
+  <rect width="512" height="512" rx="112" fill="none" stroke="#000000" stroke-opacity="0.08" stroke-width="4"/>
+  <path d="M142 300 A128 128 0 0 1 370 300" fill="none" stroke="#ffffff" stroke-width="40" stroke-linecap="round"/>
+  <path d="M352 286 L398 300 L352 314 Z" fill="#ffffff"/>
+  <path d="M370 212 A128 128 0 0 1 142 212" fill="none" stroke="#ffffff" stroke-width="40" stroke-linecap="round"/>
+  <path d="M160 198 L114 212 L160 226 Z" fill="#ffffff"/>
+  <path d="M148 256 H192 L208 200 L244 312 L272 232 L296 256 H364" fill="none" stroke="#1d1d1f" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

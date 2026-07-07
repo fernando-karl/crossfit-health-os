@@ -4,10 +4,16 @@ Loads environment variables and provides typed settings
 """
 import logging
 import secrets
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from typing import List
 
 logger = logging.getLogger(__name__)
+
+# Resolve env files relative to this module so settings load correctly regardless
+# of the process cwd (systemd WorkingDirectory is backend/).
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+_REPO_ROOT = _BACKEND_DIR.parent
 
 # Sentinels we explicitly refuse to run with in production.
 _WEAK_SECRET_PATTERNS = (
@@ -109,9 +115,36 @@ class Settings(BaseSettings):
     SMTP_USE_SSL: bool = False
 
     class Config:
-        env_file = ".env"
+        env_file = str(_BACKEND_DIR / ".env")
         case_sensitive = True
         extra = "ignore"
+
+
+def _backfill_google_calendar_from_root_env(s: "Settings") -> None:
+    """Pick up Google Calendar creds from repo-root .env when missing in backend/.env.
+
+    Production systemd only loads ``backend/.env`` into the process environment;
+    operators sometimes place integration keys in the repo-root ``.env`` instead.
+    """
+    if (s.GOOGLE_CALENDAR_CLIENT_ID or "").strip() and (s.GOOGLE_CALENDAR_CLIENT_SECRET or "").strip():
+        return
+    root_env = _REPO_ROOT / ".env"
+    if not root_env.is_file():
+        return
+    want = {"GOOGLE_CALENDAR_CLIENT_ID", "GOOGLE_CALENDAR_CLIENT_SECRET"}
+    found: dict[str, str] = {}
+    for raw in root_env.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        if key in want:
+            found[key] = val.strip().strip('"').strip("'")
+    if not (s.GOOGLE_CALENDAR_CLIENT_ID or "").strip() and found.get("GOOGLE_CALENDAR_CLIENT_ID"):
+        s.GOOGLE_CALENDAR_CLIENT_ID = found["GOOGLE_CALENDAR_CLIENT_ID"]
+    if not (s.GOOGLE_CALENDAR_CLIENT_SECRET or "").strip() and found.get("GOOGLE_CALENDAR_CLIENT_SECRET"):
+        s.GOOGLE_CALENDAR_CLIENT_SECRET = found["GOOGLE_CALENDAR_CLIENT_SECRET"]
 
 
 def _validate_secret_key(s: "Settings") -> None:
@@ -175,5 +208,6 @@ def _resolve_domain_defaults(s: "Settings") -> None:
 
 # Global settings instance
 settings = Settings()
+_backfill_google_calendar_from_root_env(settings)
 _validate_secret_key(settings)
 _resolve_domain_defaults(settings)

@@ -22,22 +22,29 @@ function isTokenExpired(token) {
     }
 }
 
-// Utils object with authentication helpers
+// Utils object with authentication helpers (delegates to CHOS.auth when loaded)
 const AuthUtils = {
     /**
      * Check if user is authenticated
-     * @returns {boolean} True if user has valid access token
+     * @returns {boolean} True if user has valid access token or recoverable refresh
      */
     isAuthenticated: function() {
+        if (window.CHOS && CHOS.auth) {
+            return CHOS.auth.isAuthenticated();
+        }
+
         const accessToken = localStorage.getItem('access_token');
+        const refreshToken = localStorage.getItem('refresh_token');
+
+        if (refreshToken && (!accessToken || isTokenExpired(accessToken))) {
+            return true;
+        }
 
         if (!accessToken) {
             return false;
         }
 
-        // Check if token is expired
         if (isTokenExpired(accessToken)) {
-            // Clean up expired token
             localStorage.removeItem('access_token');
             localStorage.removeItem('user');
             return false;
@@ -71,21 +78,41 @@ const AuthUtils = {
      * Logout user - clear all auth data
      */
     logout: function() {
+        if (window.CHOS && CHOS.auth && CHOS.auth.logout) {
+            CHOS.auth.logout();
+            return;
+        }
         localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
         window.location.href = '/login';
     }
 };
 
-// Check if already authenticated and redirect to dashboard
+// On auth pages: if session is recoverable, refresh silently then redirect
 $(document).ready(function() {
     const currentPath = window.location.pathname;
     const authPages = ['/login', '/register', '/forgot-password'];
-    
-    if (authPages.includes(currentPath) && AuthUtils.isAuthenticated()) {
+
+    if (!authPages.includes(currentPath)) return;
+
+    function redirectIfAuthenticated() {
+        if (!AuthUtils.isAuthenticated()) return;
+
+        if (window.CHOS && CHOS.auth && CHOS.auth.ensureSession) {
+            CHOS.auth.ensureSession().then(function() {
+                const params = new URLSearchParams(window.location.search);
+                const dest = params.get('redirect');
+                const safeDest = dest && dest.startsWith('/') && !dest.startsWith('//') ? dest : '/dashboard';
+                window.location.href = safeDest;
+            }).catch(function() {
+                if (window.CHOS && CHOS.auth) CHOS.auth.clearStoredAuth();
+            });
+            return;
+        }
+
         window.location.href = '/dashboard';
     }
-});
 
-// Password validation is now handled by validation.js
-// (removed duplicate password strength and match validation code)
+    redirectIfAuthenticated();
+});

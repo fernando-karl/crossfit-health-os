@@ -22,6 +22,7 @@ const CHOS = {
    // ============================================
    auth: {
       _refreshing: null,
+      _ensuring: null,
 
       getToken() {
          return localStorage.getItem('access_token');
@@ -42,17 +43,23 @@ const CHOS = {
       },
 
       isAuthenticated() {
+         const refresh = this.getRefreshToken();
          const token = this.getToken();
+         if (refresh && (!token || isTokenExpired(token))) {
+            return true;
+         }
          if (!token) return false;
          if (isTokenExpired(token)) {
-            // Token expired but we may have a refresh token
-            if (this.getRefreshToken()) return true;
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('refresh_token');
+            this.clearStoredAuth();
             return false;
          }
          return true;
+      },
+
+      clearStoredAuth() {
+         localStorage.removeItem('access_token');
+         localStorage.removeItem('user');
+         localStorage.removeItem('refresh_token');
       },
 
       requireAuth() {
@@ -61,6 +68,32 @@ const CHOS = {
             return false;
          }
          return true;
+      },
+
+      /**
+       * Ensure a valid access token is available — refresh silently when needed.
+       * Deduplicates concurrent calls. Rejects when no recoverable session exists.
+       */
+      ensureSession() {
+         if (this._ensuring) return this._ensuring;
+
+         const token = this.getToken();
+         const refresh = this.getRefreshToken();
+
+         if (!token && !refresh) {
+            return $.when(Promise.reject(new Error('No session')));
+         }
+         if (token && !isTokenExpired(token)) {
+            return $.when(Promise.resolve(token));
+         }
+         if (refresh) {
+            this._ensuring = $.when(this.refreshAccessToken()).always(function() {
+               CHOS.auth._ensuring = null;
+            });
+            return this._ensuring;
+         }
+         this.clearStoredAuth();
+         return $.when(Promise.reject(new Error('Session expired')));
       },
 
       /**
@@ -94,9 +127,7 @@ const CHOS = {
             return response.access_token;
          }).fail(function() {
             CHOS.auth._refreshing = null;
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            localStorage.removeItem('user');
+            CHOS.auth.clearStoredAuth();
          });
 
          return this._refreshing;
@@ -104,14 +135,16 @@ const CHOS = {
 
       logout() {
          const token = this.getToken();
+         const refreshToken = this.getRefreshToken();
+         const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
          $.ajax({
             url: '/api/v1/auth/logout',
             type: 'POST',
-            headers: { 'Authorization': 'Bearer ' + token },
+            contentType: 'application/json',
+            headers: headers,
+            data: JSON.stringify({ refresh_token: refreshToken || null }),
             complete: function() {
-               localStorage.removeItem('access_token');
-               localStorage.removeItem('refresh_token');
-               localStorage.removeItem('user');
+               CHOS.auth.clearStoredAuth();
                window.location.href = '/';
             }
          });
@@ -325,7 +358,7 @@ const CHOS = {
       };
       try {
          const recovery = await CHOS.api.get('/api/v1/health/recovery/latest');
-         if (recovery) {
+         if (recovery && CHOS.recoveryIsToday(recovery)) {
             return {
                readiness_score: recovery.readiness_score ?? defaults.readiness_score,
                hrv_rmssd_ms: recovery.hrv_rmssd_ms ?? defaults.hrv_rmssd_ms,
@@ -397,6 +430,7 @@ const CHOS = {
             duration_minutes: template.duration_minutes || 60,
             description: template.description || '',
             target_stimulus: template.target_stimulus || '',
+            warm_up: template.warm_up || template.warmup || '',
             equipment_required: template.equipment_required || [],
             movements: movements
          },
@@ -406,6 +440,11 @@ const CHOS = {
       try {
          sessionStorage.setItem('chos-quick-workout', JSON.stringify(response));
       } catch (_) { /* storage might be disabled */ }
+      if (window.location.pathname === '/dashboard/workouts'
+          && typeof window.openWorkoutTracking === 'function') {
+         window.openWorkoutTracking(response);
+         return true;
+      }
       window.location.href = '/dashboard/workouts?quick=1';
       return true;
    },
@@ -417,6 +456,12 @@ const CHOS = {
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       return `${y}-${m}-${day}`;
+   },
+
+   /** True when a recovery row is dated today (local calendar). */
+   recoveryIsToday(recovery) {
+      if (!recovery || recovery.date == null || recovery.date === '') return false;
+      return String(recovery.date).slice(0, 10) === CHOS.todayLocalIso();
    },
 
    // Global "Train now" — next planned session from active macrocycle.
@@ -556,6 +601,7 @@ const CHOS = {
             Object.assign({}, template, { id: templateId }),
             { planned_session_id: session.id }
          );
+         done();
          return true;
       },
 
@@ -1013,20 +1059,11 @@ const CHOS = {
    // Dashboard Init
    // ============================================
    initDashboard() {
-      const token = this.auth.getToken();
-
-      // If token is expired but we have a refresh token, try refreshing
-      if (token && isTokenExpired(token) && this.auth.getRefreshToken()) {
-         this.auth.refreshAccessToken().then(function() {
-            CHOS._setupDashboardUI();
-         }).fail(function() {
-            window.location.href = '/login';
-         });
-         return;
-      }
-
-      if (!this.auth.requireAuth()) return;
-      this._setupDashboardUI();
+      this.auth.ensureSession().then(function() {
+         CHOS._setupDashboardUI();
+      }).catch(function() {
+         window.location.href = '/login';
+      });
    },
 
    _setupDashboardUI() {

@@ -155,6 +155,36 @@ class TestAuthCallbackPages:
         assert "/login" in response.headers.get("location", "")
 
     @pytest.mark.asyncio
+    async def test_auth_callback_calendar_error_delegates(self, async_client: AsyncClient):
+        """Google Calendar OAuth return on /auth/callback redirects to integrations."""
+        response = await async_client.get(
+            "/auth/callback?error=access_denied",
+            follow_redirects=False,
+        )
+        assert response.status_code in (302, 307)
+        assert "calendar=error" in response.headers.get("location", "")
+
+    @pytest.mark.asyncio
+    async def test_auth_callback_calendar_missing_code_returns_400(
+        self, async_client: AsyncClient
+    ):
+        """Calendar OAuth params without code return 400 (not legacy login redirect)."""
+        response = await async_client.get("/auth/callback?state=orphan-state")
+        assert response.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_auth_callback_legacy_token_ignores_stray_state(
+        self, async_client: AsyncClient
+    ):
+        """Legacy Supabase links with ?token= must not enter the Calendar handler."""
+        response = await async_client.get(
+            "/auth/callback?token=legacy_token&type=signup&state=orphan",
+            follow_redirects=False,
+        )
+        assert response.status_code == 302
+        assert "/login" in response.headers.get("location", "")
+
+    @pytest.mark.asyncio
     async def test_auth_verify(self, async_client: AsyncClient):
         """Legacy verify route redirects to local login."""
         response = await async_client.get(

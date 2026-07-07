@@ -3,50 +3,9 @@
 // API base URL
 const API_BASE = window.location.origin;
 
-// Auth middleware - Check authentication on protected pages
-function checkAuth() {
-    const token = localStorage.getItem('access_token');
-    const protectedPaths = ['/dashboard'];
-    const currentPath = window.location.pathname;
-    
-    // Check if current page requires auth
-    const isProtectedPage = protectedPaths.some(path => currentPath.startsWith(path));
-    
-    if (isProtectedPage && !token) {
-        // No token on protected page - redirect to login
-        window.location.href = '/login?redirect=' + encodeURIComponent(currentPath);
-        return false;
-    }
-    
-    return true;
-}
-
-// Setup jQuery AJAX defaults
-$.ajaxSetup({
-    beforeSend: function(xhr, settings) {
-        // Add auth token to requests if available
-        const token = localStorage.getItem('access_token');
-        if (token && !settings.url.includes('/auth/')) {
-            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-        }
-    },
-    error: function(xhr) {
-        // Handle 401 Unauthorized globally
-        if (xhr.status === 401) {
-            console.log('Unauthorized - clearing auth and redirecting to login');
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
-            if (!window.location.pathname.includes('/login')) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-            }
-        }
-    }
-});
-
-// Run auth check on page load
-$(document).ready(function() {
-    checkAuth();
-});
+// Auth middleware — protected pages rely on CHOS.auth.ensureSession() via
+// CHOS.initDashboard() in base.html. No duplicate redirect or 401 handler here
+// (those conflicted with CHOS.api token refresh).
 
 // Utility functions
 const Utils = {
@@ -88,8 +47,11 @@ const Utils = {
         }
     },
 
-    // Check if user is authenticated
+    // Check if user is authenticated (delegates to CHOS when available)
     isAuthenticated: function() {
+        if (window.CHOS && CHOS.auth) {
+            return CHOS.auth.isAuthenticated();
+        }
         const token = localStorage.getItem('access_token');
         if (!token) return false;
         if (this.isTokenExpired(token)) {
@@ -102,6 +64,9 @@ const Utils = {
     
     // Get current user
     getCurrentUser: function() {
+        if (window.CHOS && CHOS.auth) {
+            return CHOS.auth.getUser();
+        }
         const userStr = localStorage.getItem('user');
         return userStr ? JSON.parse(userStr) : null;
     }
@@ -134,18 +99,25 @@ $(document).ready(function() {
     });
 });
 
-// Logout handler for all pages
+// Logout handler for pages that use the legacy #logout-btn wiring
 $(document).ready(function() {
     $('#logout-btn').on('click', function(e) {
         e.preventDefault();
+        if (window.CHOS && CHOS.auth && CHOS.auth.logout) {
+            CHOS.auth.logout();
+            return;
+        }
         const token = localStorage.getItem('access_token');
-        
+        const refreshToken = localStorage.getItem('refresh_token');
         $.ajax({
             url: '/api/v1/auth/logout',
             type: 'POST',
+            contentType: 'application/json',
             headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+            data: JSON.stringify({ refresh_token: refreshToken || null }),
             complete: function() {
                 localStorage.removeItem('access_token');
+                localStorage.removeItem('refresh_token');
                 localStorage.removeItem('user');
                 window.location.href = '/';
             }

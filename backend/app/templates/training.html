@@ -302,6 +302,8 @@
                     workout_type: w.workout_type,
                     duration_minutes: w.duration_minutes,
                     description: meta.recommendation || w.description,
+                    warm_up: w.warm_up || '',
+                    target_stimulus: w.target_stimulus || '',
                     movements: w.movements || []
                 }, heroWorkoutPayload);
             });
@@ -331,6 +333,8 @@
                 workout_type: response.template?.workout_type || 'mixed',
                 duration_minutes: response.template?.duration_minutes || 60,
                 description: response.recommendation || response.template?.description || '',
+                warm_up: response.template?.warm_up || response.template?.warmup || '',
+                target_stimulus: response.template?.target_stimulus || '',
                 movements: response.adjusted_movements || response.template?.movements || []
             };
             // Attach workout to response for completeWorkout handler
@@ -453,6 +457,48 @@
         return parts.length ? parts.join(' ') : `<span class="text-secondary small">${t('training.as_prescribed')}</span>`;
     }
 
+    function buildWarmupSectionHtml(warmupText) {
+        const text = (warmupText || '').trim();
+        if (!text) return '';
+        const lines = text.split(' · ').map(function (part) {
+            return CHOS.escape(part.trim());
+        }).filter(Boolean);
+        return `
+            <div class="chos-card chos-workout-warmup mb-4">
+                <div class="card-body chos-workout-warmup__body">
+                    <div class="d-flex align-items-start gap-3">
+                        <span class="chos-workout-warmup__icon" aria-hidden="true"><i class="fas fa-fire"></i></span>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="chos-workout-warmup__label">${t('training.warmup_activation')}</div>
+                            <div class="chos-workout-warmup__text">${lines.join('<br>')}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function workoutPayloadFromResponse(response) {
+        const tpl = (response && response.template) || {};
+        const movements = response.adjusted_movements || tpl.movements || [];
+        const workout = {
+            name: tpl.name || t('training.adaptive_workout_default'),
+            workout_type: tpl.workout_type || 'mixed',
+            duration_minutes: tpl.duration_minutes || 60,
+            description: response.recommendation || tpl.description || tpl.target_stimulus || '',
+            warm_up: tpl.warm_up || tpl.warmup || '',
+            target_stimulus: tpl.target_stimulus || '',
+            movements: movements
+        };
+        response.workout = workout;
+        return { workout: workout, response: response };
+    }
+
+    window.openWorkoutTracking = function (response) {
+        if (!response || !response.template) return;
+        const payload = workoutPayloadFromResponse(response);
+        displayGeneratedWorkout(payload.workout, payload.response);
+    };
+
     // Display generated workout with tracking UI
     function displayGeneratedWorkout(workout, fullResponse) {
         currentWorkout = fullResponse;
@@ -560,29 +606,44 @@
         const adaptChip = volMult != null
             ? `<span class="chos-chip is-recovery"><span class="chip-dot"></span>${t('dashboard.adapted.volume', { mult: volMult })}</span>`
             : '';
+        const warmupHtml = buildWarmupSectionHtml(
+            workout.warm_up || workout.warmup
+            || (fullResponse && fullResponse.template && (fullResponse.template.warm_up || fullResponse.template.warmup))
+            || ''
+        );
+        const stimulusText = workout.target_stimulus
+            || (fullResponse && fullResponse.template && fullResponse.template.target_stimulus)
+            || '';
+        const stimulusChip = stimulusText
+            ? `<span class="chos-chip is-mind"><span class="chip-dot"></span>${CHOS.escape(
+                CHOS.stimulus && CHOS.stimulus.isKnown(stimulusText)
+                    ? CHOS.stimulus.label(stimulusText) : CHOS.humanize(stimulusText)
+            )}</span>`
+            : '';
 
         // Create tracking modal
         const modalHtml = `
             <div class="modal fade" id="workoutTrackingModal" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
-                    <div class="modal-content chos-modal">
-                        <div class="modal-header">
-                            <div>
-                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <div class="modal-content chos-modal chos-workout-tracking-modal">
+                        <div class="modal-header border-0 pb-0">
+                            <div class="w-100">
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                     <span class="chos-cat ${catCls}">${wtLabel}</span>
-                                    <span class="text-secondary">·</span>
                                     <span class="text-secondary small num"><i class="fas fa-clock me-1"></i>${workout.duration_minutes || 60} ${t('training.min')}</span>
-                                    ${readiness != null ? `<span class="text-secondary">·</span><span class="text-secondary small num"><i class="fas fa-heart-pulse me-1"></i>${t('training.readiness')} ${readiness}/100</span>` : ''}
+                                    ${readiness != null ? `<span class="text-secondary small num"><i class="fas fa-heart-pulse me-1"></i>${t('training.readiness')} ${readiness}/100</span>` : ''}
                                     ${adaptChip}
+                                    ${stimulusChip}
                                 </div>
                                 <h5 class="modal-title fw-bold mb-0">${CHOS.escape(workout.name || t('training.adaptive_workout_default'))}</h5>
                             </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="${t('common.actions.close')}"></button>
+                            <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="${t('common.actions.close')}"></button>
                         </div>
-                        <div class="modal-body">
-                            ${workout.description ? `<p class="text-body small mb-4">${CHOS.escape(workout.description)}</p>` : ''}
+                        <div class="modal-body pt-3">
+                            ${workout.description ? `<p class="text-secondary small mb-3">${CHOS.escape(workout.description)}</p>` : ''}
+                            ${warmupHtml}
 
-                            <!-- Timers — clean cards with category accents instead of solid color blocks -->
+                            <!-- Timers -->
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">
                                     <div class="chos-card h-100" style="border-left: 3px solid var(--cat-strength);">
@@ -1117,21 +1178,10 @@
         if (new URL(window.location.href).searchParams.get('quick') === '1') {
             const cached = sessionStorage.getItem('chos-quick-workout');
             sessionStorage.removeItem('chos-quick-workout');
-            history.replaceState(null, '', window.location.pathname);  // strip ?quick=1
+            history.replaceState(null, '', window.location.pathname);
             if (cached) {
                 try {
-                    const response = JSON.parse(cached);
-                    if (response && response.template) {
-                        const workout = {
-                            name: response.template.name || t('training.adaptive_workout_default'),
-                            workout_type: response.template.workout_type || 'mixed',
-                            duration_minutes: response.template.duration_minutes || 60,
-                            description: response.recommendation || response.template.description || '',
-                            movements: response.adjusted_movements || response.template.movements || []
-                        };
-                        response.workout = workout;  // completeWorkout() needs this
-                        displayGeneratedWorkout(workout, response);
-                    }
+                    openWorkoutTracking(JSON.parse(cached));
                 } catch (_) { /* fall through silently */ }
             }
         }

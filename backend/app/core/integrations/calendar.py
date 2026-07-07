@@ -10,6 +10,7 @@ Flow:
 import logging
 from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Optional, TypedDict, List
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -22,6 +23,45 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3"
 SCOPES = "https://www.googleapis.com/auth/calendar.events"
+
+_PLACEHOLDER_VALUES = frozenset({
+    "",
+    "your-client-id",
+    "your-client-secret",
+    "changeme",
+    "change-me",
+})
+
+
+def is_google_calendar_configured() -> bool:
+    """True when real OAuth credentials are present (not empty/placeholder)."""
+    client_id = (settings.GOOGLE_CALENDAR_CLIENT_ID or "").strip()
+    client_secret = (settings.GOOGLE_CALENDAR_CLIENT_SECRET or "").strip()
+    if client_id.lower() in _PLACEHOLDER_VALUES or client_secret.lower() in _PLACEHOLDER_VALUES:
+        return False
+    return bool(client_id and client_secret)
+
+
+def calendar_redirect_uri() -> str:
+    base = (settings.FRONTEND_URL or "").rstrip("/")
+    return f"{base}/auth/callback"
+
+
+def get_oauth_url(state: str = "") -> str:
+    """Generate Google OAuth2 authorization URL."""
+    if not is_google_calendar_configured():
+        raise ValueError("Google Calendar OAuth is not configured on this server")
+
+    params = {
+        "client_id": settings.GOOGLE_CALENDAR_CLIENT_ID.strip(),
+        "redirect_uri": calendar_redirect_uri(),
+        "response_type": "code",
+        "scope": SCOPES,
+        "access_type": "offline",
+        "prompt": "consent",
+        "state": state,
+    }
+    return f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
 
 
 class SessionSlot(TypedDict, total=False):
@@ -38,21 +78,6 @@ class DaySchedule(TypedDict, total=False):
     sessions: List[SessionSlot]
 
 
-def get_oauth_url(state: str = "") -> str:
-    """Generate Google OAuth2 authorization URL."""
-    params = {
-        "client_id": settings.GOOGLE_CALENDAR_CLIENT_ID,
-        "redirect_uri": f"{settings.FRONTEND_URL}/api/v1/integrations/calendar/oauth/callback",
-        "response_type": "code",
-        "scope": SCOPES,
-        "access_type": "offline",
-        "prompt": "consent",
-        "state": state,
-    }
-    qs = "&".join(f"{k}={v}" for k, v in params.items())
-    return f"{GOOGLE_AUTH_URL}?{qs}"
-
-
 async def exchange_code(code: str) -> dict:
     """Exchange authorization code for access + refresh tokens."""
     async with httpx.AsyncClient() as client:
@@ -60,7 +85,7 @@ async def exchange_code(code: str) -> dict:
             "code": code,
             "client_id": settings.GOOGLE_CALENDAR_CLIENT_ID,
             "client_secret": settings.GOOGLE_CALENDAR_CLIENT_SECRET,
-            "redirect_uri": f"{settings.FRONTEND_URL}/api/v1/integrations/calendar/oauth/callback",
+            "redirect_uri": calendar_redirect_uri(),
             "grant_type": "authorization_code",
         })
         resp.raise_for_status()

@@ -151,6 +151,29 @@ class TestHealthkitStatus:
 class TestCalendarOAuthUrl:
     """Test GET /calendar/oauth/url"""
 
+    @pytest.fixture(autouse=True)
+    def _gcal_credentials(self, monkeypatch):
+        monkeypatch.setattr(
+            "app.core.integrations.calendar.settings.GOOGLE_CALENDAR_CLIENT_ID",
+            "test-client-id.apps.googleusercontent.com",
+        )
+        monkeypatch.setattr(
+            "app.core.integrations.calendar.settings.GOOGLE_CALENDAR_CLIENT_SECRET",
+            "test-client-secret",
+        )
+
+    @pytest.mark.asyncio
+    async def test_get_oauth_url_not_configured_returns_503(
+        self, authenticated_client: AsyncClient, monkeypatch
+    ):
+        monkeypatch.setattr(
+            "app.core.integrations.calendar.settings.GOOGLE_CALENDAR_CLIENT_ID",
+            "",
+        )
+        response = await authenticated_client.get("/api/v1/integrations/calendar/oauth/url")
+        assert response.status_code == 503
+        assert response.json()["detail"] == "google_calendar_not_configured"
+
     @pytest.mark.asyncio
     async def test_get_oauth_url_returns_auth_url(
         self, authenticated_client: AsyncClient, mock_supabase, mock_user
@@ -239,10 +262,10 @@ class TestCalendarOAuthCallback:
         assert (seeded_user.preferences or {}).get("google_calendar_refresh_token") == "rt_xyz"
 
     @pytest.mark.asyncio
-    async def test_callback_no_refresh_token_still_redirects(
-        self, async_client: AsyncClient, mock_supabase, seeded_user
+    async def test_callback_no_refresh_token_redirects_no_refresh(
+        self, async_client: AsyncClient, db_session, seeded_user
     ):
-        """Test callback when response has no refresh_token still succeeds"""
+        """Missing refresh_token must not show a false success."""
         from app.core.oauth_state import issue_state
         tokens = {"access_token": "at_abc"}  # No refresh_token
         state = issue_state(seeded_user.id)
@@ -258,7 +281,7 @@ class TestCalendarOAuthCallback:
             )
 
         assert response.status_code in [302, 307]
-        assert "calendar=connected" in response.headers.get("location", "")
+        assert "calendar=no_refresh" in response.headers.get("location", "")
 
     @pytest.mark.asyncio
     async def test_callback_exchange_failure_redirects_error(

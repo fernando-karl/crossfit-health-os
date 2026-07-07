@@ -62,9 +62,13 @@ class TestIssueAndConsume:
 @pytest.mark.asyncio
 class TestCalendarOAuthUrl:
     async def test_state_is_random_not_user_id(
-        self, authenticated_client: AsyncClient, mock_user
+        self, authenticated_client: AsyncClient, mock_user, monkeypatch
     ):
         """The state in the auth URL must NOT be the bare user id."""
+        monkeypatch.setattr(
+            "app.core.integrations.calendar.is_google_calendar_configured",
+            lambda: True,
+        )
         with patch(
             "app.api.v1.integrations.get_oauth_url",
             return_value="https://accounts.google.com/auth?state=PLACEHOLDER",
